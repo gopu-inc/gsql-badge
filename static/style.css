@@ -1,0 +1,95 @@
+:root {
+  --bg: #0b0f19;
+  --card: #111827;
+  --text: #e5e7eb;
+  --accent: #0A84FF;
+  --border: #1f2937;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #111827, #020617);
+  color: var(--text);
+}
+
+.header {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2.2rem;
+}
+
+.header p {
+  opacity: 0.7;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 1rem;
+}
+
+.card {
+  background: linear-gradient(180deg, #0f172a, #020617);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.badge-preview {
+  margin: 1rem 0;
+}
+
+.file-input {
+  display: block;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.btn {
+  background: linear-gradient(135deg, var(--accent), #2563eb);
+  color: white;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.code {
+  background: #020617;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+
+.result {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #93c5fd;
+}
+
+.footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  opacity: 0.5;
+  font-size: 0.85rem;
+}
