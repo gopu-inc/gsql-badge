@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>{% block title %}GSQL Badges{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-  <header>
+  <header class="header">
     <h1>🚀 GSQL Badge Service</h1>
+    <p>Badges SVG modernes • PostgreSQL • Render</p>
   </header>
 
-  <main>
+  <main class="container">
     {% block content %}{% endblock %}
   </main>
 
-  <footer>
-    <p>© GSQL • powered by Gopu</p>
+  <footer class="footer">
+    <p>© GSQL — powered by Gopu.inc</p>
   </footer>
 
   <script src="/static/app.js"></script>
