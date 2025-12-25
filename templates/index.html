@@ -1,45 +1,29 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <title>GSQL Badges</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+{% extends "base.html" %}
 
-  <link rel="stylesheet" href="/static/style.css" />
-</head>
-<body>
+{% block title %}GSQL Badges{% endblock %}
 
-  <header>
-    <h1>🚀 GSQL Badge Service</h1>
-    <p>Badges SVG modernes — hébergés sur Render</p>
-  </header>
+{% block content %}
 
-  <section class="card">
-    <h2>🎖️ Badge officiel</h2>
+<section class="card">
+  <h2>🎖️ Badge officiel</h2>
 
-    <img src="/badge" alt="GSQL Badge" />
+  <img src="/badge" alt="Badge officiel GSQL" class="badge-preview">
 
-    <pre>
-![GSQL](https://TON-URL-RENDER/badge)
-    </pre>
-  </section>
+  <pre class="code">
+![GSQL](https://gsql-badge.onrender.com/badge)
+  </pre>
+</section>
 
-  <section class="card">
-    <h2>🧩 Créer ton badge</h2>
+<section class="card">
+  <h2>🧩 Créer ton badge</h2>
 
-    <input type="file" id="file" accept="image/*" />
-    <button onclick="upload()">Créer le badge</button>
+  <input type="file" id="file" accept="image/*" class="file-input">
 
-    <div id="result"></div>
-  </section>
+  <button onclick="upload()" class="btn">
+    Générer le badge
+  </button>
 
-  <footer>
-    <p>
-      © GSQL • powered by Gopu<br />
-      Badges SVG open-source
-    </p>
-  </footer>
+  <div id="result" class="result"></div>
+</section>
 
-  <script src="/static/app.js"></script>
-</body>
-</html>
+{% endblock %}
