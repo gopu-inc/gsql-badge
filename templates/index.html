@@ -246,4 +246,206 @@
           <i class="fas fa-hashtag"></i> Identifiant du badge (slug)
         </label>
         <input type="text" id="upload-slug" class="form-input" placeholder="mon-badge">
-        <p class="small-text">Utilisé dans l'URL : /
+        <p class="small-text">Utilisé dans l'URL : /badge/[slug]</p>
+      </div>
+      
+      <button onclick="uploadBadge()" class="btn btn-large">
+        <i class="fas fa-magic"></i> Générer le badge
+      </button>
+      
+      <div class="loading" id="upload-loading">
+        <div class="spinner"></div>
+        <p>Création de votre badge...</p>
+      </div>
+      
+      <div id="upload-result" class="result"></div>
+    </div>
+    
+    <!-- Onglet Avancé -->
+    <div id="advanced-tab" class="tab-content">
+      <div class="form-group">
+        <label class="form-label" for="advanced-slug">
+          <i class="fas fa-hashtag"></i> Slug
+        </label>
+        <input type="text" id="advanced-slug" class="form-input" placeholder="mon-projet">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="advanced-label">
+          <i class="fas fa-tag"></i> Label
+        </label>
+        <input type="text" id="advanced-label" class="form-input" placeholder="Version" value="Custom">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="advanced-message">
+          <i class="fas fa-comment"></i> Message
+        </label>
+        <input type="text" id="advanced-message" class="form-input" placeholder="1.0.0">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="advanced-color">
+          <i class="fas fa-palette"></i> Couleur
+        </label>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <input type="color" id="advanced-color-picker" value="#22c55e" style="width: 60px; height: 40px;">
+          <input type="text" id="advanced-color" class="form-input" placeholder="#22c55e" value="#22c55e">
+          <span id="color-preview" class="color-preview"></span>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-image"></i> Logo (optionnel)
+        </label>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <div style="flex: 1;">
+            <input type="file" id="advanced-file" accept="image/*" class="form-input">
+            <p class="small-text">Upload local</p>
+          </div>
+          <div style="flex: 2;">
+            <input type="url" id="advanced-logo-url" class="form-input" placeholder="https://exemple.com/logo.png">
+            <p class="small-text">URL externe</p>
+          </div>
+        </div>
+      </div>
+      
+      <button onclick="createAdvancedBadge()" class="btn btn-large">
+        <i class="fas fa-rocket"></i> Créer le badge
+      </button>
+      
+      <div class="loading" id="advanced-loading">
+        <div class="spinner"></div>
+        <p>Création de votre badge...</p>
+      </div>
+      
+      <div id="advanced-result" class="result"></div>
+    </div>
+    
+    <!-- Onglet API -->
+    <div id="api-tab" class="tab-content">
+      <h3><i class="fas fa-code"></i> Utilisation de l'API</h3>
+      
+      <p>Créez des badges programmatiquement :</p>
+      
+      <pre class="code"><code>// Requête POST vers /create
+curl -X POST https://gsql-badge.onrender.com/create \\
+  -H "Content-Type: application/json" \\
+  -d '{{
+    "slug": "python",
+    "label": "Python",
+    "message": "3.12",
+    "color": "#3776ab",
+    "logo_url": "https://www.python.org/static/favicon.ico"
+  }}'</code></pre>
+      
+      <h4>Endpoints disponibles :</h4>
+      <ul>
+        <li><code>GET /badge</code> - Badge officiel</li>
+        <li><code>GET /badge/&lt;slug&gt;</code> - Récupérer un badge</li>
+        <li><code>POST /create</code> - Créer/modifier un badge (JSON)</li>
+        <li><code>POST /upload</code> - Upload via formulaire</li>
+        <li><code>GET /list</code> - Lister tous les badges</li>
+        <li><code>GET /health</code> - Vérifier l'état du service</li>
+      </ul>
+      
+      <div class="api-test">
+        <h4><i class="fas fa-vial"></i> Tester l'API</h4>
+        <div class="form-group">
+          <textarea id="api-test-json" class="form-input" rows="6" style="font-family: monospace;">{
+  "slug": "test-badge",
+  "label": "Test",
+  "message": "API Works!",
+  "color": "#8b5cf6"
+}</textarea>
+        </div>
+        <button onclick="testAPI()" class="btn">
+          <i class="fas fa-play"></i> Exécuter la requête
+        </button>
+        <div id="api-test-result" class="result" style="margin-top: 1rem;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Documentation -->
+<section class="card" id="api-docs">
+  <h2><i class="fas fa-book"></i> Documentation</h2>
+  
+  <div class="docs-content">
+    <h3><i class="fas fa-link"></i> Intégration rapide</h3>
+    
+    <div class="integration-examples">
+      <div class="integration-card">
+        <h4><i class="fab fa-markdown"></i> Markdown</h4>
+        <pre class="code"><code>![Statut](https://gsql-badge.onrender.com/badge/mon-badge)</code></pre>
+      </div>
+      
+      <div class="integration-card">
+        <h4><i class="fab fa-html5"></i> HTML</h4>
+        <pre class="code"><code>&lt;img src="https://gsql-badge.onrender.com/badge/mon-badge" 
+     alt="Mon badge"
+     title="Description du badge"&gt;</code></pre>
+      </div>
+      
+      <div class="integration-card">
+        <h4><i class="fab fa-react"></i> React/JSX</h4>
+        <pre class="code"><code>&lt;img 
+  src={`https://gsql-badge.onrender.com/badge/${slug}`}
+  alt={label}
+/&gt;</code></pre>
+      </div>
+    </div>
+    
+    <h3><i class="fas fa-cog"></i> Paramètres avancés</h3>
+    <table class="params-table">
+      <thead>
+        <tr>
+          <th>Paramètre</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Exemple</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>slug</code></td>
+          <td>string</td>
+          <td>Identifiant unique (requis)</td>
+          <td><code>my-project</code></td>
+        </tr>
+        <tr>
+          <td><code>label</code></td>
+          <td>string</td>
+          <td>Texte de gauche (max 50 chars)</td>
+          <td><code>Version</code></td>
+        </tr>
+        <tr>
+          <td><code>message</code></td>
+          <td>string</td>
+          <td>Texte de droite (max 100 chars)</td>
+          <td><code>1.0.0</code></td>
+        </tr>
+        <tr>
+          <td><code>color</code></td>
+          <td>string</td>
+          <td>Couleur hexadécimale</td>
+          <td><code>#22c55e</code></td>
+        </tr>
+        <tr>
+          <td><code>logo_url</code></td>
+          <td>string</td>
+          <td>URL du logo à télécharger</td>
+          <td><code>https://.../logo.png</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+// Scripts seront ajoutés dans app.js
+</script>
+
+{% endblock %}
