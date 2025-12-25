@@ -1,29 +1,249 @@
 {% extends "base.html" %}
 
-{% block title %}GSQL Badges{% endblock %}
+{% block title %}GSQL Badges - Créateur de badges SVG{% endblock %}
+
+{% block extra_head %}
+<style>
+  .badge-showcase {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  
+  .badge-card {
+    background: linear-gradient(135deg, var(--card), var(--card-dark));
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .badge-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .badge-preview-large {
+    margin: 1rem 0;
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .tab-container {
+    margin: 2rem 0;
+  }
+  
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+  
+  .tab {
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  
+  .tab.active {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+  
+  .tab-content.active {
+    display: block;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  .form-input, .form-select {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1rem;
+  }
+  
+  .form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.1);
+  }
+  
+  .color-preview {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: middle;
+    border: 2px solid var(--border);
+  }
+  
+  .file-upload {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 1rem;
+  }
+  
+  .file-upload:hover {
+    border-color: var(--accent);
+    background: rgba(10, 132, 255, 0.05);
+  }
+  
+  .file-upload.dragover {
+    border-color: var(--accent);
+    background: rgba(10, 132, 255, 0.1);
+  }
+  
+  .badge-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  
+  .example-badge {
+    height: 20px;
+  }
+  
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .loading.active {
+    display: block;
+  }
+  
+  .spinner {
+    border: 3px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 
-<section class="card">
-  <h2>🎖️ Badge officiel</h2>
-
-  <img src="/badge" alt="Badge officiel GSQL" class="badge-preview">
-
-  <pre class="code">
-![GSQL](https://gsql-badge.onrender.com/badge)
-  </pre>
+<!-- Section d'introduction -->
+<section class="card" id="intro">
+  <div class="intro-content">
+    <h2><i class="fas fa-star"></i> Qu'est-ce que GSQL Badges ?</h2>
+    <p>GSQL Badges est un service gratuit qui vous permet de créer et héberger des badges SVG personnalisés pour vos projets GitHub, GitLab, README.md et sites web.</p>
+    
+    <div class="badge-examples">
+      <img src="/badge" alt="Badge officiel" class="example-badge">
+      <img src="https://img.shields.io/badge/build-passing-success" alt="Build passing" class="example-badge">
+      <img src="https://img.shields.io/badge/coverage-95%25-brightgreen" alt="Coverage" class="example-badge">
+      <img src="https://img.shields.io/badge/license-MIT-blue" alt="License" class="example-badge">
+      <img src="https://img.shields.io/badge/version-3.1.2-orange" alt="Version" class="example-badge">
+    </div>
+  </div>
 </section>
 
-<section class="card">
-  <h2>🧩 Créer ton badge</h2>
-
-  <input type="file" id="file" accept="image/*" class="file-input">
-
-  <button onclick="upload()" class="btn">
-    Générer le badge
-  </button>
-
-  <div id="result" class="result"></div>
+<!-- Showcase de badges -->
+<section class="card" id="examples">
+  <h2><i class="fas fa-images"></i> Badges populaires</h2>
+  <div class="badge-showcase">
+    <div class="badge-card">
+      <h3><i class="fas fa-shield-alt"></i> Badge officiel</h3>
+      <img src="/badge" alt="Badge officiel GSQL" class="badge-preview-large">
+      <pre class="code"><code>![GSQL](https://gsql-badge.onrender.com/badge)</code></pre>
+    </div>
+    
+    <div class="badge-card">
+      <h3><i class="fas fa-code"></i> Exemple personnalisé</h3>
+      <div id="custom-badge-example">
+        <!-- Rempli dynamiquement par JavaScript -->
+      </div>
+      <pre class="code" id="custom-badge-code"><code>![Custom](https://gsql-badge.onrender.com/badge/custom)</code></pre>
+    </div>
+    
+    <div class="badge-card">
+      <h3><i class="fas fa-cogs"></i> Badge dynamique</h3>
+      <p>Créez des badges qui changent automatiquement :</p>
+      <ul>
+        <li>Statut de build</li>
+        <li>Version du projet</li>
+        <li>Statut du déploiement</li>
+        <li>Métriques en temps réel</li>
+      </ul>
+    </div>
+  </div>
 </section>
 
-{% endblock %}
+<!-- Interface de création -->
+<section class="card" id="create">
+  <h2><i class="fas fa-plus-circle"></i> Créer ton badge</h2>
+  
+  <div class="tab-container">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('upload-tab')">
+        <i class="fas fa-upload"></i> Upload simple
+      </button>
+      <button class="tab" onclick="switchTab('advanced-tab')">
+        <i class="fas fa-sliders-h"></i> Avancé
+      </button>
+      <button class="tab" onclick="switchTab('api-tab')">
+        <i class="fas fa-code"></i> API
+      </button>
+    </div>
+    
+    <!-- Onglet Upload simple -->
+    <div id="upload-tab" class="tab-content active">
+      <div class="file-upload" id="drop-zone">
+        <i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 1rem; color: var(--accent);"></i>
+        <h3>Déposez votre logo ici</h3>
+        <p>ou cliquez pour sélectionner un fichier</p>
+        <p class="small-text">PNG, JPG, GIF, SVG ou ICO (max 2MB)</p>
+        <input type="file" id="file" accept="image/*" class="form-input" style="display: none;">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="upload-slug">
+          <i class="fas fa-hashtag"></i> Identifiant du badge (slug)
+        </label>
+        <input type="text" id="upload-slug" class="form-input" placeholder="mon-badge">
+        <p class="small-text">Utilisé dans l'URL : /
