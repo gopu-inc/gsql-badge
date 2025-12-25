@@ -1,5 +1,8 @@
 import re
 import html
+from functools import wraps
+from flask import request, jsonify
+import time
 
 def clean_slug(text):
     """Nettoie un slug pour être sûr"""
@@ -76,6 +79,40 @@ def validate_color(color):
     # Retourne une couleur par défaut si invalide
     return "#22c55e"
 
+# Dictionnaire pour stocker les compteurs de rate limiting
+_rate_limit_data = {}
+
+def rate_limit(requests_per_minute=60):
+    """Décorateur de rate limiting simple"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Récupérer l'adresse IP du client
+            ip = request.remote_addr
+            
+            # Nettoyer les anciennes données (plus de 1 minute)
+            current_time = time.time()
+            _rate_limit_data[ip] = [
+                t for t in _rate_limit_data.get(ip, [])
+                if current_time - t < 60
+            ]
+            
+            # Vérifier si la limite est dépassée
+            if len(_rate_limit_data.get(ip, [])) >= requests_per_minute:
+                return jsonify({
+                    "error": "Rate limit exceeded",
+                    "message": f"Maximum {requests_per_minute} requests per minute"
+                }), 429
+            
+            # Ajouter la requête actuelle
+            if ip not in _rate_limit_data:
+                _rate_limit_data[ip] = []
+            _rate_limit_data[ip].append(current_time)
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 def is_safe_filename(filename):
     """Vérifie si un nom de fichier est sûr"""
     if not filename:
@@ -95,3 +132,8 @@ def is_safe_filename(filename):
             return True
     
     return False
+
+def validate_hex_color(color):
+    """Valide une couleur hexadécimale de manière stricte"""
+    pattern = re.compile(r'^#(?:[0-9a-fA-F]{3}){1,2}$')
+    return bool(pattern.match(color))
