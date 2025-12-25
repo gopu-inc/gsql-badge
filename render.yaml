@@ -9,9 +9,7 @@ services:
 
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: gsql-postgres
-          property: connectionString
+        sync: false   # 🔐 définie manuellement dans Render
 
       - key: PORT
         value: 10000
@@ -19,9 +17,4 @@ services:
       - key: PYTHONUNBUFFERED
         value: "1"
 
-    healthCheckPath: /
-
-databases:
-  - name: gsql-postgres
-    plan: free
-    region: oregon
+    healthCheckPath: /health
