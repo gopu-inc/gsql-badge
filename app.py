@@ -3,6 +3,9 @@ import requests
 from db import get_db
 from utils.svg import generate_badge_svg
 from utils.base64 import image_to_base64
+from db import init_db
+
+init_db()  # 🔥 auto-création DB + badge officiel
 
 app = Flask(__name__)
 
