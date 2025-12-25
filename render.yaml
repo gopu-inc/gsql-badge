@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: gsql-badge-service
+    env: docker
+    plan: free
+    region: oregon
+
+    dockerfilePath: ./Dockerfile
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gsql-postgres
+          property: connectionString
+
+      - key: PORT
+        value: 10000
+
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+    healthCheckPath: /
+
+databases:
+  - name: gsql-postgres
+    plan: free
+    region: oregon
