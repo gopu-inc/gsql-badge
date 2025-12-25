@@ -14,6 +14,9 @@ OFFICIAL_LOGO_URL = "https://raw.githubusercontent.com/gopu-inc/gsql/refs/heads/
 @app.route("/")
 def index():
     return render_template("index.html")
+@app.route("/health")
+def health():
+    return "GSQL V3.1.2 manager by gopu.inc", 200
 
 @app.route("/badge")
 def official_badge():
