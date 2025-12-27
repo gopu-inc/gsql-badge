@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zenv Package Hub - {% block title %}Hébergement de Packages Python{% endblock %}</title>
+    <title>
+        {% if page_title %}
+            {{ page_title }} - Zenv Package Hub
+        {% else %}
+            Zenv Package Hub - Gestion de paquets Python avancée
+        {% endif %}
+    </title>
     
-    <!-- Bootstrap 5.3 Dark Theme -->
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- Highlight.js pour la coloration syntaxique -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/monokai.min.css">
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Custom CSS -->
+    <!-- CSS Personnalisé -->
     <style>
         :root {
             --primary-color: #0d6efd;
@@ -24,135 +29,318 @@
             --danger-color: #dc3545;
             --warning-color: #ffc107;
             --info-color: #0dcaf0;
-            --dark-bg: #121212;
-            --darker-bg: #0a0a0a;
-            --card-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --muted-text: #aaa;
+            --dark-color: #212529;
+            --light-color: #f8f9fa;
+            --zenv-purple: #6f42c1;
+            --zenv-blue: #0dcaf0;
         }
         
-        body {
-            background-color: var(--dark-bg);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        .gradient-bg {
+            background: linear-gradient(135deg, var(--zenv-purple) 0%, var(--primary-color) 100%);
         }
         
-        .navbar {
-            background-color: var(--darker-bg) !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+        }
+        
+        .nav-link.active {
+            color: var(--zenv-blue) !important;
+            border-bottom: 2px solid var(--zenv-blue);
+        }
+        
+        .btn-zenv {
+            background: linear-gradient(135deg, var(--zenv-purple), var(--primary-color));
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-zenv:hover {
+            background: linear-gradient(135deg, var(--primary-color), var(--zenv-purple));
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
         }
         
         .card {
-            background-color: var(--card-bg);
-            border: 1px solid #333;
-            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--dark-color);
         }
         
-        .sidebar {
-            position: fixed;
-            top: 56px;
-            left: 0;
-            bottom: 0;
-            width: 250px;
-            background-color: var(--darker-bg);
-            border-right: 1px solid #333;
-            padding: 20px;
-            overflow-y: auto;
-            z-index: 1000;
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
         }
         
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
+        .card-header {
+            background: rgba(13, 110, 253, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .stat-card {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #0a58ca 100%);
-            color: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
+        .badge-custom {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.35em 0.65em;
+        }
+        
+        .language-badge {
+            background: var(--zenv-purple) !important;
         }
         
         .package-card {
-            transition: transform 0.3s, box-shadow 0.3s;
-            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
         
-        .package-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        .package-card .card-body {
+            flex-grow: 1;
         }
         
-        .btn-gradient {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
-            border: none;
-            color: white;
+        .package-card .card-footer {
+            background: transparent;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .btn-gradient:hover {
-            background: linear-gradient(135deg, #0b5ed7 0%, #0da5d0 100%);
-            color: white;
+        .stat-card {
+            background: rgba(13, 202, 240, 0.1);
+            border-left: 4px solid var(--zenv-blue);
         }
         
         .code-block {
-            background-color: #2d2d2d;
-            border-radius: 5px;
-            padding: 15px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        
+        .code-header {
+            background: #2d2d2d;
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #404040;
+        }
+        
+        .language-tag {
+            background: var(--zenv-purple);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .copy-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: var(--zenv-purple);
+        }
+        
+        .inline-code {
+            background: rgba(13, 202, 240, 0.1);
+            color: var(--zenv-blue);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
             font-family: 'Courier New', monospace;
-            border-left: 4px solid var(--primary-color);
+            font-size: 0.9em;
         }
         
         .table-dark {
-            background-color: var(--card-bg);
+            --bs-table-bg: #1a1a1a;
+            --bs-table-striped-bg: #2d2d2d;
+            --bs-table-hover-bg: #323232;
         }
         
-        .table-dark th {
-            background-color: #333;
-            border-color: #444;
+        .blockquote {
+            border-left: 4px solid var(--zenv-purple);
+            padding-left: 1rem;
+            margin-left: 0;
+            font-style: italic;
+            color: #adb5bd;
         }
         
-        .table-dark td {
-            border-color: #444;
+        .badge-display {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
-        .badge-package {
-            background-color: var(--primary-color);
+        .markdown-content {
+            line-height: 1.6;
+        }
+        
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            color: var(--zenv-blue);
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        
+        .markdown-content pre {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        
+        .markdown-content code {
+            color: var(--zenv-blue);
+        }
+        
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        
+        .version-tag {
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+        
+        .download-count {
+            font-size: 0.9rem;
+            color: var(--warning-color);
+        }
+        
+        .footer {
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 3rem;
+            padding: 2rem 0;
+        }
+        
+        .pagination .page-link {
+            background: var(--dark-color);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--zenv-blue);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .sidebar {
+            position: sticky;
+            top: 1rem;
+        }
+        
+        .sidebar .nav-link {
+            color: #adb5bd;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(13, 110, 253, 0.1);
+            color: var(--zenv-blue);
+        }
+        
+        .sidebar .nav-link.active {
+            background: rgba(13, 110, 253, 0.2);
+            color: var(--zenv-blue);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-right: 2.5rem;
+        }
+        
+        .search-box .bi-search {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .form-control, .form-select {
+            background: #1a1a1a;
+            border-color: rgba(255, 255, 255, 0.1);
             color: white;
         }
         
-        .badge-release {
-            background-color: var(--success-color);
+        .form-control:focus, .form-select:focus {
+            background: #1a1a1a;
+            border-color: var(--zenv-blue);
             color: white;
+            box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
         }
         
-        .badge-user {
-            background-color: var(--info-color);
-            color: white;
+        .alert {
+            border: none;
+            border-left: 4px solid transparent;
+        }
+        
+        .alert-success {
+            border-left-color: var(--success-color);
+            background: rgba(25, 135, 84, 0.1);
+        }
+        
+        .alert-danger {
+            border-left-color: var(--danger-color);
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .alert-warning {
+            border-left-color: var(--warning-color);
+            background: rgba(255, 193, 7, 0.1);
+        }
+        
+        .alert-info {
+            border-left-color: var(--info-color);
+            background: rgba(13, 202, 240, 0.1);
+        }
+        
+        .admin-table th {
+            background: rgba(111, 66, 193, 0.2);
+            border-bottom: 2px solid var(--zenv-purple);
         }
         
         @media (max-width: 768px) {
             .sidebar {
-                width: 100%;
                 position: static;
-                height: auto;
-            }
-            
-            .main-content {
-                margin-left: 0;
+                margin-bottom: 2rem;
             }
         }
     </style>
-    
-    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
+    <!-- Barre de navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark gradient-bg">
+        <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i class="bi bi-box-seam me-2"></i>
-                <strong>Zenv Package Hub</strong>
+                Zenv Package Hub
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -162,72 +350,73 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="bi bi-house"></i> Accueil
+                        <a class="nav-link {% if page == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-house-door me-1"></i> Accueil
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('api_list_packages') }}">
-                            <i class="bi bi-box"></i> Packages
+                        <a class="nav-link {% if page == 'packages' %}active{% endif %}" href="{{ url_for('list_packages') }}">
+                            <i class="bi bi-box me-1"></i> Packages
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('list_organizations') }}">
-                            <i class="bi bi-people"></i> Organisations
+                        <a class="nav-link {% if page == 'badges' %}active{% endif %}" href="{{ url_for('list_badges') }}">
+                            <i class="bi bi-award me-1"></i> Badges
                         </a>
                     </li>
-                    {% if 'user_id' in session %}
+                    {% if session.get('usr_id') %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
+                        <a class="nav-link {% if page == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if session.get('role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if page == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                            <i class="bi bi-shield-lock me-1"></i> Admin
                         </a>
                     </li>
                     {% endif %}
                 </ul>
                 
-                <ul class="navbar-nav">
-                    {% if 'user_id' in session %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> {{ session.get('username', 'User') }}
-                            </a>
+                <div class="d-flex align-items-center">
+                    {% if session.get('usr_id') %}
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-1"></i> {{ session.get('username', 'Utilisateur') }}
+                            </button>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('upload_package') }}">
-                                    <i class="bi bi-upload"></i> Upload Package
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                {% if session.get('role') == 'admin' %}
-                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
-                                    <i class="bi bi-shield-check"></i> Admin
+                                <li><a class="dropdown-item" href="#">
+                                    <i class="bi bi-gear me-2"></i> Paramètres
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                {% endif %}
-                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                                <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Déconnexion
                                 </a></li>
                             </ul>
-                        </li>
+                        </div>
+                        
+                        <a href="{{ url_for('generate_badge') }}" class="btn btn-zenv me-2">
+                            <i class="bi bi-plus-circle me-1"></i> Créer un Badge
+                        </a>
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">
-                                <i class="bi bi-box-arrow-in-right"></i> Connexion
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">
-                                <i class="bi bi-person-plus"></i> Inscription
-                            </a>
-                        </li>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light me-2">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Connexion
+                        </a>
+                        <a href="{{ url_for('register') }}" class="btn btn-zenv">
+                            <i class="bi bi-person-plus me-1"></i> Inscription
+                        </a>
                     {% endif %}
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Messages Flash -->
+    <!-- Messages flash -->
     <div class="container mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -241,175 +430,152 @@
         {% endwith %}
     </div>
 
-    <!-- Sidebar (seulement sur dashboard et admin) -->
-    {% if request.endpoint in ['dashboard', 'admin_dashboard', 'package_view', 'upload_package'] %}
-    <div class="sidebar d-none d-lg-block">
-        <div class="mb-4">
-            <h5><i class="bi bi-menu-button-wide"></i> Navigation</h5>
-            <ul class="nav flex-column">
-                {% if request.endpoint == 'dashboard' %}
-                <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('dashboard') }}">
-                        <i class="bi bi-speedometer2"></i> Tableau de bord
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('upload_package') }}">
-                        <i class="bi bi-upload"></i> Upload Package
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-box"></i> Mes Packages
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-download"></i> Mes Téléchargements
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-key"></i> API Keys
-                    </a>
-                </li>
-                {% elif request.endpoint == 'admin_dashboard' %}
-                <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
-                        <i class="bi bi-speedometer2"></i> Admin Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-people"></i> Utilisateurs
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-box"></i> Packages
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-graph-up"></i> Statistiques
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-gear"></i> Configuration
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-        
-        <div class="mb-4">
-            <h5><i class="bi bi-info-circle"></i> Info</h5>
-            <p class="small text-muted">
-                <i class="bi bi-github"></i> GitHub: <a href="https://github.com/gopu-inc/zenv" target="_blank">gopu-inc/zenv</a>
-            </p>
-            <p class="small text-muted">
-                <i class="bi bi-discord"></i> Discord: <a href="https://discord.gg/qWx5DszrC" target="_blank">Rejoindre</a>
-            </p>
-        </div>
-        
-        {% if request.endpoint == 'dashboard' %}
-        <div class="card bg-dark">
-            <div class="card-body">
-                <h6 class="card-title">GitHub Auto-Commit</h6>
-                <p class="small">Les packages sont automatiquement commités sur la branche <code>package</code> de votre repo GitHub.</p>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="autoCommit" checked>
-                    <label class="form-check-label small" for="autoCommit">Auto-Commit activé</label>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Contenu Principal -->
-    <div class="{% if request.endpoint in ['dashboard', 'admin_dashboard', 'package_view', 'upload_package'] %}main-content{% else %}container{% endif %} py-4">
+    <!-- Contenu principal -->
+    <main class="container py-4">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-muted py-4 mt-5 border-top border-secondary">
+    <!-- Pied de page -->
+    <footer class="footer">
         <div class="container">
             <div class="row">
-                <div class="col-md-4">
-                    <h5>Zenv Package Hub</h5>
-                    <p>Hébergement sécurisé de packages Python avec intégration GitHub automatique.</p>
+                <div class="col-md-4 mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi bi-box-seam me-2"></i> Zenv Package Hub
+                    </h5>
+                    <p class="text-muted">
+                        Plateforme de gestion de paquets Python avancée avec système de badges et d'évaluation.
+                    </p>
                 </div>
-                <div class="col-md-4">
-                    <h5>Liens Rapides</h5>
+                <div class="col-md-2 mb-4">
+                    <h6>Navigation</h6>
                     <ul class="list-unstyled">
-                        <li><a href="{{ url_for('index') }}" class="text-muted">Accueil</a></li>
-                        <li><a href="{{ url_for('api_list_packages') }}" class="text-muted">Packages</a></li>
-                        <li><a href="{{ url_for('list_organizations') }}" class="text-muted">Organisations</a></li>
-                        <li><a href="https://github.com/gopu-inc/zenv" class="text-muted">GitHub</a></li>
+                        <li><a href="{{ url_for('index') }}" class="text-muted text-decoration-none">Accueil</a></li>
+                        <li><a href="{{ url_for('list_packages') }}" class="text-muted text-decoration-none">Packages</a></li>
+                        <li><a href="{{ url_for('list_badges') }}" class="text-muted text-decoration-none">Badges</a></li>
+                        <li><a href="{{ github_url }}" class="text-muted text-decoration-none" target="_blank">GitHub</a></li>
                     </ul>
                 </div>
-                <div class="col-md-4">
-                    <h5>Contact</h5>
+                <div class="col-md-3 mb-4">
+                    <h6>Ressources</h6>
                     <ul class="list-unstyled">
-                        <li><i class="bi bi-envelope"></i> ceoseshell@gmail.com</li>
-                        <li><i class="bi bi-discord"></i> https://discord.gg/qWx5DszrC</li>
-                        <li><i class="bi bi-shield-check"></i> Sécurité: SHA256/SHA512 + JWT</li>
+                        <li><a href="#" class="text-muted text-decoration-none">Documentation</a></li>
+                        <li><a href="{{ discord_url }}" class="text-muted text-decoration-none" target="_blank">Discord</a></li>
+                        <li><a href="mailto:{{ email }}" class="text-muted text-decoration-none">Support</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">API</a></li>
                     </ul>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <h6>Statistiques</h6>
+                    <p class="text-muted mb-1">
+                        <i class="bi bi-people me-2"></i> {{ total_usrs|default(0) }} utilisateurs
+                    </p>
+                    <p class="text-muted mb-1">
+                        <i class="bi bi-box me-2"></i> {{ total_packages|default(0) }} packages
+                    </p>
+                    <p class="text-muted">
+                        <i class="bi bi-download me-2"></i> {{ total_downloads|default(0) }} téléchargements
+                    </p>
                 </div>
             </div>
-            <hr class="bg-secondary">
-            <div class="text-center">
-                <p class="mb-0">&copy; 2023 Zenv Package Hub. Tous droits réservés.</p>
-                <p class="small">MIT License | PostgreSQL | Flask | Git LFS</p>
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">
+                        &copy; {{ now.year }} Zenv Package Hub. Tous droits réservés.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="text-muted mb-0">
+                        Version 1.0.0 • Développé avec <i class="bi bi-heart-fill text-danger"></i> par la communauté
+                    </p>
+                </div>
             </div>
         </div>
     </footer>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
     
     <script>
-        // Initialiser DataTables
-        $(document).ready(function() {
-            $('table').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                },
-                pageLength: 25,
-                order: []
+        // Activer Highlight.js
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.querySelectorAll('pre code').forEach((el) => {
+                hljs.highlightElement(el);
             });
         });
         
-        // Gérer le thème sombre
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => {
-                document.documentElement.setAttribute('data-bs-theme', 
-                    document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark'
-                );
-            });
+        // Fonction pour copier le code
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block');
+            const codeElement = codeBlock.querySelector('code');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            // Animation de feedback
+            const originalText = button.textContent;
+            button.textContent = 'Copié!';
+            button.style.background = 'var(--success-color)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
         }
         
-        // Gérer l'auto-commit
-        const autoCommitToggle = document.getElementById('autoCommit');
-        if (autoCommitToggle) {
-            autoCommitToggle.addEventListener('change', function() {
-                localStorage.setItem('autoCommit', this.checked);
-            });
-            
-            // Restaurer l'état
-            const savedState = localStorage.getItem('autoCommit');
-            if (savedState !== null) {
-                autoCommitToggle.checked = savedState === 'true';
+        // Gestion de la recherche
+        function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput && searchInput.value.trim()) {
+                window.location.href = `{{ url_for('list_packages') }}?q=${encodeURIComponent(searchInput.value)}`;
+            }
+        }
+        
+        // Filtrage par langage
+        function filterByLanguage(lang) {
+            window.location.href = `{{ url_for('list_packages') }}?lang=${encodeURIComponent(lang)}`;
+        }
+        
+        // Mode somme/clair (prêt pour le futur)
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        
+        // Charger le thème sauvegardé
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        }
+        
+        // Confirmation de suppression
+        function confirmDelete(message) {
+            return confirm(message || 'Êtes-vous sûr de vouloir supprimer cet élément ?');
+        }
+        
+        // Afficher/masquer le mot de passe
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            if (input.type === 'password') {
+                input.type = 'text';
+            } else {
+                input.type = 'password';
             }
         }
     </script>
     
-    {% block extra_js %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 </html>
