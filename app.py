@@ -1212,7 +1212,56 @@ def sync_status():
             status['git_error'] = str(e)
     
     return jsonify(status)
-
+@app.route('/api/debug/files', methods=['GET'])
+@token_required
+def debug_files():
+    """Debug: Voir l'état du système"""
+    import os
+    import subprocess
+    
+    result = {
+        'timestamp': datetime.now().isoformat(),
+        'database': {
+            'path': app.config['DATABASE_PATH'],
+            'exists': os.path.exists(app.config['DATABASE_PATH']),
+            'size': os.path.getsize(app.config['DATABASE_PATH']) if os.path.exists(app.config['DATABASE_PATH']) else 0
+        },
+        'git_repo': {
+            'path': app.config['GIT_REPO_PATH'],
+            'exists': os.path.exists(app.config['GIT_REPO_PATH'])
+        },
+        'packages_dir': {
+            'path': app.config['PACKAGE_DIR'],
+            'exists': os.path.exists(app.config['PACKAGE_DIR']),
+            'files': []
+        }
+    }
+    
+    # Lister les fichiers packages
+    if os.path.exists(app.config['PACKAGE_DIR']):
+        for item in os.listdir(app.config['PACKAGE_DIR']):
+            item_path = os.path.join(app.config['PACKAGE_DIR'], item)
+            if os.path.isdir(item_path):
+                for file in os.listdir(item_path):
+                    file_path = os.path.join(item_path, file)
+                    if os.path.isfile(file_path):
+                        result['packages_dir']['files'].append({
+                            'package': item,
+                            'file': file,
+                            'size': os.path.getsize(file_path)
+                        })
+    
+    # Vérifier Git
+    if os.path.exists(app.config['GIT_REPO_PATH']):
+        try:
+            git_result = subprocess.run(['git', 'log', '-1', '--oneline'], 
+                                      cwd=app.config['GIT_REPO_PATH'], 
+                                      capture_output=True, text=True)
+            result['git_last_commit'] = git_result.stdout.strip() if git_result.returncode == 0 else "Erreur"
+        except:
+            result['git_last_commit'] = "Erreur d'exécution"
+    
+    return jsonify(result)
 # ============================================================================
 # INITIALISATION
 # ============================================================================
