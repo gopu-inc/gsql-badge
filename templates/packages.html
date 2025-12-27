@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- En-tête avec recherche et filtres -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h4 class="mb-0">
+                            <i class="bi bi-box me-2"></i>Tous les Packages
+                        </h4>
+                        <p class="text-muted mb-0">{{ total }} packages disponibles</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2">
+                            <div class="search-box flex-grow-1">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="searchInput" 
+                                       placeholder="Rechercher un package..."
+                                       value="{{ search or '' }}"
+                                       onkeypress="if(event.key === 'Enter') performSearch()">
+                                <i class="bi bi-search"></i>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" 
+                                        type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="bi bi-filter me-1"></i>
+                                    {% if language %}
+                                        {{ language }}
+                                    {% else %}
+                                        Tous les langages
+                                    {% endif %}
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ url_for('list_packages') }}">Tous les langages</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for lang in languages %}
+                                    <li>
+                                        <a class="dropdown-item" 
+                                           href="{{ url_for('list_packages', lang=lang) }}">
+                                            {{ lang }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des packages -->
+<div class="row">
+    {% for package in packages %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card package-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">
+                            <a href="{{ url_for('package_detail', package_name=package.name) }}" 
+                               class="text-decoration-none">
+                                {{ package.name }}
+                            </a>
+                        </h5>
+                        <span class="version-tag">{{ package.version }}</span>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" 
+                                   href="{{ url_for('package_detail', package_name=package.name) }}">
+                                    <i class="bi bi-eye me-2"></i>Voir
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-download me-2"></i>Télécharger
+                                </a>
+                            </li>
+                            {% if session.get('usr_id') == package.usr_id or session.get('role') == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-warning" href="#">
+                                    <i class="bi bi-pencil me-2"></i>Éditer
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" 
+                                   href="#"
+                                   onclick="return confirmDelete('Supprimer ce package ?')">
+                                    <i class="bi bi-trash me-2"></i>Supprimer
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <p class="card-text text-muted small mb-3">
+                    {{ package.description|default('Aucune description disponible')|truncate(150) }}
+                </p>
+                
+                <!-- Badges du package -->
+                {% if package.badges %}
+                <div class="mb-3">
+                    {% for badge in package.badges[:3] %}
+                    <img src="{{ url_for('serve_badge_svg', badge_name=badge.name) }}" 
+                         alt="{{ badge.label }}: {{ badge.value }}"
+                         style="height: 20px; margin-right: 5px;"
+                         title="{{ badge.label }}: {{ badge.value }}">
+                    {% endfor %}
+                    {% if package.badges|length > 3 %}
+                    <span class="badge bg-secondary">+{{ package.badges|length - 3 }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Métadonnées -->
+                <div class="d-flex justify-content-between align-items-center small text-muted">
+                    <div>
+                        <i class="bi bi-person me-1"></i>
+                        <span>{{ package.author_name or package.author }}</span>
+                    </div>
+                    <div class="text-end">
+                        <div>
+                            <i class="bi bi-download me-1"></i>
+                            {{ package.downloads_count|default(0) }} téléchargements
+                        </div>
+                        <div>
+                            <i class="bi bi-clock me-1"></i>
+                            {{ package.created_at|datetimeformat('%d/%m/%Y') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-secondary">{{ package.language|default('Python') }}</span>
+                    <a href="{{ url_for('package_detail', package_name=package.name) }}" 
+                       class="btn btn-sm btn-outline-primary">
+                        Détails <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-box display-1 text-muted mb-3"></i>
+                <h4>Aucun package trouvé</h4>
+                <p class="text-muted mb-4">
+                    {% if search %}
+                        Aucun package ne correspond à votre recherche "{{ search }}"
+                    {% elif language %}
+                        Aucun package dans le langage "{{ language }}"
+                    {% else %}
+                        Aucun package n'a été publié pour le moment.
+                    {% endif %}
+                </p>
+                {% if session.get('usr_id') %}
+                <a href="#" class="btn btn-zenv">
+                    <i class="bi bi-cloud-upload me-1"></i>Publier le premier package
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_num > 1 %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="{{ url_for('list_packages', page=page_num-1, q=search, lang=language) }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page_num %}
+            <li class="page-item active">
+                <span class="page-link">{{ p }}</span>
+            </li>
+            {% elif (p >= page_num - 2) and (p <= page_num + 2) %}
+            <li class="page-item">
+                <a class="page-link" 
+                   href="{{ url_for('list_packages', page=p, q=search, lang=language) }}">
+                    {{ p }}
+                </a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page_num < total_pages %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="{{ url_for('list_packages', page=page_num+1, q=search, lang=language) }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Langages populaires -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-code-slash me-2"></i>Langages populaires
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('list_packages', lang='python') }}" 
+               class="btn btn-outline-primary">
+                Python
+            </a>
+            <a href="{{ url_for('list_packages', lang='zenv') }}" 
+               class="btn btn-outline-primary">
+                Zenv
+            </a>
+            <a href="{{ url_for('list_packages', lang='javascript') }}" 
+               class="btn btn-outline-primary">
+                JavaScript
+            </a>
+            <a href="{{ url_for('list_packages', lang='docker') }}" 
+               class="btn btn-outline-primary">
+                Docker
+            </a>
+            <a href="{{ url_for('list_packages', lang='bash') }}" 
+               class="btn btn-outline-primary">
+                Bash
+            </a>
+            <a href="{{ url_for('list_packages', lang='yaml') }}" 
+               class="btn btn-outline-primary">
+                YAML
+            </a>
+            <a href="{{ url_for('list_packages') }}" 
+               class="btn btn-outline-secondary">
+                Voir tous
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
