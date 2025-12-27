@@ -11,6 +11,8 @@ WORKDIR /app
 # Dépendances système nécessaires à psycopg2
 RUN apt-get update && apt-get install -y \
     gcc \
+    git \
+    python \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
