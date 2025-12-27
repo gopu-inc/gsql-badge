@@ -1195,7 +1195,138 @@ def get_package(name):
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+# Ajoute cette route dans ton app.py
 
+@app.route('/api/packages/upload', methods=['POST'])
+@token_required
+def upload_package_file():
+    """Uploader un fichier de package"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'Aucun fichier fourni'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Nom de fichier vide'}), 400
+        
+        # Vérifier l'extension
+        allowed_extensions = {'.whl', '.tar.gz', '.zip', '.egg'}
+        if not any(file.filename.endswith(ext) for ext in allowed_extensions):
+            return jsonify({'error': 'Type de fichier non supporté'}), 400
+        
+        # Récupérer les métadonnées du formulaire
+        package_name = request.form.get('name')
+        version = request.form.get('version')
+        
+        if not package_name or not version:
+            return jsonify({'error': 'Nom et version du package requis'}), 400
+        
+        # Créer le répertoire pour le package
+        package_dir = os.path.join(app.config['PACKAGE_DIR'], package_name)
+        os.makedirs(package_dir, exist_ok=True)
+        
+        # Sauvegarder le fichier
+        filename = f"{package_name}-{version}{os.path.splitext(file.filename)[1]}"
+        filepath = os.path.join(package_dir, filename)
+        file.save(filepath)
+        
+        # Calculer le hash
+        with open(filepath, 'rb') as f:
+            file_hash = hashlib.sha256(f.read()).hexdigest()
+        
+        # Sauvegarder en base de données
+        db = get_db()
+        cursor = db.cursor()
+        
+        cursor.execute('''
+            INSERT OR REPLACE INTO releases (package_id, version, filename, file_size, file_hash)
+            VALUES (
+                (SELECT id FROM packages WHERE name = ?),
+                ?, ?, ?, ?
+            )
+        ''', (package_name, version, filename, os.path.getsize(filepath), file_hash))
+        
+        db.commit()
+        
+        return jsonify({
+            'message': 'Fichier uploadé avec succès',
+            'package': {
+                'name': package_name,
+                'version': version,
+                'filename': filename,
+                'size': os.path.getsize(filepath),
+                'hash': file_hash,
+                'download_url': f'https://zenv-hub.onrender.com/api/packages/download/{package_name}/{version}'
+            }
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/packages/download/<package_name>/<version>', methods=['GET'])
+def download_package(package_name, version):
+    """Télécharger un package"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Récupérer le fichier
+        cursor.execute('''
+            SELECT filename FROM releases r
+            JOIN packages p ON r.package_id = p.id
+            WHERE p.name = ? AND r.version = ?
+        ''', (package_name, version))
+        
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': 'Package non trouvé'}), 404
+        
+        filename = row['filename']
+        filepath = os.path.join(app.config['PACKAGE_DIR'], package_name, filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'Fichier non trouvé'}), 404
+        
+        # Incrémenter le compteur de téléchargements
+        cursor.execute('''
+            UPDATE packages 
+            SET downloads_count = downloads_count + 1 
+            WHERE name = ?
+        ''', (package_name,))
+        db.commit()
+        
+        return send_file(filepath, as_attachment=True, download_name=filename)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/packages/files', methods=['GET'])
+def list_package_files():
+    """Lister tous les fichiers de packages disponibles"""
+    packages_dir = app.config['PACKAGE_DIR']
+    
+    if not os.path.exists(packages_dir):
+        return jsonify({'files': [], 'count': 0})
+    
+    files_list = []
+    for package_name in os.listdir(packages_dir):
+        package_dir = os.path.join(packages_dir, package_name)
+        if os.path.isdir(package_dir):
+            for filename in os.listdir(package_dir):
+                filepath = os.path.join(package_dir, filename)
+                if os.path.isfile(filepath):
+                    files_list.append({
+                        'package': package_name,
+                        'filename': filename,
+                        'size': os.path.getsize(filepath),
+                        'modified': datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat(),
+                        'download_url': f'https://zenv-hub.onrender.com/api/packages/download/{package_name}/{filename}'
+                    })
+    
+    return jsonify({
+        'files': files_list,
+        'count': len(files_list)
+    })
 # ============================================================================
 # INITIALISATION
 # ============================================================================
