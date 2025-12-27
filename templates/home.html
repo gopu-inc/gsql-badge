@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center py-5 mb-5 rounded-3 gradient-bg">
+    <div class="container py-5">
+        <h1 class="display-4 fw-bold mb-4">
+            <i class="bi bi-box-seam me-3"></i>Zenv Package Hub
+        </h1>
+        <p class="lead mb-4">
+            La plateforme de gestion de paquets Zenv avancée avec système de badges, 
+            évaluation communautaire et déploiement automatisé.
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('list_packages') }}" class="btn btn-light btn-lg px-4">
+                <i class="bi bi-search me-2"></i>Explorer les Packages
+            </a>
+            {% if not session.get('usr_id') %}
+            <a href="{{ url_for('register') }}" class="btn btn-zenv btn-lg px-4">
+                <i class="bi bi-rocket-takeoff me-2"></i>Commencer Gratuitement
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-5">
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h2 class="display-6 fw-bold">{{ total_usrs|default(0) }}</h2>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-people fs-4 me-2"></i>Utilisateurs
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h2 class="display-6 fw-bold">{{ total_packages|default(0) }}</h2>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-box fs-4 me-2"></i>Packages
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h2 class="display-6 fw-bold">{{ total_downloads|default(0) }}</h2>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-download fs-4 me-2"></i>Téléchargements
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <h2 class="display-6 fw-bold">{{ popular_badges|length|default(0) }}</h2>
+                <p class="text-muted mb-0">
+                    <i class="bi bi-award fs-4 me-2"></i>Badges Actifs
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Packages récents -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Packages Récents
+                </h4>
+                <a href="{{ url_for('list_packages') }}" class="btn btn-sm btn-outline-primary">
+                    Voir tous <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_packages %}
+                <div class="row">
+                    {% for package in recent_packages %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card package-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">
+                                        <a href="{{ url_for('package_detail', package_name=package.name) }}" 
+                                           class="text-decoration-none">
+                                            {{ package.name }}
+                                        </a>
+                                    </h5>
+                                    <span class="version-tag">{{ package.version }}</span>
+                                </div>
+                                <p class="card-text text-muted small mb-2">
+                                    {{ package.description|truncate(100) }}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person me-1"></i>
+                                        {{ package.author_name or package.author }}
+                                    </small>
+                                    <small class="download-count">
+                                        <i class="bi bi-download me-1"></i>
+                                        {{ package.downloads_count|default(0) }}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <div class="d-flex justify-content-between">
+                                    <span class="badge bg-secondary">{{ package.language|default('Python') }}</span>
+                                    <small class="text-muted">
+                                        {{ package.created_at|datetimeformat('%d/%m/%Y') }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-box display-1 text-muted mb-3"></i>
+                    <p class="text-muted">Aucun package n'a été publié pour le moment.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Badges populaires -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-award me-2"></i>Badges Populaires
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if popular_badges %}
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% for badge in popular_badges %}
+                    <a href="{{ url_for('badge_detail', badge_name=badge.name) }}" 
+                       class="text-decoration-none">
+                        <img src="{{ url_for('serve_badge_svg', badge_name=badge.name) }}" 
+                             alt="{{ badge.label }}: {{ badge.value }}"
+                             style="height: 20px;">
+                    </a>
+                    {% endfor %}
+                </div>
+                
+                <div class="list-group">
+                    {% for badge in popular_badges %}
+                    <a href="{{ url_for('badge_detail', badge_name=badge.name) }}" 
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ badge.label }}</strong>
+                            <br>
+                            <small class="text-muted">{{ badge.value }}</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ badge.usage_count|default(0) }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-award display-1 text-muted mb-3"></i>
+                    <p class="text-muted">Aucun badge n'a été créé pour le moment.</p>
+                    <a href="{{ url_for('generate_badge') }}" class="btn btn-zenv btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Créer un badge
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Appel à l'action -->
+        <div class="card mt-4">
+            <div class="card-body text-center">
+                <i class="bi bi-code-slash display-4 text-primary mb-3"></i>
+                <h5>Développeur Zenv ?</h5>
+                <p class="text-muted small">
+                    Publiez votre package et obtenez des badges de qualité pour votre projet.
+                </p>
+                <a href="{{ url_for('dashboard') if session.get('usr_id') else url_for('register') }}" 
+                   class="btn btn-zenv w-100">
+                    {% if session.get('usr_id') %}
+                    <i class="bi bi-cloud-upload me-1"></i>Publier un Package
+                    {% else %}
+                    <i class="bi bi-person-plus me-1"></i>S'inscrire Gratuitement
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Caractéristiques -->
+<div class="row mt-5">
+    <div class="col-12 mb-4">
+        <h3 class="text-center mb-4">
+            <i class="bi bi-stars me-2"></i>Pourquoi Choisir Zenv ?
+        </h3>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-shield-check display-4 text-success mb-3"></i>
+                <h5>Sécurité Renforcée</h5>
+                <p class="text-muted small">
+                    Analyse automatique des vulnérabilités et vérification des signatures.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-award display-4 text-warning mb-3"></i>
+                <h5>Système de Badges</h5>
+                <p class="text-muted small">
+                    Badges de qualité, sécurité et popularité pour chaque package.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-github display-4 text-dark mb-3"></i>
+                <h5>Intégration GitHub</h5>
+                <p class="text-muted small">
+                    Synchronisation automatique avec vos dépôts GitHub.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-graph-up display-4 text-info mb-3"></i>
+                <h5>Analytiques Avancées</h5>
+                <p class="text-muted small">
+                    Statistiques détaillées des téléchargements et de l'utilisation.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
