@@ -1,5 +1,5 @@
 """
-Zenv Package Hub - Version corrigée pour Flask moderne
+Zenv Package Hub - Version complète et corrigée pour Flask moderne
 """
 
 import os
@@ -39,21 +39,21 @@ from packaging.version import parse as parse_version
 # ============================================================================
 
 # Configuration PostgreSQL
-DATABASE_URL = "postgresql://volve_user:odM5spc4DLMdEPJww834aDNE7c49J9bG@dpg-d4vpeu24d50c7385s840-a.oregon-postgres.render.com/volve?sslmode=require"
+DATABASE_URL = os.environ.get('DATABASE_URL', "postgresql://volve_user:odM5spc4DLMdEPJww834aDNE7c49J9bG@dpg-d4vpeu24d50c7385s840-a.oregon-postgres.render.com/volve?sslmode=require")
 
 # Configuration GitHub
-GITHUB_TOKEN = "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"
-GITHUB_REPO = "gopu-inc/zenv"
-GITHUB_USERNAME = "gopu-inc"
-GITHUB_EMAIL = "ceoseshell@gmail.com"
-GITHUB_BRANCH = "package"
+GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "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")
+GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/zenv")
+GITHUB_USERNAME = os.environ.get('GITHUB_USERNAME', "gopu-inc")
+GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', "ceoseshell@gmail.com")
+GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package")
 
 # Configuration JWT et sécurité
-JWT_SECRET = "votre_super_secret_jwt_changez_moi_12345"
-APP_SECRET = "votre_app_secret_changez_moi_67890"
+JWT_SECRET = os.environ.get('JWT_SECRET', "votre_super_secret_jwt_changez_moi_12345")
+APP_SECRET = os.environ.get('APP_SECRET', "votre_app_secret_changez_moi_67890")
 
 # Initialisation Flask
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
 CORS(app)
 
 app.config.update(
@@ -89,11 +89,10 @@ def get_db_connection():
         return conn
     except Exception as e:
         print(f"❌ Erreur connexion PostgreSQL: {e}")
-        # En production, on pourrait retourner None et gérer l'erreur
         raise
 
 def init_postgresql():
-    """Initialise les tables PostgreSQL - VERSION CORRIGÉE"""
+    """Initialise les tables PostgreSQL - VERSION CORRIGÉE avec vérification"""
     conn = None
     try:
         conn = get_db_connection()
@@ -234,11 +233,14 @@ def init_postgresql():
         else:
             print("✅ Tables PostgreSQL existent déjà")
             
+        return True
+            
     except Exception as e:
-        if conn:
-            conn.rollback()
         print(f"❌ Erreur initialisation PostgreSQL: {e}")
-        # On ne raise pas pour éviter de bloquer l'app au démarrage
+        # En production, on loggue mais on continue
+        import traceback
+        traceback.print_exc()
+        return False
     finally:
         if conn:
             cur.close()
@@ -589,11 +591,8 @@ def login_required(f):
 def admin_required(f):
     """Décorateur pour les routes admin"""
     @wraps(f)
+    @login_required
     def decorated_function(*args, **kwargs):
-        # Vérifier la session
-        if 'usr_id' not in session:
-            return redirect(url_for('login'))
-        
         # Vérifier le rôle
         if session.get('role') != 'admin':
             if request.is_json:
@@ -606,6 +605,44 @@ def admin_required(f):
         
         return f(*args, **kwargs)
     return decorated_function
+
+# ============================================================================
+# FILTRES TEMPLATE
+# ============================================================================
+
+@app.template_filter('datetimeformat')
+def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
+    """Filtre de formatage de date pour les templates"""
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        try:
+            # Essayer différents formats de date
+            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']:
+                try:
+                    value = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            if isinstance(value, str):
+                # Si on n'a pas pu parser, retourner la valeur originale
+                return value
+        except Exception:
+            return value
+    
+    if isinstance(value, datetime):
+        return value.strftime(format)
+    
+    return str(value)
+
+@app.template_filter('truncate')
+def truncate_filter(s, length=100):
+    """Tronque une chaîne à une longueur donnée"""
+    if not s:
+        return ''
+    if len(s) <= length:
+        return s
+    return s[:length] + '...'
 
 # ============================================================================
 # ROUTES PRINCIPALES - CORRIGÉES
@@ -663,7 +700,7 @@ def index():
             cur.close()
             conn.close()
     
-    return render_template('base.html',
+    return render_template('home.html',
                          recent_packages=recent_packages,
                          popular_badges=popular_badges,
                          total_usrs=total_usrs,
@@ -718,7 +755,7 @@ def login():
                 cur.close()
                 conn.close()
     
-    return render_template('base.html', page='login')
+    return render_template('login.html', page='login')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -732,11 +769,11 @@ def register():
         # Validation
         if password != confirm:
             flash('Les mots de passe ne correspondent pas', 'danger')
-            return render_template('base.html', page='register')
+            return render_template('register.html', page='register')
         
         if len(password) < 8:
             flash('Le mot de passe doit contenir au moins 8 caractères', 'danger')
-            return render_template('base.html', page='register')
+            return render_template('register.html', page='register')
         
         # Hasher le mot de passe
         hashed_pw = SecurityUtils.hash_password(password)
@@ -776,7 +813,7 @@ def register():
                 cur.close()
                 conn.close()
     
-    return render_template('base.html', page='register')
+    return render_template('register.html', page='register')
 
 @app.route('/logout')
 def logout():
@@ -841,7 +878,7 @@ def dashboard():
             cur.close()
             conn.close()
     
-    return render_template('base.html',
+    return render_template('dashboard.html',
                          usr=usr,
                          packages=packages,
                          stats=stats,
@@ -914,7 +951,7 @@ def list_packages():
             cur.close()
             conn.close()
     
-    return render_template('base.html',
+    return render_template('packages.html',
                          packages=packages,
                          page_num=page,
                          per_page=per_page,
@@ -979,7 +1016,7 @@ def package_detail(package_name):
             cur.close()
             conn.close()
     
-    return render_template('base.html',
+    return render_template('package_detail.html',
                          package=package,
                          releases=releases,
                          badges=badges,
@@ -1012,7 +1049,7 @@ def list_badges():
             cur.close()
             conn.close()
     
-    return render_template('base.html', badges=badges, page='badges')
+    return render_template('badges.html', badges=badges, page='badges')
 
 @app.route('/badge/<badge_name>')
 def badge_detail(badge_name):
@@ -1058,7 +1095,7 @@ def badge_detail(badge_name):
             cur.close()
             conn.close()
     
-    return render_template('base.html',
+    return render_template('badge_detail.html',
                          badge=badge,
                          packages=packages,
                          markdown_code=markdown_code,
@@ -1077,7 +1114,7 @@ def generate_badge():
         # Validation
         if not name or not label or not value:
             flash('Tous les champs sont requis', 'danger')
-            return render_template('base.html', page='generate_badge')
+            return render_template('generate_badge.html', page='generate_badge')
         
         # Générer le SVG
         svg_content = BadgeGenerator.create_svg_badge(label, value, color)
@@ -1126,7 +1163,7 @@ def generate_badge():
                 cur.close()
                 conn.close()
     
-    return render_template('base.html', page='generate_badge')
+    return render_template('generate_badge.html', page='generate_badge')
 
 @app.route('/badge/svg/<badge_name>')
 def serve_badge_svg(badge_name):
@@ -1201,7 +1238,7 @@ def admin_dashboard():
             cur.close()
             conn.close()
     
-    return render_template('base.html',
+    return render_template('admin_dashboard.html',
                          total_usrs=total_usrs,
                          total_packages=total_packages,
                          total_badges=total_badges,
@@ -1296,7 +1333,7 @@ def admin_manage_badges():
             cur.close()
             conn.close()
     
-    return render_template('base.html', badges=badges, page='admin_manage_badges')
+    return render_template('admin_manage_badges.html', badges=badges, page='admin_manage_badges')
 
 @app.route('/admin/badge/editor/<badge_id>')
 @admin_required
@@ -1325,7 +1362,7 @@ def admin_badge_editor(badge_id):
     if not badge:
         return redirect(url_for('admin_manage_badges'))
     
-    return render_template('base.html', badge=badge, page='admin_badge_editor')
+    return render_template('admin_badge_editor.html', badge=badge, page='admin_badge_editor')
 
 # ============================================================================
 # ROUTES API - CORRIGÉES
@@ -1428,7 +1465,7 @@ def api_list_badges():
             conn.close()
 
 # ============================================================================
-# CONTEXT PROCESSOR ET INITIALISATION - CORRIGÉ
+# CONTEXT PROCESSOR
 # ============================================================================
 
 @app.context_processor
@@ -1443,6 +1480,25 @@ def inject_variables():
     }
 
 # ============================================================================
+# GESTION DES ERREURS
+# ============================================================================
+
+@app.errorhandler(404)
+def page_not_found(e):
+    """Page 404"""
+    return render_template('error.html', error='404 - Page non trouvée'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Erreur interne du serveur"""
+    return render_template('error.html', error='500 - Erreur interne du serveur'), 500
+
+@app.errorhandler(403)
+def forbidden(e):
+    """Accès interdit"""
+    return render_template('error.html', error='403 - Accès interdit'), 403
+
+# ============================================================================
 # INITIALISATION AU DÉMARRAGE - CORRIGÉ POUR FLASK MODERNE
 # ============================================================================
 
@@ -1451,9 +1507,25 @@ def initialize_app_on_startup():
     print("🚀 Initialisation de Zenv Package Hub...")
     
     try:
-        # Initialiser PostgreSQL
-        init_postgresql()
-        print("✅ PostgreSQL initialisé")
+        # Initialiser PostgreSQL - avec plusieurs tentatives
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"🔄 Tentative {attempt + 1}/{max_retries} d'initialisation PostgreSQL...")
+                success = init_postgresql()
+                if success:
+                    print("✅ PostgreSQL initialisé avec succès")
+                    break
+                else:
+                    print(f"⚠️ Échec de l'initialisation PostgreSQL (tentative {attempt + 1})")
+                    if attempt < max_retries - 1:
+                        import time
+                        time.sleep(2)  # Attendre avant de réessayer
+            except Exception as e:
+                print(f"❌ Erreur lors de la tentative {attempt + 1}: {e}")
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(2)
         
         # Vérifier les répertoires
         for dir_name, dir_path in [
@@ -1472,20 +1544,46 @@ def initialize_app_on_startup():
         
     except Exception as e:
         print(f"❌ Erreur d'initialisation: {e}")
+        import traceback
+        traceback.print_exc()
 
-# Appeler l'initialisation immédiatement
-initialize_app_on_startup()
+# ============================================================================
+# MIDDLEWARE POUR VÉRIFIER LA BASE DE DONNÉES
+# ============================================================================
+
+@app.before_request
+def check_database():
+    """Vérifie si la base de données est accessible avant chaque requête"""
+    if request.endpoint and request.endpoint not in ['static', 'serve_badge_svg']:
+        try:
+            # Vérifier rapidement si les tables existent
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT 1 FROM usrs LIMIT 1")
+            cur.close()
+            conn.close()
+        except Exception as e:
+            # Si c'est une page API, retourner une erreur JSON
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Database unavailable', 'message': str(e)}), 503
+            # Sinon, afficher une page d'erreur
+            return render_template('error.html', 
+                                 error='Base de données non disponible',
+                                 message='Veuillez réessayer dans quelques instants.'), 503
 
 # ============================================================================
 # POINT D'ENTRÉE PRINCIPAL - CORRIGÉ
 # ============================================================================
+
+# Appeler l'initialisation immédiatement
+initialize_app_on_startup()
 
 if __name__ == '__main__':
     # En développement
     app.run(
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),
-        debug=True
+        debug=os.environ.get('FLASK_DEBUG', 'True') == 'True'
     )
 else:
     # En production (gunicorn)
