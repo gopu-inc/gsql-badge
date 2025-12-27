@@ -1,5 +1,5 @@
 """
-Zenv Package Hub - Version finale corrigée pour production
+Zenv Package Hub - Version SQLite avec synchronisation Git
 """
 
 import os
@@ -18,15 +18,12 @@ import zipfile
 import io
 import uuid
 import requests
-import psycopg2
-from psycopg2.extras import RealDictCursor, DictCursor
+import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session, abort, Response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session, abort, Response, g
 from flask_cors import CORS
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
@@ -38,15 +35,17 @@ from packaging.version import parse as parse_version
 # CONFIGURATION
 # ============================================================================
 
-# Configuration PostgreSQL
-DATABASE_URL = os.environ.get('DATABASE_URL', "postgresql://volve_user:odM5spc4DLMdEPJww834aDNE7c49J9bG@dpg-d4vpeu24d50c7385s840-a.oregon-postgres.render.com/volve?sslmode=require")
+# Configuration SQLite
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_PATH = os.path.join(BASE_DIR, 'zenv_hub.db')
+GIT_REPO_PATH = os.path.join(BASE_DIR, 'zenv-data')
 
 # Configuration GitHub
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "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")
 GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/zenv")
 GITHUB_USERNAME = os.environ.get('GITHUB_USERNAME', "gopu-inc")
 GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', "ceoseshell@gmail.com")
-GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package")
+GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package-data")
 
 # Configuration JWT et sécurité
 JWT_SECRET = os.environ.get('JWT_SECRET', "votre_super_secret_jwt_changez_moi_12345")
@@ -59,7 +58,8 @@ CORS(app)
 app.config.update(
     SECRET_KEY=APP_SECRET,
     JWT_SECRET_KEY=JWT_SECRET,
-    DATABASE_URL=DATABASE_URL,
+    DATABASE_PATH=DATABASE_PATH,
+    GIT_REPO_PATH=GIT_REPO_PATH,
     PACKAGE_DIR=os.path.join(os.path.dirname(__file__), 'packages'),
     UPLOAD_DIR=os.path.join(os.path.dirname(__file__), 'uploads'),
     BUILD_DIR=os.path.join(os.path.dirname(__file__), 'builds'),
@@ -78,53 +78,47 @@ for dir_path in [app.config['PACKAGE_DIR'], app.config['UPLOAD_DIR'],
     os.makedirs(dir_path, exist_ok=True)
 
 # ============================================================================
-# UTILITAIRES POSTGRESQL
+# UTILITAIRES SQLITE
 # ============================================================================
 
-def get_db_connection():
-    """Établit une connexion à PostgreSQL"""
-    try:
-        conn = psycopg2.connect(app.config['DATABASE_URL'])
-        conn.autocommit = False
-        return conn
-    except Exception as e:
-        print(f"❌ Erreur connexion PostgreSQL: {e}")
-        return None
+def get_db():
+    """Obtenir la connexion SQLite"""
+    if 'db' not in g:
+        g.db = sqlite3.connect(app.config['DATABASE_PATH'])
+        g.db.row_factory = sqlite3.Row
+    
+    return g.db
 
-def init_postgresql():
-    """Initialise les tables PostgreSQL"""
-    conn = None
+def close_db(e=None):
+    """Fermer la connexion SQLite"""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+def init_sqlite():
+    """Initialiser la base de données SQLite"""
+    print("🔄 Initialisation SQLite...")
+    
     try:
-        conn = get_db_connection()
-        if not conn:
-            print("❌ Impossible de se connecter à PostgreSQL")
-            return False
-            
-        cur = conn.cursor()
+        db = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = db.cursor()
         
-        # Vérifier si la table usrs existe
-        cur.execute("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = 'usrs'
-            )
-        """)
-        table_exists = cur.fetchone()[0]
-        
-        if not table_exists:
-            print("🔄 Création des tables PostgreSQL...")
+        # Vérifier si les tables existent
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usrs'")
+        if cursor.fetchone() is None:
+            print("🔄 Création des tables SQLite...")
             
             # Table usrs
-            cur.execute('''
+            cursor.execute('''
                 CREATE TABLE usrs (
-                    id SERIAL PRIMARY KEY,
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    email VARCHAR(100) UNIQUE NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    role VARCHAR(20) DEFAULT 'user',
+                    role TEXT DEFAULT 'user',
                     github_token TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    is_verified BOOLEAN DEFAULT FALSE,
+                    is_verified BOOLEAN DEFAULT 0,
                     verification_token TEXT,
                     reset_token TEXT,
                     reset_expires TIMESTAMP,
@@ -136,118 +130,221 @@ def init_postgresql():
             ''')
             
             # Table packages
-            cur.execute('''
+            cursor.execute('''
                 CREATE TABLE packages (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(100) UNIQUE NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
                     description TEXT,
-                    version VARCHAR(50) NOT NULL,
-                    author VARCHAR(100),
-                    author_email VARCHAR(100),
-                    license VARCHAR(50),
-                    keywords TEXT[],
-                    python_requires VARCHAR(50),
-                    dependencies JSONB,
+                    version TEXT NOT NULL,
+                    author TEXT,
+                    author_email TEXT,
+                    license TEXT,
+                    keywords TEXT,
+                    python_requires TEXT,
+                    dependencies TEXT,
                     readme TEXT,
-                    github_url VARCHAR(200),
+                    github_url TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    usr_id INTEGER REFERENCES usrs(id) ON DELETE CASCADE,
+                    usr_id INTEGER,
                     downloads_count INTEGER DEFAULT 0,
-                    is_private BOOLEAN DEFAULT FALSE,
-                    language VARCHAR(20) DEFAULT 'python',
-                    UNIQUE(name, version)
+                    is_private BOOLEAN DEFAULT 0,
+                    language TEXT DEFAULT 'python',
+                    UNIQUE(name, version),
+                    FOREIGN KEY (usr_id) REFERENCES usrs(id) ON DELETE CASCADE
                 )
             ''')
             
             # Table badges
-            cur.execute('''
+            cursor.execute('''
                 CREATE TABLE badges (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(100) UNIQUE NOT NULL,
-                    label VARCHAR(50) NOT NULL,
-                    value VARCHAR(100) NOT NULL,
-                    color VARCHAR(20) DEFAULT 'blue',
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    label TEXT NOT NULL,
+                    value TEXT NOT NULL,
+                    color TEXT DEFAULT 'blue',
                     svg_content TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
-                    is_active BOOLEAN DEFAULT TRUE,
-                    usage_count INTEGER DEFAULT 0
+                    created_by INTEGER,
+                    is_active BOOLEAN DEFAULT 1,
+                    usage_count INTEGER DEFAULT 0,
+                    FOREIGN KEY (created_by) REFERENCES usrs(id) ON DELETE SET NULL
                 )
             ''')
             
             # Table badge_assignments
-            cur.execute('''
+            cursor.execute('''
                 CREATE TABLE badge_assignments (
-                    id SERIAL PRIMARY KEY,
-                    badge_id INTEGER REFERENCES badges(id) ON DELETE CASCADE,
-                    package_id INTEGER REFERENCES packages(id) ON DELETE CASCADE,
-                    usr_id INTEGER REFERENCES usrs(id) ON DELETE CASCADE,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    badge_id INTEGER,
+                    package_id INTEGER,
+                    usr_id INTEGER,
                     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    assigned_by INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
-                    UNIQUE(badge_id, package_id, usr_id)
+                    assigned_by INTEGER,
+                    UNIQUE(badge_id, package_id, usr_id),
+                    FOREIGN KEY (badge_id) REFERENCES badges(id) ON DELETE CASCADE,
+                    FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
+                    FOREIGN KEY (usr_id) REFERENCES usrs(id) ON DELETE CASCADE,
+                    FOREIGN KEY (assigned_by) REFERENCES usrs(id) ON DELETE SET NULL
                 )
             ''')
             
             # Table releases
-            cur.execute('''
+            cursor.execute('''
                 CREATE TABLE releases (
-                    id SERIAL PRIMARY KEY,
-                    package_id INTEGER REFERENCES packages(id) ON DELETE CASCADE,
-                    version VARCHAR(50) NOT NULL,
-                    filename VARCHAR(200),
-                    file_size BIGINT,
-                    file_hash VARCHAR(64),
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    package_id INTEGER,
+                    version TEXT NOT NULL,
+                    filename TEXT,
+                    file_size INTEGER,
+                    file_hash TEXT,
                     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     download_count INTEGER DEFAULT 0,
-                    github_release_id VARCHAR(100),
-                    lfs_tracked BOOLEAN DEFAULT FALSE,
-                    UNIQUE(package_id, version)
+                    github_release_id TEXT,
+                    lfs_tracked BOOLEAN DEFAULT 0,
+                    UNIQUE(package_id, version),
+                    FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE
                 )
             ''')
             
             # Table downloads
-            cur.execute('''
+            cursor.execute('''
                 CREATE TABLE downloads (
-                    id SERIAL PRIMARY KEY,
-                    release_id INTEGER REFERENCES releases(id) ON DELETE CASCADE,
-                    usr_id INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
-                    ip_address INET,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    release_id INTEGER,
+                    usr_id INTEGER,
+                    ip_address TEXT,
                     user_agent TEXT,
-                    country VARCHAR(50),
+                    country TEXT,
                     download_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    api_key VARCHAR(100)
+                    api_key TEXT,
+                    FOREIGN KEY (release_id) REFERENCES releases(id) ON DELETE CASCADE,
+                    FOREIGN KEY (usr_id) REFERENCES usrs(id) ON DELETE SET NULL
                 )
             ''')
             
-            conn.commit()
-            print("✅ Tables PostgreSQL créées avec succès")
+            db.commit()
+            print("✅ Tables SQLite créées avec succès")
             
             # Créer l'admin par défaut
             hashed_pw = bcrypt.hashpw('admin123'.encode(), bcrypt.gensalt()).decode()
-            cur.execute('''
-                INSERT INTO usrs (username, email, password, role, is_verified)
-                VALUES ('admin', 'admin@zenvhub.com', %s, 'admin', TRUE)
-                ON CONFLICT (username) DO NOTHING
-            ''', (hashed_pw,))
+            cursor.execute('''
+                INSERT OR IGNORE INTO usrs (username, email, password, role, is_verified)
+                VALUES (?, ?, ?, ?, ?)
+            ''', ('admin', 'admin@zenvhub.com', hashed_pw, 'admin', 1))
             
-            conn.commit()
+            db.commit()
             print("✅ Admin créé: admin / admin123")
         else:
-            print("✅ Tables PostgreSQL existent déjà")
+            print("✅ Tables SQLite existent déjà")
             
+        cursor.close()
+        db.close()
         return True
-            
+        
     except Exception as e:
-        print(f"❌ Erreur initialisation PostgreSQL: {e}")
+        print(f"❌ Erreur initialisation SQLite: {e}")
         import traceback
         traceback.print_exc()
         return False
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
+
+# ============================================================================
+# UTILITAIRES GIT
+# ============================================================================
+
+class GitManager:
+    """Gestionnaire Git pour la synchronisation des données"""
+    
+    @staticmethod
+    def init_git_repo():
+        """Initialiser le dépôt Git pour les données"""
+        repo_path = app.config['GIT_REPO_PATH']
+        
+        if not os.path.exists(repo_path):
+            print(f"🔄 Clonage du dépôt Git {GITHUB_REPO}...")
+            try:
+                # Clone du dépôt
+                subprocess.run([
+                    'git', 'clone',
+                    f'https://{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git',
+                    repo_path
+                ], check=True, capture_output=True)
+                print("✅ Dépôt Git cloné avec succès")
+            except Exception as e:
+                print(f"❌ Erreur clonage Git: {e}")
+                # Créer un nouveau dépôt local
+                os.makedirs(repo_path, exist_ok=True)
+                subprocess.run(['git', 'init'], cwd=repo_path, check=True)
+                print("✅ Dépôt Git initialisé localement")
+        
+        # Configurer Git
+        try:
+            subprocess.run(['git', 'config', 'user.name', GITHUB_USERNAME], 
+                         cwd=repo_path, check=True)
+            subprocess.run(['git', 'config', 'user.email', GITHUB_EMAIL], 
+                         cwd=repo_path, check=True)
+        except Exception as e:
+            print(f"⚠️ Erreur configuration Git: {e}")
+    
+    @staticmethod
+    def backup_database():
+        """Sauvegarder la base de données dans Git"""
+        if not os.path.exists(app.config['GIT_REPO_PATH']):
+            return False
+        
+        try:
+            # Copier la base de données
+            db_path = app.config['DATABASE_PATH']
+            backup_path = os.path.join(app.config['GIT_REPO_PATH'], 'zenv_hub.db')
+            
+            if os.path.exists(db_path):
+                shutil.copy2(db_path, backup_path)
+            
+            # Ajouter au Git
+            repo_path = app.config['GIT_REPO_PATH']
+            subprocess.run(['git', 'add', '.'], cwd=repo_path, check=True)
+            
+            # Commit
+            commit_message = f"Backup automatique - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            subprocess.run(['git', 'commit', '-m', commit_message], 
+                         cwd=repo_path, check=True)
+            
+            # Push vers GitHub
+            subprocess.run(['git', 'push', 'origin', GITHUB_BRANCH], 
+                         cwd=repo_path, check=True)
+            
+            print("✅ Base de données sauvegardée dans Git")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Erreur sauvegarde Git: {e}")
+            return False
+    
+    @staticmethod
+    def restore_database():
+        """Restaurer la base de données depuis Git"""
+        repo_path = app.config['GIT_REPO_PATH']
+        backup_path = os.path.join(repo_path, 'zenv_hub.db')
+        
+        if os.path.exists(backup_path):
+            try:
+                # Pull les dernières modifications
+                subprocess.run(['git', 'pull', 'origin', GITHUB_BRANCH], 
+                             cwd=repo_path, check=True)
+                
+                # Restaurer la base de données
+                db_path = app.config['DATABASE_PATH']
+                shutil.copy2(backup_path, db_path)
+                
+                print("✅ Base de données restaurée depuis Git")
+                return True
+                
+            except Exception as e:
+                print(f"⚠️ Erreur restauration Git: {e}")
+                return False
+        
+        return False
 
 # ============================================================================
 # UTILITAIRES
@@ -309,7 +406,7 @@ class SecurityUtils:
             raise Exception("Token invalide")
 
 class MarkdownProcessor:
-    """Processeur Markdown avancé"""
+    """Processeur Markdown"""
     
     @staticmethod
     def process_markdown(text: str) -> str:
@@ -317,27 +414,21 @@ class MarkdownProcessor:
         if not text:
             return ""
         
-        # Nettoyer
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         
-        # Extensions Markdown
         extensions = [
             'markdown.extensions.fenced_code',
             'markdown.extensions.tables',
             'markdown.extensions.toc',
             'markdown.extensions.nl2br',
-            'markdown.extensions.smarty',
             CodeHiliteExtension(
                 linenums=False,
                 pygments_style='monokai',
                 css_class='codehilite'
-            ),
-            FencedCodeExtension()
+            )
         ]
         
         html = markdown.markdown(text, extensions=extensions)
-        
-        # Post-traitement
         html = html.replace('<table>', '<table class="table table-dark table-striped">')
         html = html.replace('<blockquote>', '<blockquote class="blockquote">')
         
@@ -361,7 +452,6 @@ class BadgeGenerator:
         """Crée un badge SVG"""
         color_hex = BadgeGenerator.COLORS.get(color, BadgeGenerator.COLORS['blue'])
         
-        # Dimensions
         label_width = max(len(label) * 6 + 10, 30)
         value_width = max(len(value) * 6 + 10, 30)
         total_width = label_width + value_width
@@ -370,23 +460,11 @@ class BadgeGenerator:
         svg = f'''<?xml version="1.0" encoding="UTF-8"?>
         <svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
             <title>{label}: {value}</title>
-            
             <g>
-                <!-- Partie label -->
                 <rect width="{label_width}" height="{height}" fill="{color_hex}" rx="3"/>
-                
-                <!-- Partie value -->
                 <rect x="{label_width}" width="{value_width}" height="{height}" fill="#555" rx="3"/>
-                
-                <!-- Texte label -->
-                <text x="{label_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">
-                    {label.upper()}
-                </text>
-                
-                <!-- Texte value -->
-                <text x="{label_width + value_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">
-                    {value}
-                </text>
+                <text x="{label_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">{label.upper()}</text>
+                <text x="{label_width + value_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">{value}</text>
             </g>
         </svg>'''
         
@@ -396,10 +474,8 @@ class BadgeGenerator:
     def save_badge_svg(badge_name: str, svg_content: str) -> str:
         """Sauvegarde un badge SVG"""
         badge_path = os.path.join(app.config['SVG_DIR'], f"{badge_name}.svg")
-        
         with open(badge_path, 'w', encoding='utf-8') as f:
             f.write(svg_content)
-        
         return badge_path
     
     @staticmethod
@@ -408,61 +484,24 @@ class BadgeGenerator:
         return f"/static/badges/{badge_name}.svg"
 
 # ============================================================================
-# DÉCORATEURS D'AUTHENTIFICATION
+# DÉCORATEURS
 # ============================================================================
 
 def login_required(f):
-    """Décorateur pour les routes nécessitant une authentification"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'usr_id' not in session:
-            if request.is_json:
-                return jsonify({'error': 'Authentication required'}), 401
-            flash('Veuillez vous connecter pour accéder à cette page', 'warning')
+            flash('Veuillez vous connecter', 'warning')
             return redirect(url_for('login'))
-        
-        token = None
-        auth_header = request.headers.get('Authorization')
-        
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-        elif 'access_token' in session:
-            token = session['access_token']
-        
-        if not token:
-            if request.is_json:
-                return jsonify({'error': 'Token missing'}), 401
-            flash('Session invalide, veuillez vous reconnecter', 'danger')
-            session.clear()
-            return redirect(url_for('login'))
-        
-        try:
-            payload = SecurityUtils.verify_token(token)
-            request.usr_id = payload['usr_id']
-            request.usr_role = payload.get('role', 'user')
-        except Exception as e:
-            if request.is_json:
-                return jsonify({'error': str(e)}), 401
-            flash('Session expirée, veuillez vous reconnecter', 'danger')
-            session.clear()
-            return redirect(url_for('login'))
-        
         return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
-    """Décorateur pour les routes admin"""
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
         if session.get('role') != 'admin':
-            if request.is_json:
-                return jsonify({'error': 'Admin access required'}), 403
             abort(403)
-        
-        request.usr_id = session['usr_id']
-        request.usr_role = session['role']
-        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -472,14 +511,12 @@ def admin_required(f):
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
-    """Filtre de formatage de date"""
     if value is None:
         return ''
     
     if isinstance(value, str):
         try:
-            # Essayer de parser la date
-            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']:
+            for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d']:
                 try:
                     value = datetime.strptime(value, fmt)
                     break
@@ -497,12 +534,9 @@ def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
 
 @app.template_filter('truncate')
 def truncate_filter(s, length=100):
-    """Tronque une chaîne"""
     if not s:
         return ''
-    if len(s) <= length:
-        return s
-    return s[:length] + '...'
+    return s[:length] + '...' if len(s) > length else s
 
 # ============================================================================
 # ROUTES PRINCIPALES
@@ -512,63 +546,58 @@ def truncate_filter(s, length=100):
 def index():
     """Page d'accueil"""
     try:
-        conn = get_db_connection()
-        if conn:
-            cur = conn.cursor(cursor_factory=RealDictCursor)
-            
-            # Packages récents
-            cur.execute('''
-                SELECT p.*, u.username as author_name
-                FROM packages p
-                LEFT JOIN usrs u ON p.usr_id = u.id
-                WHERE p.is_private = FALSE
-                ORDER BY p.created_at DESC
-                LIMIT 6
-            ''')
-            recent_packages = cur.fetchall()
-            
-            # Statistiques
-            cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
-            total_usrs = cur.fetchone()['total_usrs'] or 0
-            
-            cur.execute('SELECT COUNT(*) as total_packages FROM packages WHERE is_private = FALSE')
-            total_packages = cur.fetchone()['total_packages'] or 0
-            
-            cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
-            total_downloads = cur.fetchone()['total_downloads'] or 0
-            
-            # Badges populaires
-            cur.execute('''
-                SELECT b.*, u.username as created_by_name
-                FROM badges b
-                LEFT JOIN usrs u ON b.created_by = u.id
-                WHERE b.is_active = TRUE
-                ORDER BY b.usage_count DESC
-                LIMIT 4
-            ''')
-            popular_badges = cur.fetchall()
-            
-            cur.close()
-            conn.close()
-            
-            return render_template('home.html',
-                                recent_packages=recent_packages,
-                                popular_badges=popular_badges,
-                                total_usrs=total_usrs,
-                                total_packages=total_packages,
-                                total_downloads=total_downloads,
-                                page='index')
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Packages récents
+        cursor.execute('''
+            SELECT p.*, u.username as author_name
+            FROM packages p
+            LEFT JOIN usrs u ON p.usr_id = u.id
+            WHERE p.is_private = 0
+            ORDER BY p.created_at DESC
+            LIMIT 6
+        ''')
+        recent_packages = [dict(row) for row in cursor.fetchall()]
+        
+        # Statistiques
+        cursor.execute('SELECT COUNT(*) as total_usrs FROM usrs')
+        total_usrs = cursor.fetchone()[0] or 0
+        
+        cursor.execute('SELECT COUNT(*) as total_packages FROM packages WHERE is_private = 0')
+        total_packages = cursor.fetchone()[0] or 0
+        
+        cursor.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
+        total_downloads = cursor.fetchone()[0] or 0
+        
+        # Badges populaires
+        cursor.execute('''
+            SELECT b.*, u.username as created_by_name
+            FROM badges b
+            LEFT JOIN usrs u ON b.created_by = u.id
+            WHERE b.is_active = 1
+            ORDER BY b.usage_count DESC
+            LIMIT 4
+        ''')
+        popular_badges = [dict(row) for row in cursor.fetchall()]
+        
+        return render_template('home.html',
+                             recent_packages=recent_packages,
+                             popular_badges=popular_badges,
+                             total_usrs=total_usrs,
+                             total_packages=total_packages,
+                             total_downloads=total_downloads,
+                             page='index')
+        
     except Exception as e:
         print(f"⚠️ Erreur index: {e}")
-    
-    # Fallback si erreur
-    return render_template('home.html',
-                         recent_packages=[],
-                         popular_badges=[],
-                         total_usrs=0,
-                         total_packages=0,
-                         total_downloads=0,
-                         page='index')
+        return render_template('home.html',
+                             recent_packages=[],
+                             popular_badges=[],
+                             total_usrs=0,
+                             total_packages=0,
+                             total_downloads=0,
+                             page='index')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -577,32 +606,29 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        conn = get_db_connection()
-        if not conn:
-            flash('Erreur de connexion à la base de données', 'danger')
-            return render_template('login.html', page='login')
-        
         try:
-            cur = conn.cursor(cursor_factory=RealDictCursor)
+            db = get_db()
+            cursor = db.cursor()
             
-            cur.execute('''
+            cursor.execute('''
                 SELECT id, username, email, password, role 
                 FROM usrs 
-                WHERE username = %s OR email = %s
+                WHERE username = ? OR email = ?
             ''', (username, username))
             
-            usr = cur.fetchone()
+            row = cursor.fetchone()
             
-            if usr and SecurityUtils.verify_password(password, usr['password']):
+            if row and SecurityUtils.verify_password(password, row['password']):
+                session['usr_id'] = row['id']
+                session['username'] = row['username']
+                session['role'] = row['role']
+                
                 # Mettre à jour last_login
-                cur.execute('UPDATE usrs SET last_login = CURRENT_TIMESTAMP WHERE id = %s', (usr['id'],))
+                cursor.execute('UPDATE usrs SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (row['id'],))
+                db.commit()
                 
-                # Stocker en session
-                session['usr_id'] = usr['id']
-                session['username'] = usr['username']
-                session['role'] = usr['role']
-                
-                conn.commit()
+                # Sauvegarder dans Git
+                GitManager.backup_database()
                 
                 flash('Connexion réussie!', 'success')
                 return redirect(url_for('dashboard'))
@@ -611,10 +637,6 @@ def login():
                 
         except Exception as e:
             flash(f'Erreur: {str(e)}', 'danger')
-        finally:
-            if conn:
-                cur.close()
-                conn.close()
     
     return render_template('login.html', page='login')
 
@@ -627,7 +649,6 @@ def register():
         password = request.form.get('password')
         confirm = request.form.get('confirm_password')
         
-        # Validation
         if password != confirm:
             flash('Les mots de passe ne correspondent pas', 'danger')
             return render_template('register.html', page='register')
@@ -636,31 +657,26 @@ def register():
             flash('Le mot de passe doit contenir au moins 8 caractères', 'danger')
             return render_template('register.html', page='register')
         
-        # Hasher le mot de passe
         hashed_pw = SecurityUtils.hash_password(password)
         
-        conn = get_db_connection()
-        if not conn:
-            flash('Erreur de connexion à la base de données', 'danger')
-            return render_template('register.html', page='register')
-        
         try:
-            cur = conn.cursor()
+            db = get_db()
+            cursor = db.cursor()
             
-            cur.execute('''
+            cursor.execute('''
                 INSERT INTO usrs (username, email, password)
-                VALUES (%s, %s, %s)
-                RETURNING id
+                VALUES (?, ?, ?)
             ''', (username, email, hashed_pw))
             
-            usr_id = cur.fetchone()[0]
-            conn.commit()
+            db.commit()
+            
+            # Sauvegarder dans Git
+            GitManager.backup_database()
             
             flash('Inscription réussie! Vous pouvez maintenant vous connecter.', 'success')
             return redirect(url_for('login'))
             
-        except psycopg2.IntegrityError as e:
-            conn.rollback()
+        except sqlite3.IntegrityError as e:
             if 'username' in str(e):
                 flash('Ce nom d\'utilisateur existe déjà', 'danger')
             elif 'email' in str(e):
@@ -668,11 +684,7 @@ def register():
             else:
                 flash('Erreur lors de l\'inscription', 'danger')
         except Exception as e:
-            conn.rollback()
             flash(f'Erreur: {str(e)}', 'danger')
-        finally:
-            cur.close()
-            conn.close()
     
     return render_template('register.html', page='register')
 
@@ -687,49 +699,45 @@ def logout():
 @login_required
 def dashboard():
     """Tableau de bord"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return redirect(url_for('index'))
-    
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        db = get_db()
+        cursor = db.cursor()
         
         # Infos usr
-        cur.execute('SELECT username, email, role, created_at FROM usrs WHERE id = %s', 
-                   (session['usr_id'],))
-        usr = cur.fetchone()
+        cursor.execute('SELECT username, email, role, created_at FROM usrs WHERE id = ?', 
+                      (session['usr_id'],))
+        usr = dict(cursor.fetchone())
         
         # Packages de l'usr
-        cur.execute('''
+        cursor.execute('''
             SELECT p.*
             FROM packages p
-            WHERE p.usr_id = %s
+            WHERE p.usr_id = ?
             ORDER BY p.updated_at DESC
             LIMIT 10
         ''', (session['usr_id'],))
-        packages = cur.fetchall()
+        packages = [dict(row) for row in cursor.fetchall()]
         
         # Statistiques
-        cur.execute('''
+        cursor.execute('''
             SELECT 
                 COUNT(DISTINCT p.id) as total_packages,
                 COALESCE(SUM(p.downloads_count), 0) as total_downloads
             FROM packages p
-            WHERE p.usr_id = %s
+            WHERE p.usr_id = ?
         ''', (session['usr_id'],))
-        stats = cur.fetchone() or {'total_packages': 0, 'total_downloads': 0}
+        stats = dict(cursor.fetchone()) if cursor.fetchone() else {'total_packages': 0, 'total_downloads': 0}
         
         # Badges de l'usr
-        cur.execute('''
+        cursor.execute('''
             SELECT b.*, ba.assigned_at
             FROM badges b
             JOIN badge_assignments ba ON b.id = ba.badge_id
-            WHERE ba.usr_id = %s
+            WHERE ba.usr_id = ?
             ORDER BY ba.assigned_at DESC
             LIMIT 5
         ''', (session['usr_id'],))
-        usr_badges = cur.fetchall()
+        usr_badges = [dict(row) for row in cursor.fetchall()]
         
         return render_template('dashboard.html',
                              usr=usr,
@@ -742,9 +750,6 @@ def dashboard():
         print(f"⚠️ Erreur dashboard: {e}")
         flash('Erreur lors du chargement du tableau de bord', 'danger')
         return redirect(url_for('index'))
-    finally:
-        cur.close()
-        conn.close()
 
 @app.route('/packages')
 def list_packages():
@@ -754,30 +759,26 @@ def list_packages():
     search = request.args.get('q', '')
     language = request.args.get('lang', '')
     
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return render_template('packages.html', packages=[], page='packages')
-    
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        db = get_db()
+        cursor = db.cursor()
         
         query = '''
             SELECT p.*, u.username as author_name
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.is_private = FALSE
+            WHERE p.is_private = 0
         '''
         
         params = []
         where_clauses = []
         
         if search:
-            where_clauses.append('(p.name ILIKE %s OR p.description ILIKE %s)')
+            where_clauses.append('(p.name LIKE ? OR p.description LIKE ?)')
             params.extend([f'%{search}%', f'%{search}%'])
         
         if language:
-            where_clauses.append('p.language = %s')
+            where_clauses.append('p.language = ?')
             params.append(language)
         
         if where_clauses:
@@ -787,23 +788,23 @@ def list_packages():
         
         # Pagination
         offset = (page - 1) * per_page
-        query += ' LIMIT %s OFFSET %s'
+        query += ' LIMIT ? OFFSET ?'
         params.extend([per_page, offset])
         
-        cur.execute(query, params)
-        packages = cur.fetchall()
+        cursor.execute(query, params)
+        packages = [dict(row) for row in cursor.fetchall()]
         
         # Total
-        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = FALSE'
+        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = 0'
         if where_clauses:
             count_query += ' AND ' + ' AND '.join(where_clauses)
         
-        cur.execute(count_query, params[:-2] if where_clauses else [])
-        total = cur.fetchone()['count'] or 0
+        cursor.execute(count_query, params[:-2] if where_clauses else [])
+        total = cursor.fetchone()[0] or 0
         
         # Langages disponibles
-        cur.execute('SELECT DISTINCT language FROM packages WHERE language IS NOT NULL ORDER BY language')
-        languages = [row['language'] for row in cur.fetchall()]
+        cursor.execute('SELECT DISTINCT language FROM packages WHERE language IS NOT NULL ORDER BY language')
+        languages = [row[0] for row in cursor.fetchall()]
         
         return render_template('packages.html',
                              packages=packages,
@@ -819,54 +820,48 @@ def list_packages():
     except Exception as e:
         print(f"⚠️ Erreur list_packages: {e}")
         return render_template('packages.html', packages=[], page='packages')
-    finally:
-        cur.close()
-        conn.close()
 
 @app.route('/package/<package_name>')
 def package_detail(package_name):
     """Détails d'un package"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return redirect(url_for('list_packages'))
-    
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        db = get_db()
+        cursor = db.cursor()
         
         # Package
-        cur.execute('''
+        cursor.execute('''
             SELECT p.*, u.username as author_name, u.email as author_email
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.name = %s
+            WHERE p.name = ?
         ''', (package_name,))
         
-        package = cur.fetchone()
-        
-        if not package:
+        row = cursor.fetchone()
+        if not row:
             flash('Package non trouvé', 'danger')
             return redirect(url_for('list_packages'))
         
+        package = dict(row)
+        
         # Releases
-        cur.execute('''
+        cursor.execute('''
             SELECT * FROM releases
-            WHERE package_id = %s
+            WHERE package_id = ?
             ORDER BY version DESC
         ''', (package['id'],))
         
-        releases = cur.fetchall()
+        releases = [dict(row) for row in cursor.fetchall()]
         
         # Badges assignés
-        cur.execute('''
+        cursor.execute('''
             SELECT b.*
             FROM badges b
             JOIN badge_assignments ba ON b.id = ba.badge_id
-            WHERE ba.package_id = %s
+            WHERE ba.package_id = ?
             ORDER BY b.name
         ''', (package['id'],))
         
-        badges = cur.fetchall()
+        badges = [dict(row) for row in cursor.fetchall()]
         
         # Convertir README en HTML
         readme_html = MarkdownProcessor.process_markdown(package.get('readme', ''))
@@ -882,87 +877,29 @@ def package_detail(package_name):
         print(f"⚠️ Erreur package_detail: {e}")
         flash('Erreur lors du chargement du package', 'danger')
         return redirect(url_for('list_packages'))
-    finally:
-        cur.close()
-        conn.close()
 
 @app.route('/badges')
 def list_badges():
     """Liste des badges"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return render_template('badges.html', badges=[], page='badges')
-    
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        db = get_db()
+        cursor = db.cursor()
         
-        cur.execute('''
+        cursor.execute('''
             SELECT b.*, u.username as created_by_name
             FROM badges b
             LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.is_active = TRUE
+            WHERE b.is_active = 1
             ORDER BY b.usage_count DESC, b.name
         ''')
         
-        badges = cur.fetchall()
+        badges = [dict(row) for row in cursor.fetchall()]
         
         return render_template('badges.html', badges=badges, page='badges')
         
     except Exception as e:
         print(f"⚠️ Erreur list_badges: {e}")
         return render_template('badges.html', badges=[], page='badges')
-    finally:
-        cur.close()
-        conn.close()
-
-@app.route('/badge/<badge_name>')
-def badge_detail(badge_name):
-    """Détails d'un badge"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return redirect(url_for('list_badges'))
-    
-    try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.name = %s
-        ''', (badge_name,))
-        
-        badge = cur.fetchone()
-        
-        if not badge:
-            flash('Badge non trouvé', 'danger')
-            return redirect(url_for('list_badges'))
-        
-        # Packages utilisant ce badge
-        cur.execute('''
-            SELECT p.*
-            FROM packages p
-            JOIN badge_assignments ba ON p.id = ba.package_id
-            WHERE ba.badge_id = %s
-            ORDER BY p.name
-        ''', (badge['id'],))
-        
-        packages = cur.fetchall()
-        
-        return render_template('badge_detail.html',
-                             badge=badge,
-                             packages=packages,
-                             page='badge_detail')
-        
-    except Exception as e:
-        print(f"⚠️ Erreur badge_detail: {e}")
-        flash('Erreur lors du chargement du badge', 'danger')
-        return redirect(url_for('list_badges'))
-    finally:
-        cur.close()
-        conn.close()
 
 @app.route('/badge/generate', methods=['GET', 'POST'])
 @login_required
@@ -974,58 +911,48 @@ def generate_badge():
         value = request.form.get('value')
         color = request.form.get('color', 'blue')
         
-        # Validation
         if not name or not label or not value:
             flash('Tous les champs sont requis', 'danger')
             return render_template('generate_badge.html', page='generate_badge')
         
         # Générer le SVG
         svg_content = BadgeGenerator.create_svg_badge(label, value, color)
-        
-        # Sauvegarder sur disque
         BadgeGenerator.save_badge_svg(name, svg_content)
         
-        conn = get_db_connection()
-        if not conn:
-            flash('Erreur de connexion à la base de données', 'danger')
-            return render_template('generate_badge.html', page='generate_badge')
-        
         try:
-            cur = conn.cursor()
+            db = get_db()
+            cursor = db.cursor()
             
             # Sauvegarder en base
-            cur.execute('''
+            cursor.execute('''
                 INSERT INTO badges (name, label, value, color, svg_content, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (name) DO UPDATE 
-                SET label = EXCLUDED.label,
-                    value = EXCLUDED.value,
-                    color = EXCLUDED.color,
-                    svg_content = EXCLUDED.svg_content,
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(name) DO UPDATE 
+                SET label = excluded.label,
+                    value = excluded.value,
+                    color = excluded.color,
+                    svg_content = excluded.svg_content,
                     updated_at = CURRENT_TIMESTAMP
-                RETURNING id
             ''', (name, label, value, color, svg_content, session['usr_id']))
             
-            badge_id = cur.fetchone()[0]
+            badge_id = cursor.lastrowid
             
             # Assigner à l'usr
-            cur.execute('''
-                INSERT INTO badge_assignments (badge_id, usr_id, assigned_by)
-                VALUES (%s, %s, %s)
-                ON CONFLICT DO NOTHING
+            cursor.execute('''
+                INSERT OR IGNORE INTO badge_assignments (badge_id, usr_id, assigned_by)
+                VALUES (?, ?, ?)
             ''', (badge_id, session['usr_id'], session['usr_id']))
             
-            conn.commit()
+            db.commit()
+            
+            # Sauvegarder dans Git
+            GitManager.backup_database()
             
             flash('Badge créé avec succès!', 'success')
-            return redirect(url_for('badge_detail', badge_name=name))
+            return redirect(url_for('list_badges'))
             
         except Exception as e:
-            conn.rollback()
             flash(f'Erreur: {str(e)}', 'danger')
-        finally:
-            cur.close()
-            conn.close()
     
     return render_template('generate_badge.html', page='generate_badge')
 
@@ -1035,7 +962,6 @@ def serve_badge_svg(badge_name):
     badge_path = os.path.join(app.config['SVG_DIR'], f"{badge_name}.svg")
     
     if not os.path.exists(badge_path):
-        # Générer un badge par défaut
         svg_content = BadgeGenerator.create_svg_badge("Not Found", "404", "red")
         return Response(svg_content, mimetype='image/svg+xml')
     
@@ -1049,50 +975,46 @@ def serve_badge_svg(badge_name):
 @admin_required
 def admin_dashboard():
     """Tableau de bord admin"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return render_template('admin_dashboard.html', page='admin_dashboard')
-    
     try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        db = get_db()
+        cursor = db.cursor()
         
         # Statistiques
-        cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
-        total_usrs = cur.fetchone()['total_usrs'] or 0
+        cursor.execute('SELECT COUNT(*) as total_usrs FROM usrs')
+        total_usrs = cursor.fetchone()[0] or 0
         
-        cur.execute('SELECT COUNT(*) as total_packages FROM packages')
-        total_packages = cur.fetchone()['total_packages'] or 0
+        cursor.execute('SELECT COUNT(*) as total_packages FROM packages')
+        total_packages = cursor.fetchone()[0] or 0
         
-        cur.execute('SELECT COUNT(*) as total_badges FROM badges')
-        total_badges = cur.fetchone()['total_badges'] or 0
+        cursor.execute('SELECT COUNT(*) as total_badges FROM badges')
+        total_badges = cursor.fetchone()[0] or 0
         
-        cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
-        total_downloads = cur.fetchone()['total_downloads'] or 0
+        cursor.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
+        total_downloads = cursor.fetchone()[0] or 0
         
         # Usrs récents
-        cur.execute('SELECT id, username, email, role, created_at FROM usrs ORDER BY created_at DESC LIMIT 10')
-        recent_usrs = cur.fetchall()
+        cursor.execute('SELECT id, username, email, role, created_at FROM usrs ORDER BY created_at DESC LIMIT 10')
+        recent_usrs = [dict(row) for row in cursor.fetchall()]
         
         # Packages récents
-        cur.execute('''
+        cursor.execute('''
             SELECT p.*, u.username as author_name
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
             ORDER BY p.created_at DESC
             LIMIT 10
         ''')
-        recent_packages = cur.fetchall()
+        recent_packages = [dict(row) for row in cursor.fetchall()]
         
         # Badges récents
-        cur.execute('''
+        cursor.execute('''
             SELECT b.*, u.username as created_by_name
             FROM badges b
             LEFT JOIN usrs u ON b.created_by = u.id
             ORDER BY b.created_at DESC
             LIMIT 10
         ''')
-        recent_badges = cur.fetchall()
+        recent_badges = [dict(row) for row in cursor.fetchall()]
         
         return render_template('admin_dashboard.html',
                              total_usrs=total_usrs,
@@ -1106,133 +1028,18 @@ def admin_dashboard():
         
     except Exception as e:
         print(f"⚠️ Erreur admin_dashboard: {e}")
-        flash('Erreur lors du chargement du dashboard admin', 'danger')
         return render_template('admin_dashboard.html', page='admin_dashboard')
-    finally:
-        cur.close()
-        conn.close()
-
-@app.route('/admin/badges', methods=['GET', 'POST'])
-@admin_required
-def admin_manage_badges():
-    """Gestion des badges par l'admin"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return render_template('admin_manage_badges.html', badges=[], page='admin_manage_badges')
-    
-    if request.method == 'POST':
-        action = request.form.get('action')
-        badge_id = request.form.get('badge_id')
-        
-        if action == 'edit' and badge_id:
-            name = request.form.get('name')
-            label = request.form.get('label')
-            value = request.form.get('value')
-            color = request.form.get('color', 'blue')
-            is_active = request.form.get('is_active') == 'on'
-            
-            try:
-                # Générer nouveau SVG
-                svg_content = BadgeGenerator.create_svg_badge(label, value, color)
-                
-                # Sauvegarder sur disque
-                BadgeGenerator.save_badge_svg(name, svg_content)
-                
-                # Mettre à jour la base
-                cur = conn.cursor()
-                cur.execute('''
-                    UPDATE badges 
-                    SET name = %s, label = %s, value = %s, color = %s, 
-                        svg_content = %s, is_active = %s, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                ''', (name, label, value, color, svg_content, is_active, badge_id))
-                
-                conn.commit()
-                flash('Badge mis à jour avec succès', 'success')
-                
-            except Exception as e:
-                conn.rollback()
-                flash(f'Erreur: {str(e)}', 'danger')
-            finally:
-                cur.close()
-        
-        elif action == 'delete' and badge_id:
-            try:
-                cur = conn.cursor()
-                cur.execute('DELETE FROM badges WHERE id = %s', (badge_id,))
-                conn.commit()
-                flash('Badge supprimé avec succès', 'success')
-            except Exception as e:
-                conn.rollback()
-                flash(f'Erreur: {str(e)}', 'danger')
-            finally:
-                cur.close()
-    
-    # Récupérer tous les badges
-    try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            ORDER BY b.name
-        ''')
-        
-        badges = cur.fetchall()
-        
-        return render_template('admin_manage_badges.html', badges=badges, page='admin_manage_badges')
-        
-    except Exception as e:
-        print(f"⚠️ Erreur admin_manage_badges: {e}")
-        return render_template('admin_manage_badges.html', badges=[], page='admin_manage_badges')
-    finally:
-        cur.close()
-        conn.close()
-
-@app.route('/admin/badge/editor/<badge_id>')
-@admin_required
-def admin_badge_editor(badge_id):
-    """Éditeur de badge pour admin"""
-    conn = get_db_connection()
-    if not conn:
-        flash('Erreur de connexion à la base de données', 'danger')
-        return redirect(url_for('admin_manage_badges'))
-    
-    try:
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute('SELECT * FROM badges WHERE id = %s', (badge_id,))
-        badge = cur.fetchone()
-        
-        if not badge:
-            flash('Badge non trouvé', 'danger')
-            return redirect(url_for('admin_manage_badges'))
-        
-        return render_template('admin_badge_editor.html', badge=badge, page='admin_badge_editor')
-        
-    except Exception as e:
-        print(f"⚠️ Erreur admin_badge_editor: {e}")
-        flash('Erreur lors du chargement du badge', 'danger')
-        return redirect(url_for('admin_manage_badges'))
-    finally:
-        cur.close()
-        conn.close()
 
 # ============================================================================
-# ROUTES API
+# API ENDPOINTS
 # ============================================================================
 
 @app.route('/api/v1/packages')
 def api_list_packages():
     """API: Liste des packages"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'error': 'Database unavailable'}), 503
-            
-        cur = conn.cursor(cursor_factory=RealDictCursor)
+        db = get_db()
+        cursor = db.cursor()
         
         page = int(request.args.get('page', 1))
         per_page = min(int(request.args.get('per_page', 20)), 100)
@@ -1244,18 +1051,18 @@ def api_list_packages():
                    p.downloads_count, p.created_at, u.username as author
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.is_private = FALSE
+            WHERE p.is_private = 0
         '''
         
         params = []
         where_clauses = []
         
         if search:
-            where_clauses.append('(p.name ILIKE %s OR p.description ILIKE %s)')
+            where_clauses.append('(p.name LIKE ? OR p.description LIKE ?)')
             params.extend([f'%{search}%', f'%{search}%'])
         
         if language:
-            where_clauses.append('p.language = %s')
+            where_clauses.append('p.language = ?')
             params.append(language)
         
         if where_clauses:
@@ -1265,22 +1072,19 @@ def api_list_packages():
         
         # Pagination
         offset = (page - 1) * per_page
-        query += ' LIMIT %s OFFSET %s'
+        query += ' LIMIT ? OFFSET ?'
         params.extend([per_page, offset])
         
-        cur.execute(query, params)
-        packages = cur.fetchall()
+        cursor.execute(query, params)
+        packages = [dict(row) for row in cursor.fetchall()]
         
         # Total
-        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = FALSE'
+        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = 0'
         if where_clauses:
             count_query += ' AND ' + ' AND '.join(where_clauses)
         
-        cur.execute(count_query, params[:-2] if where_clauses else [])
-        total = cur.fetchone()['count'] or 0
-        
-        cur.close()
-        conn.close()
+        cursor.execute(count_query, params[:-2] if where_clauses else [])
+        total = cursor.fetchone()[0] or 0
         
         return jsonify({
             'packages': packages,
@@ -1295,40 +1099,12 @@ def api_list_packages():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/v1/badges')
-def api_list_badges():
-    """API: Liste des badges"""
-    try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'error': 'Database unavailable'}), 503
-            
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        cur.execute('''
-            SELECT name, label, value, color, usage_count
-            FROM badges
-            WHERE is_active = TRUE
-            ORDER BY name
-        ''')
-        
-        badges = cur.fetchall()
-        
-        cur.close()
-        conn.close()
-        
-        return jsonify({'badges': badges})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 # ============================================================================
 # CONTEXT PROCESSOR
 # ============================================================================
 
 @app.context_processor
 def inject_variables():
-    """Injecte des variables dans tous les templates"""
     return {
         'now': datetime.now(),
         'app_name': 'Zenv Package Hub',
@@ -1343,94 +1119,56 @@ def inject_variables():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    """Page 404"""
     return """
     <!DOCTYPE html>
     <html>
     <head>
         <title>404 - Page non trouvée</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            h1 { color: #dc3545; }
-        </style>
+        <style>body { font-family: Arial; text-align: center; padding: 50px; }</style>
     </head>
     <body>
         <h1>404 - Page non trouvée</h1>
-        <p>La page que vous recherchez n'existe pas.</p>
-        <a href="/">Retour à l'accueil</a>
+        <p><a href="/">Retour à l'accueil</a></p>
     </body>
     </html>
     """, 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    """Erreur interne du serveur"""
     return """
     <!DOCTYPE html>
     <html>
     <head>
-        <title>500 - Erreur interne du serveur</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            h1 { color: #dc3545; }
-        </style>
+        <title>500 - Erreur serveur</title>
+        <style>body { font-family: Arial; text-align: center; padding: 50px; }</style>
     </head>
     <body>
-        <h1>500 - Erreur interne du serveur</h1>
-        <p>Une erreur s'est produite. Veuillez réessayer plus tard.</p>
-        <a href="/">Retour à l'accueil</a>
+        <h1>500 - Erreur serveur</h1>
+        <p><a href="/">Retour à l'accueil</a></p>
     </body>
     </html>
     """, 500
-
-@app.errorhandler(403)
-def forbidden(e):
-    """Accès interdit"""
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>403 - Accès interdit</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            h1 { color: #ffc107; }
-        </style>
-    </head>
-    <body>
-        <h1>403 - Accès interdit</h1>
-        <p>Vous n'avez pas la permission d'accéder à cette page.</p>
-        <a href="/">Retour à l'accueil</a>
-    </body>
-    </html>
-    """, 403
 
 # ============================================================================
 # INITIALISATION
 # ============================================================================
 
 def initialize_app():
-    """Fonction d'initialisation"""
+    """Initialiser l'application"""
     print("🚀 Initialisation de Zenv Package Hub...")
     
-    # Initialiser PostgreSQL
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            print(f"🔄 Tentative {attempt + 1}/{max_retries} d'initialisation PostgreSQL...")
-            success = init_postgresql()
-            if success:
-                print("✅ PostgreSQL initialisé avec succès")
-                break
-            else:
-                print(f"⚠️ Échec de l'initialisation PostgreSQL (tentative {attempt + 1})")
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(2)
-        except Exception as e:
-            print(f"❌ Erreur lors de la tentative {attempt + 1}: {e}")
-            if attempt < max_retries - 1:
-                import time
-                time.sleep(2)
+    # Initialiser SQLite
+    success = init_sqlite()
+    if success:
+        print("✅ SQLite initialisé avec succès")
+    else:
+        print("⚠️ SQLite déjà initialisé")
+    
+    # Initialiser Git
+    GitManager.init_git_repo()
+    
+    # Essayer de restaurer depuis Git
+    GitManager.restore_database()
     
     # Vérifier les répertoires
     for dir_name, dir_path in [
@@ -1444,20 +1182,30 @@ def initialize_app():
     ]:
         if os.path.exists(dir_path):
             print(f"✅ Répertoire {dir_name}: {dir_path}")
-        else:
-            print(f"⚠️  Répertoire {dir_name} manquant: {dir_path}")
     
     print("🎉 Application prête à fonctionner!")
+
+# ============================================================================
+# HOOKS FLASK
+# ============================================================================
+
+@app.teardown_appcontext
+def teardown_db(exception):
+    """Fermer la base de données à la fin de la requête"""
+    close_db()
+    
+    # Sauvegarder dans Git après certaines actions importantes
+    if request and request.endpoint in ['login', 'register', 'generate_badge']:
+        GitManager.backup_database()
 
 # ============================================================================
 # POINT D'ENTRÉE
 # ============================================================================
 
-# Initialiser l'application
+# Initialiser l'application au démarrage
 initialize_app()
 
 if __name__ == '__main__':
-    # En développement
     app.run(
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),
