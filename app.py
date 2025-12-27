@@ -1,5 +1,5 @@
 """
-Zenv Package Hub - Version SQLite avec synchronisation Git
+Zenv Package Hub - Version avec Git sur branche package
 """
 
 import os
@@ -10,15 +10,14 @@ import base64
 import secrets
 import jwt
 import bcrypt
-import subprocess
 import tempfile
 import shutil
 import tarfile
 import zipfile
 import io
 import uuid
-import requests
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
@@ -45,7 +44,7 @@ GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "ghp_RLHW29Q3fGa9hyJrmizCk3K89XMCx
 GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/zenv")
 GITHUB_USERNAME = os.environ.get('GITHUB_USERNAME', "gopu-inc")
 GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', "ceoseshell@gmail.com")
-GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package-data")
+GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package")  # Branche package
 
 # Configuration JWT et sécurité
 JWT_SECRET = os.environ.get('JWT_SECRET', "votre_super_secret_jwt_changez_moi_12345")
@@ -100,6 +99,7 @@ def init_sqlite():
     print("🔄 Initialisation SQLite...")
     
     try:
+        # Créer la base de données si elle n'existe pas
         db = sqlite3.connect(app.config['DATABASE_PATH'])
         cursor = db.cursor()
         
@@ -250,33 +250,47 @@ def init_sqlite():
         return False
 
 # ============================================================================
-# UTILITAIRES GIT
+# UTILITAIRES GIT - BRANCHE PACKAGE
 # ============================================================================
 
 class GitManager:
-    """Gestionnaire Git pour la synchronisation des données"""
+    """Gestionnaire Git pour la branche package"""
     
     @staticmethod
     def init_git_repo():
-        """Initialiser le dépôt Git pour les données"""
+        """Initialiser le dépôt Git sur la branche package"""
         repo_path = app.config['GIT_REPO_PATH']
         
         if not os.path.exists(repo_path):
-            print(f"🔄 Clonage du dépôt Git {GITHUB_REPO}...")
+            print(f"🔄 Clonage du dépôt Git {GITHUB_REPO} (branche: {GITHUB_BRANCH})...")
             try:
-                # Clone du dépôt
+                # Clone du dépôt avec la branche package
                 subprocess.run([
                     'git', 'clone',
+                    '-b', GITHUB_BRANCH,  # Spécifier la branche
                     f'https://{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git',
                     repo_path
-                ], check=True, capture_output=True)
-                print("✅ Dépôt Git cloné avec succès")
+                ], check=True, capture_output=True, text=True)
+                print(f"✅ Dépôt Git cloné (branche: {GITHUB_BRANCH})")
             except Exception as e:
                 print(f"❌ Erreur clonage Git: {e}")
                 # Créer un nouveau dépôt local
                 os.makedirs(repo_path, exist_ok=True)
                 subprocess.run(['git', 'init'], cwd=repo_path, check=True)
-                print("✅ Dépôt Git initialisé localement")
+                subprocess.run(['git', 'checkout', '-b', GITHUB_BRANCH], cwd=repo_path, check=True)
+                print(f"✅ Dépôt Git initialisé localement (branche: {GITHUB_BRANCH})")
+        else:
+            # Vérifier si on est sur la bonne branche
+            try:
+                result = subprocess.run(['git', 'branch', '--show-current'], 
+                                      cwd=repo_path, capture_output=True, text=True)
+                current_branch = result.stdout.strip()
+                if current_branch != GITHUB_BRANCH:
+                    print(f"🔄 Changement vers la branche {GITHUB_BRANCH}...")
+                    subprocess.run(['git', 'checkout', GITHUB_BRANCH], cwd=repo_path, check=True)
+                    print(f"✅ Branchée sur {GITHUB_BRANCH}")
+            except Exception as e:
+                print(f"⚠️ Erreur vérification branche: {e}")
         
         # Configurer Git
         try:
@@ -284,37 +298,47 @@ class GitManager:
                          cwd=repo_path, check=True)
             subprocess.run(['git', 'config', 'user.email', GITHUB_EMAIL], 
                          cwd=repo_path, check=True)
+            subprocess.run(['git', 'config', 'pull.rebase', 'false'], 
+                         cwd=repo_path, check=True)
         except Exception as e:
             print(f"⚠️ Erreur configuration Git: {e}")
     
     @staticmethod
     def backup_database():
-        """Sauvegarder la base de données dans Git"""
-        if not os.path.exists(app.config['GIT_REPO_PATH']):
+        """Sauvegarder la base de données dans Git (branche package)"""
+        repo_path = app.config['GIT_REPO_PATH']
+        
+        if not os.path.exists(repo_path):
             return False
         
         try:
             # Copier la base de données
             db_path = app.config['DATABASE_PATH']
-            backup_path = os.path.join(app.config['GIT_REPO_PATH'], 'zenv_hub.db')
+            backup_path = os.path.join(repo_path, 'zenv_hub.db')
             
             if os.path.exists(db_path):
                 shutil.copy2(db_path, backup_path)
             
             # Ajouter au Git
-            repo_path = app.config['GIT_REPO_PATH']
-            subprocess.run(['git', 'add', '.'], cwd=repo_path, check=True)
+            subprocess.run(['git', 'add', '.'], cwd=repo_path, check=True, capture_output=True)
             
             # Commit
             commit_message = f"Backup automatique - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             subprocess.run(['git', 'commit', '-m', commit_message], 
-                         cwd=repo_path, check=True)
+                         cwd=repo_path, check=True, capture_output=True)
             
-            # Push vers GitHub
+            # Pull d'abord pour récupérer les changements
+            try:
+                subprocess.run(['git', 'pull', 'origin', GITHUB_BRANCH, '--no-edit'], 
+                             cwd=repo_path, check=True, capture_output=True)
+            except:
+                print("⚠️ Pull échoué, continuation...")
+            
+            # Push vers GitHub sur la branche package
             subprocess.run(['git', 'push', 'origin', GITHUB_BRANCH], 
-                         cwd=repo_path, check=True)
+                         cwd=repo_path, check=True, capture_output=True)
             
-            print("✅ Base de données sauvegardée dans Git")
+            print(f"✅ Base de données sauvegardée dans Git (branche: {GITHUB_BRANCH})")
             return True
             
         except Exception as e:
@@ -323,22 +347,23 @@ class GitManager:
     
     @staticmethod
     def restore_database():
-        """Restaurer la base de données depuis Git"""
+        """Restaurer la base de données depuis Git (branche package)"""
         repo_path = app.config['GIT_REPO_PATH']
         backup_path = os.path.join(repo_path, 'zenv_hub.db')
         
-        if os.path.exists(backup_path):
+        if os.path.exists(repo_path):
             try:
-                # Pull les dernières modifications
+                # Pull les dernières modifications de la branche package
                 subprocess.run(['git', 'pull', 'origin', GITHUB_BRANCH], 
-                             cwd=repo_path, check=True)
+                             cwd=repo_path, check=True, capture_output=True)
                 
-                # Restaurer la base de données
-                db_path = app.config['DATABASE_PATH']
-                shutil.copy2(backup_path, db_path)
-                
-                print("✅ Base de données restaurée depuis Git")
-                return True
+                if os.path.exists(backup_path):
+                    # Restaurer la base de données
+                    db_path = app.config['DATABASE_PATH']
+                    shutil.copy2(backup_path, db_path)
+                    
+                    print(f"✅ Base de données restaurée depuis Git (branche: {GITHUB_BRANCH})")
+                    return True
                 
             except Exception as e:
                 print(f"⚠️ Erreur restauration Git: {e}")
@@ -539,7 +564,46 @@ def truncate_filter(s, length=100):
     return s[:length] + '...' if len(s) > length else s
 
 # ============================================================================
-# ROUTES PRINCIPALES
+# HEALTH CHECK
+# ============================================================================
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint pour Render"""
+    try:
+        # Vérifier la base de données
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT 1')
+        cursor.fetchone()
+        
+        # Vérifier les répertoires
+        required_dirs = [app.config['PACKAGE_DIR'], app.config['SVG_DIR']]
+        for dir_path in required_dirs:
+            if not os.path.exists(dir_path):
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Directory missing: {dir_path}'
+                }), 500
+        
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'service': 'zenv-package-hub',
+            'database': 'connected',
+            'git_branch': GITHUB_BRANCH,
+            'version': '1.0.0'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+# ============================================================================
+# ROUTES PRINCIPALES - CORRIGÉES
 # ============================================================================
 
 @app.route('/')
@@ -558,7 +622,8 @@ def index():
             ORDER BY p.created_at DESC
             LIMIT 6
         ''')
-        recent_packages = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        recent_packages = [dict(row) for row in rows]
         
         # Statistiques
         cursor.execute('SELECT COUNT(*) as total_usrs FROM usrs')
@@ -579,7 +644,8 @@ def index():
             ORDER BY b.usage_count DESC
             LIMIT 4
         ''')
-        popular_badges = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        popular_badges = [dict(row) for row in rows]
         
         return render_template('home.html',
                              recent_packages=recent_packages,
@@ -591,6 +657,8 @@ def index():
         
     except Exception as e:
         print(f"⚠️ Erreur index: {e}")
+        import traceback
+        traceback.print_exc()
         return render_template('home.html',
                              recent_packages=[],
                              popular_badges=[],
@@ -618,13 +686,13 @@ def login():
             
             row = cursor.fetchone()
             
-            if row and SecurityUtils.verify_password(password, row['password']):
-                session['usr_id'] = row['id']
-                session['username'] = row['username']
-                session['role'] = row['role']
+            if row and SecurityUtils.verify_password(password, row[3]):  # row[3] = password
+                session['usr_id'] = row[0]
+                session['username'] = row[1]
+                session['role'] = row[4]
                 
                 # Mettre à jour last_login
-                cursor.execute('UPDATE usrs SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (row['id'],))
+                cursor.execute('UPDATE usrs SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (row[0],))
                 db.commit()
                 
                 # Sauvegarder dans Git
@@ -636,6 +704,7 @@ def login():
                 flash('Identifiants incorrects', 'danger')
                 
         except Exception as e:
+            print(f"❌ Erreur login: {e}")
             flash(f'Erreur: {str(e)}', 'danger')
     
     return render_template('login.html', page='login')
@@ -684,6 +753,7 @@ def register():
             else:
                 flash('Erreur lors de l\'inscription', 'danger')
         except Exception as e:
+            print(f"❌ Erreur register: {e}")
             flash(f'Erreur: {str(e)}', 'danger')
     
     return render_template('register.html', page='register')
@@ -706,7 +776,16 @@ def dashboard():
         # Infos usr
         cursor.execute('SELECT username, email, role, created_at FROM usrs WHERE id = ?', 
                       (session['usr_id'],))
-        usr = dict(cursor.fetchone())
+        row = cursor.fetchone()
+        if row:
+            usr = {
+                'username': row[0],
+                'email': row[1],
+                'role': row[2],
+                'created_at': row[3]
+            }
+        else:
+            usr = {}
         
         # Packages de l'usr
         cursor.execute('''
@@ -716,7 +795,20 @@ def dashboard():
             ORDER BY p.updated_at DESC
             LIMIT 10
         ''', (session['usr_id'],))
-        packages = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        packages = []
+        for row in rows:
+            packages.append({
+                'id': row[0],
+                'name': row[1],
+                'description': row[2],
+                'version': row[3],
+                'author': row[4],
+                'downloads_count': row[15] or 0,
+                'is_private': row[16],
+                'language': row[17],
+                'created_at': row[12]
+            })
         
         # Statistiques
         cursor.execute('''
@@ -726,7 +818,11 @@ def dashboard():
             FROM packages p
             WHERE p.usr_id = ?
         ''', (session['usr_id'],))
-        stats = dict(cursor.fetchone()) if cursor.fetchone() else {'total_packages': 0, 'total_downloads': 0}
+        row = cursor.fetchone()
+        stats = {
+            'total_packages': row[0] if row else 0,
+            'total_downloads': row[1] if row else 0
+        }
         
         # Badges de l'usr
         cursor.execute('''
@@ -737,7 +833,17 @@ def dashboard():
             ORDER BY ba.assigned_at DESC
             LIMIT 5
         ''', (session['usr_id'],))
-        usr_badges = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        usr_badges = []
+        for row in rows:
+            usr_badges.append({
+                'id': row[0],
+                'name': row[1],
+                'label': row[2],
+                'value': row[3],
+                'color': row[4],
+                'assigned_at': row[10] if len(row) > 10 else None
+            })
         
         return render_template('dashboard.html',
                              usr=usr,
@@ -747,159 +853,107 @@ def dashboard():
                              page='dashboard')
         
     except Exception as e:
-        print(f"⚠️ Erreur dashboard: {e}")
+        print(f"❌ Erreur dashboard: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Erreur lors du chargement du tableau de bord', 'danger')
         return redirect(url_for('index'))
 
-@app.route('/packages')
-def list_packages():
-    """Liste des packages"""
-    page = int(request.args.get('page', 1))
-    per_page = 20
-    search = request.args.get('q', '')
-    language = request.args.get('lang', '')
-    
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    """Tableau de bord admin"""
     try:
         db = get_db()
         cursor = db.cursor()
         
-        query = '''
+        # Statistiques
+        cursor.execute('SELECT COUNT(*) as total_usrs FROM usrs')
+        total_usrs = cursor.fetchone()[0] or 0
+        
+        cursor.execute('SELECT COUNT(*) as total_packages FROM packages')
+        total_packages = cursor.fetchone()[0] or 0
+        
+        cursor.execute('SELECT COUNT(*) as total_badges FROM badges')
+        total_badges = cursor.fetchone()[0] or 0
+        
+        cursor.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
+        total_downloads = cursor.fetchone()[0] or 0
+        
+        # Usrs récents
+        cursor.execute('SELECT id, username, email, role, created_at FROM usrs ORDER BY created_at DESC LIMIT 10')
+        rows = cursor.fetchall()
+        recent_usrs = []
+        for row in rows:
+            recent_usrs.append({
+                'id': row[0],
+                'username': row[1],
+                'email': row[2],
+                'role': row[3],
+                'created_at': row[4]
+            })
+        
+        # Packages récents
+        cursor.execute('''
             SELECT p.*, u.username as author_name
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.is_private = 0
-        '''
+            ORDER BY p.created_at DESC
+            LIMIT 10
+        ''')
+        rows = cursor.fetchall()
+        recent_packages = []
+        for row in rows:
+            recent_packages.append({
+                'id': row[0],
+                'name': row[1],
+                'description': row[2],
+                'version': row[3],
+                'author_name': row[18] if len(row) > 18 else None,
+                'downloads_count': row[15] or 0,
+                'is_private': row[16],
+                'created_at': row[12]
+            })
         
-        params = []
-        where_clauses = []
-        
-        if search:
-            where_clauses.append('(p.name LIKE ? OR p.description LIKE ?)')
-            params.extend([f'%{search}%', f'%{search}%'])
-        
-        if language:
-            where_clauses.append('p.language = ?')
-            params.append(language)
-        
-        if where_clauses:
-            query += ' AND ' + ' AND '.join(where_clauses)
-        
-        query += ' ORDER BY p.updated_at DESC'
-        
-        # Pagination
-        offset = (page - 1) * per_page
-        query += ' LIMIT ? OFFSET ?'
-        params.extend([per_page, offset])
-        
-        cursor.execute(query, params)
-        packages = [dict(row) for row in cursor.fetchall()]
-        
-        # Total
-        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = 0'
-        if where_clauses:
-            count_query += ' AND ' + ' AND '.join(where_clauses)
-        
-        cursor.execute(count_query, params[:-2] if where_clauses else [])
-        total = cursor.fetchone()[0] or 0
-        
-        # Langages disponibles
-        cursor.execute('SELECT DISTINCT language FROM packages WHERE language IS NOT NULL ORDER BY language')
-        languages = [row[0] for row in cursor.fetchall()]
-        
-        return render_template('packages.html',
-                             packages=packages,
-                             page_num=page,
-                             per_page=per_page,
-                             total=total,
-                             total_pages=(total + per_page - 1) // per_page if per_page > 0 else 0,
-                             search=search,
-                             language=language,
-                             languages=languages,
-                             page='packages')
-        
-    except Exception as e:
-        print(f"⚠️ Erreur list_packages: {e}")
-        return render_template('packages.html', packages=[], page='packages')
-
-@app.route('/package/<package_name>')
-def package_detail(package_name):
-    """Détails d'un package"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Package
-        cursor.execute('''
-            SELECT p.*, u.username as author_name, u.email as author_email
-            FROM packages p
-            LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.name = ?
-        ''', (package_name,))
-        
-        row = cursor.fetchone()
-        if not row:
-            flash('Package non trouvé', 'danger')
-            return redirect(url_for('list_packages'))
-        
-        package = dict(row)
-        
-        # Releases
-        cursor.execute('''
-            SELECT * FROM releases
-            WHERE package_id = ?
-            ORDER BY version DESC
-        ''', (package['id'],))
-        
-        releases = [dict(row) for row in cursor.fetchall()]
-        
-        # Badges assignés
-        cursor.execute('''
-            SELECT b.*
-            FROM badges b
-            JOIN badge_assignments ba ON b.id = ba.badge_id
-            WHERE ba.package_id = ?
-            ORDER BY b.name
-        ''', (package['id'],))
-        
-        badges = [dict(row) for row in cursor.fetchall()]
-        
-        # Convertir README en HTML
-        readme_html = MarkdownProcessor.process_markdown(package.get('readme', ''))
-        
-        return render_template('package_detail.html',
-                             package=package,
-                             releases=releases,
-                             badges=badges,
-                             readme_html=readme_html,
-                             page='package_detail')
-        
-    except Exception as e:
-        print(f"⚠️ Erreur package_detail: {e}")
-        flash('Erreur lors du chargement du package', 'danger')
-        return redirect(url_for('list_packages'))
-
-@app.route('/badges')
-def list_badges():
-    """Liste des badges"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
+        # Badges récents
         cursor.execute('''
             SELECT b.*, u.username as created_by_name
             FROM badges b
             LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.is_active = 1
-            ORDER BY b.usage_count DESC, b.name
+            ORDER BY b.created_at DESC
+            LIMIT 10
         ''')
+        rows = cursor.fetchall()
+        recent_badges = []
+        for row in rows:
+            recent_badges.append({
+                'id': row[0],
+                'name': row[1],
+                'label': row[2],
+                'value': row[3],
+                'color': row[4],
+                'created_by_name': row[10] if len(row) > 10 else None,
+                'usage_count': row[9] or 0
+            })
         
-        badges = [dict(row) for row in cursor.fetchall()]
-        
-        return render_template('badges.html', badges=badges, page='badges')
+        return render_template('admin_dashboard.html',
+                             total_usrs=total_usrs,
+                             total_packages=total_packages,
+                             total_badges=total_badges,
+                             total_downloads=total_downloads,
+                             recent_usrs=recent_usrs,
+                             recent_packages=recent_packages,
+                             recent_badges=recent_badges,
+                             page='admin_dashboard')
         
     except Exception as e:
-        print(f"⚠️ Erreur list_badges: {e}")
-        return render_template('badges.html', badges=[], page='badges')
+        print(f"❌ Erreur admin_dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Erreur lors du chargement du dashboard admin', 'danger')
+        return render_template('error.html', 
+                             error='Erreur interne du serveur',
+                             message='Veuillez réessayer plus tard.'), 500
 
 @app.route('/badge/generate', methods=['GET', 'POST'])
 @login_required
@@ -952,6 +1006,7 @@ def generate_badge():
             return redirect(url_for('list_badges'))
             
         except Exception as e:
+            print(f"❌ Erreur generate_badge: {e}")
             flash(f'Erreur: {str(e)}', 'danger')
     
     return render_template('generate_badge.html', page='generate_badge')
@@ -968,136 +1023,76 @@ def serve_badge_svg(badge_name):
     return send_file(badge_path, mimetype='image/svg+xml')
 
 # ============================================================================
-# ROUTES ADMIN
+# AUTRES ROUTES SIMPLIFIÉES
 # ============================================================================
 
-@app.route('/admin')
-@admin_required
-def admin_dashboard():
-    """Tableau de bord admin"""
+@app.route('/packages')
+def list_packages():
+    """Liste des packages"""
     try:
         db = get_db()
         cursor = db.cursor()
         
-        # Statistiques
-        cursor.execute('SELECT COUNT(*) as total_usrs FROM usrs')
-        total_usrs = cursor.fetchone()[0] or 0
-        
-        cursor.execute('SELECT COUNT(*) as total_packages FROM packages')
-        total_packages = cursor.fetchone()[0] or 0
-        
-        cursor.execute('SELECT COUNT(*) as total_badges FROM badges')
-        total_badges = cursor.fetchone()[0] or 0
-        
-        cursor.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
-        total_downloads = cursor.fetchone()[0] or 0
-        
-        # Usrs récents
-        cursor.execute('SELECT id, username, email, role, created_at FROM usrs ORDER BY created_at DESC LIMIT 10')
-        recent_usrs = [dict(row) for row in cursor.fetchall()]
-        
-        # Packages récents
         cursor.execute('''
             SELECT p.*, u.username as author_name
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
-            ORDER BY p.created_at DESC
-            LIMIT 10
+            WHERE p.is_private = 0
+            ORDER BY p.updated_at DESC
         ''')
-        recent_packages = [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        packages = []
+        for row in rows:
+            packages.append({
+                'id': row[0],
+                'name': row[1],
+                'description': row[2],
+                'version': row[3],
+                'author': row[4],
+                'author_name': row[18] if len(row) > 18 else None,
+                'downloads_count': row[15] or 0,
+                'language': row[17],
+                'created_at': row[12]
+            })
         
-        # Badges récents
-        cursor.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            ORDER BY b.created_at DESC
-            LIMIT 10
-        ''')
-        recent_badges = [dict(row) for row in cursor.fetchall()]
-        
-        return render_template('admin_dashboard.html',
-                             total_usrs=total_usrs,
-                             total_packages=total_packages,
-                             total_badges=total_badges,
-                             total_downloads=total_downloads,
-                             recent_usrs=recent_usrs,
-                             recent_packages=recent_packages,
-                             recent_badges=recent_badges,
-                             page='admin_dashboard')
+        return render_template('packages.html', packages=packages, page='packages')
         
     except Exception as e:
-        print(f"⚠️ Erreur admin_dashboard: {e}")
-        return render_template('admin_dashboard.html', page='admin_dashboard')
+        print(f"⚠️ Erreur list_packages: {e}")
+        return render_template('packages.html', packages=[], page='packages')
 
-# ============================================================================
-# API ENDPOINTS
-# ============================================================================
-
-@app.route('/api/v1/packages')
-def api_list_packages():
-    """API: Liste des packages"""
+@app.route('/badges')
+def list_badges():
+    """Liste des badges"""
     try:
         db = get_db()
         cursor = db.cursor()
         
-        page = int(request.args.get('page', 1))
-        per_page = min(int(request.args.get('per_page', 20)), 100)
-        search = request.args.get('q', '')
-        language = request.args.get('lang', '')
+        cursor.execute('''
+            SELECT b.*, u.username as created_by_name
+            FROM badges b
+            LEFT JOIN usrs u ON b.created_by = u.id
+            WHERE b.is_active = 1
+            ORDER BY b.usage_count DESC
+        ''')
+        rows = cursor.fetchall()
+        badges = []
+        for row in rows:
+            badges.append({
+                'id': row[0],
+                'name': row[1],
+                'label': row[2],
+                'value': row[3],
+                'color': row[4],
+                'created_by_name': row[10] if len(row) > 10 else None,
+                'usage_count': row[9] or 0
+            })
         
-        query = '''
-            SELECT p.id, p.name, p.version, p.description, p.language,
-                   p.downloads_count, p.created_at, u.username as author
-            FROM packages p
-            LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.is_private = 0
-        '''
-        
-        params = []
-        where_clauses = []
-        
-        if search:
-            where_clauses.append('(p.name LIKE ? OR p.description LIKE ?)')
-            params.extend([f'%{search}%', f'%{search}%'])
-        
-        if language:
-            where_clauses.append('p.language = ?')
-            params.append(language)
-        
-        if where_clauses:
-            query += ' AND ' + ' AND '.join(where_clauses)
-        
-        query += ' ORDER BY p.created_at DESC'
-        
-        # Pagination
-        offset = (page - 1) * per_page
-        query += ' LIMIT ? OFFSET ?'
-        params.extend([per_page, offset])
-        
-        cursor.execute(query, params)
-        packages = [dict(row) for row in cursor.fetchall()]
-        
-        # Total
-        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = 0'
-        if where_clauses:
-            count_query += ' AND ' + ' AND '.join(where_clauses)
-        
-        cursor.execute(count_query, params[:-2] if where_clauses else [])
-        total = cursor.fetchone()[0] or 0
-        
-        return jsonify({
-            'packages': packages,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': total,
-                'total_pages': (total + per_page - 1) // per_page if per_page > 0 else 0
-            }
-        })
+        return render_template('badges.html', badges=badges, page='badges')
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"⚠️ Erreur list_badges: {e}")
+        return render_template('badges.html', badges=[], page='badges')
 
 # ============================================================================
 # CONTEXT PROCESSOR
@@ -1110,7 +1105,8 @@ def inject_variables():
         'app_name': 'Zenv Package Hub',
         'github_url': 'https://github.com/gopu-inc/zenv',
         'discord_url': 'https://discord.gg/qWx5DszrC',
-        'email': 'ceoseshell@gmail.com'
+        'email': 'ceoseshell@gmail.com',
+        'git_branch': GITHUB_BRANCH
     }
 
 # ============================================================================
@@ -1119,35 +1115,32 @@ def inject_variables():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>404 - Page non trouvée</title>
-        <style>body { font-family: Arial; text-align: center; padding: 50px; }</style>
-    </head>
-    <body>
-        <h1>404 - Page non trouvée</h1>
-        <p><a href="/">Retour à l'accueil</a></p>
-    </body>
-    </html>
-    """, 404
+    return render_template('error.html', 
+                         error='404 - Page non trouvée',
+                         message='La page que vous recherchez n\'existe pas.'), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>500 - Erreur serveur</title>
-        <style>body { font-family: Arial; text-align: center; padding: 50px; }</style>
-    </head>
-    <body>
-        <h1>500 - Erreur serveur</h1>
-        <p><a href="/">Retour à l'accueil</a></p>
-    </body>
-    </html>
-    """, 500
+    return render_template('error.html',
+                         error='500 - Erreur interne du serveur',
+                         message='Une erreur s\'est produite. Veuillez réessayer plus tard.'), 500
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('error.html',
+                         error='403 - Accès interdit',
+                         message='Vous n\'avez pas la permission d\'accéder à cette page.'), 403
+
+# ============================================================================
+# TEMPLATE ERROR.HTML
+# ============================================================================
+
+@app.route('/error')
+def error_page():
+    """Page d'erreur de test"""
+    return render_template('error.html',
+                         error='Test Error',
+                         message='Ceci est une page d\'erreur de test.')
 
 # ============================================================================
 # INITIALISATION
@@ -1164,11 +1157,18 @@ def initialize_app():
     else:
         print("⚠️ SQLite déjà initialisé")
     
-    # Initialiser Git
-    GitManager.init_git_repo()
-    
-    # Essayer de restaurer depuis Git
-    GitManager.restore_database()
+    # Initialiser Git (branche package)
+    try:
+        GitManager.init_git_repo()
+        print(f"✅ Git initialisé (branche: {GITHUB_BRANCH})")
+        
+        # Essayer de restaurer depuis Git
+        if GitManager.restore_database():
+            print(f"✅ Données restaurées depuis Git (branche: {GITHUB_BRANCH})")
+        else:
+            print("ℹ️  Aucune donnée à restaurer depuis Git")
+    except Exception as e:
+        print(f"⚠️ Erreur Git: {e}")
     
     # Vérifier les répertoires
     for dir_name, dir_path in [
@@ -1193,10 +1193,6 @@ def initialize_app():
 def teardown_db(exception):
     """Fermer la base de données à la fin de la requête"""
     close_db()
-    
-    # Sauvegarder dans Git après certaines actions importantes
-    if request and request.endpoint in ['login', 'register', 'generate_badge']:
-        GitManager.backup_database()
 
 # ============================================================================
 # POINT D'ENTRÉE
