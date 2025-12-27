@@ -1,120 +1,415 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr" data-bs-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <title>{% block title %}GSQL Badge Service{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Service de création de badges SVG modernes avec hébergement PostgreSQL et Render">
-  <meta name="keywords" content="badge, svg, shields.io, github, markdown, gsql">
-  <meta name="author" content="Gopu.inc">
-  
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://gsql-badge.onrender.com/">
-  <meta property="og:title" content="GSQL Badge Service">
-  <meta property="og:description" content="Créez des badges SVG modernes pour vos projets">
-  <meta property="og:image" content="https://gsql-badge.onrender.com/badge">
-  
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://gsql-badge.onrender.com/">
-  <meta property="twitter:title" content="GSQL Badge Service">
-  <meta property="twitter:description" content="Créez des badges SVG modernes pour vos projets">
-  <meta property="twitter:image" content="https://gsql-badge.onrender.com/badge">
-
-  <!-- Favicon -->
-  <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-  
-  <!-- CSS -->
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  {% block extra_head %}{% endblock %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenv Package Hub - {% block title %}Hébergement de Packages Python{% endblock %}</title>
+    
+    <!-- Bootstrap 5.3 Dark Theme -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+            --dark-bg: #121212;
+            --darker-bg: #0a0a0a;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --muted-text: #aaa;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--darker-bg) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 10px;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            bottom: 0;
+            width: 250px;
+            background-color: var(--darker-bg);
+            border-right: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #0a58ca 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .package-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-gradient:hover {
+            background: linear-gradient(135deg, #0b5ed7 0%, #0da5d0 100%);
+            color: white;
+        }
+        
+        .code-block {
+            background-color: #2d2d2d;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .table-dark {
+            background-color: var(--card-bg);
+        }
+        
+        .table-dark th {
+            background-color: #333;
+            border-color: #444;
+        }
+        
+        .table-dark td {
+            border-color: #444;
+        }
+        
+        .badge-package {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .badge-release {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .badge-user {
+            background-color: var(--info-color);
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: static;
+                height: auto;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="nav-container">
-      <a href="/" class="nav-brand">
-        <i class="fas fa-shield-alt"></i>
-        <span>GSQL Badges</span>
-      </a>
-      <div class="nav-links">
-        <a href="#create" class="nav-link"><i class="fas fa-plus-circle"></i> Créer</a>
-        <a href="#api" class="nav-link"><i class="fas fa-code"></i> API</a>
-        <a href="#examples" class="nav-link"><i class="fas fa-images"></i> Exemples</a>
-        <a href="https://github.com/gopu-inc" target="_blank" class="nav-link">
-          <i class="fab fa-github"></i> GitHub
-        </a>
-      </div>
-      <button class="theme-toggle" onclick="toggleTheme()">
-        <i class="fas fa-moon"></i>
-      </button>
-    </div>
-  </nav>
-
-  <!-- Header -->
-  <header class="hero">
-    <div class="hero-content">
-      <h1><i class="fas fa-rocket"></i> GSQL Badge Service</h1>
-      <p class="subtitle">Badges SVG modernes • PostgreSQL • Render • Open Source</p>
-      <div class="hero-badges">
-        <img src="/badge" alt="Version badge" class="hero-badge">
-        <img src="https://img.shields.io/badge/status-active-success" alt="Status" class="hero-badge">
-        <img src="https://img.shields.io/badge/security-verified-green" alt="Security" class="hero-badge">
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-content">
-      <div class="footer-section">
-        <h3><i class="fas fa-shield-alt"></i> GSQL Badges</h3>
-        <p>Service de création et d'hébergement de badges SVG modernes.</p>
-        <div class="footer-links">
-          <a href="/health"><i class="fas fa-heartbeat"></i> Health</a>
-          <a href="/list"><i class="fas fa-list"></i> Tous les badges</a>
-          <a href="mailto:contact@gopu.inc"><i class="fas fa-envelope"></i> Contact</a>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-box-seam me-2"></i>
+                <strong>Zenv Package Hub</strong>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house"></i> Accueil
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api_list_packages') }}">
+                            <i class="bi bi-box"></i> Packages
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('list_organizations') }}">
+                            <i class="bi bi-people"></i> Organisations
+                        </a>
+                    </li>
+                    {% if 'user_id' in session %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if 'user_id' in session %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> {{ session.get('username', 'User') }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('upload_package') }}">
+                                    <i class="bi bi-upload"></i> Upload Package
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if session.get('role') == 'admin' %}
+                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="bi bi-shield-check"></i> Admin
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                                </a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="bi bi-box-arrow-in-right"></i> Connexion
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="bi bi-person-plus"></i> Inscription
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-      </div>
-      <div class="footer-section">
-        <h3><i class="fas fa-code"></i> API</h3>
-        <div class="footer-links">
-          <a href="#api-docs"><i class="fas fa-book"></i> Documentation</a>
-          <a href="/create"><i class="fas fa-plus"></i> Créer un badge</a>
-          <a href="#examples"><i class="fas fa-cogs"></i> Exemples</a>
-        </div>
-      </div>
-      <div class="footer-section">
-        <h3><i class="fas fa-external-link-alt"></i> Liens</h3>
-        <div class="footer-links">
-          <a href="https://render.com" target="_blank"><i class="fas fa-server"></i> Render</a>
-          <a href="https://www.postgresql.org" target="_blank"><i class="fas fa-database"></i> PostgreSQL</a>
-          <a href="https://shields.io" target="_blank"><i class="fas fa-shield"></i> Shields.io</a>
-        </div>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p><i class="far fa-copyright"></i> 2024 GSQL — Powered by Gopu.inc • 
-        <span id="visitor-count">Chargement...</span> visiteurs
-      </p>
-      <p class="footer-tiny">
-        <i class="fas fa-lock"></i> Sécurisé • 
-        <i class="fas fa-bolt"></i> Rapide • 
-        <i class="fas fa-infinity"></i> Illimité
-      </p>
-    </div>
-  </footer>
+    </nav>
 
-  <!-- Scripts -->
-  <script src="/static/app.js"></script>
-  {% block extra_scripts %}{% endblock %}
+    <!-- Messages Flash -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Sidebar (seulement sur dashboard et admin) -->
+    {% if request.endpoint in ['dashboard', 'admin_dashboard', 'package_view', 'upload_package'] %}
+    <div class="sidebar d-none d-lg-block">
+        <div class="mb-4">
+            <h5><i class="bi bi-menu-button-wide"></i> Navigation</h5>
+            <ul class="nav flex-column">
+                {% if request.endpoint == 'dashboard' %}
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('dashboard') }}">
+                        <i class="bi bi-speedometer2"></i> Tableau de bord
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('upload_package') }}">
+                        <i class="bi bi-upload"></i> Upload Package
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-box"></i> Mes Packages
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-download"></i> Mes Téléchargements
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-key"></i> API Keys
+                    </a>
+                </li>
+                {% elif request.endpoint == 'admin_dashboard' %}
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+                        <i class="bi bi-speedometer2"></i> Admin Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-people"></i> Utilisateurs
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-box"></i> Packages
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-graph-up"></i> Statistiques
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-gear"></i> Configuration
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <div class="mb-4">
+            <h5><i class="bi bi-info-circle"></i> Info</h5>
+            <p class="small text-muted">
+                <i class="bi bi-github"></i> GitHub: <a href="https://github.com/gopu-inc/zenv" target="_blank">gopu-inc/zenv</a>
+            </p>
+            <p class="small text-muted">
+                <i class="bi bi-discord"></i> Discord: <a href="https://discord.gg/qWx5DszrC" target="_blank">Rejoindre</a>
+            </p>
+        </div>
+        
+        {% if request.endpoint == 'dashboard' %}
+        <div class="card bg-dark">
+            <div class="card-body">
+                <h6 class="card-title">GitHub Auto-Commit</h6>
+                <p class="small">Les packages sont automatiquement commités sur la branche <code>package</code> de votre repo GitHub.</p>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="autoCommit" checked>
+                    <label class="form-check-label small" for="autoCommit">Auto-Commit activé</label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Contenu Principal -->
+    <div class="{% if request.endpoint in ['dashboard', 'admin_dashboard', 'package_view', 'upload_package'] %}main-content{% else %}container{% endif %} py-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-muted py-4 mt-5 border-top border-secondary">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Zenv Package Hub</h5>
+                    <p>Hébergement sécurisé de packages Python avec intégration GitHub automatique.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Liens Rapides</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('index') }}" class="text-muted">Accueil</a></li>
+                        <li><a href="{{ url_for('api_list_packages') }}" class="text-muted">Packages</a></li>
+                        <li><a href="{{ url_for('list_organizations') }}" class="text-muted">Organisations</a></li>
+                        <li><a href="https://github.com/gopu-inc/zenv" class="text-muted">GitHub</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-envelope"></i> ceoseshell@gmail.com</li>
+                        <li><i class="bi bi-discord"></i> https://discord.gg/qWx5DszrC</li>
+                        <li><i class="bi bi-shield-check"></i> Sécurité: SHA256/SHA512 + JWT</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="bg-secondary">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2023 Zenv Package Hub. Tous droits réservés.</p>
+                <p class="small">MIT License | PostgreSQL | Flask | Git LFS</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script>
+        // Initialiser DataTables
+        $(document).ready(function() {
+            $('table').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                },
+                pageLength: 25,
+                order: []
+            });
+        });
+        
+        // Gérer le thème sombre
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.setAttribute('data-bs-theme', 
+                    document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark'
+                );
+            });
+        }
+        
+        // Gérer l'auto-commit
+        const autoCommitToggle = document.getElementById('autoCommit');
+        if (autoCommitToggle) {
+            autoCommitToggle.addEventListener('change', function() {
+                localStorage.setItem('autoCommit', this.checked);
+            });
+            
+            // Restaurer l'état
+            const savedState = localStorage.getItem('autoCommit');
+            if (savedState !== null) {
+                autoCommitToggle.checked = savedState === 'true';
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
