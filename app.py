@@ -40,8 +40,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, 'zenv_hub.db')
 GIT_REPO_PATH = os.path.join(BASE_DIR, 'zenv-data')
 
-# ⚠️ CONFIGURATION GITHUB AVEC TOKEN DANS LE CODE (NON RECOMMANDÉ)
-GITHUB_TOKEN = "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"  # ⚠️ NE FAITES PAS ÇA EN PRODUCTION
+# Configuration GitHub
+GITHUB_TOKEN = "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"
 GITHUB_REPO = "gopu-inc/zenv"
 GITHUB_USERNAME = "gopu-inc"
 GITHUB_EMAIL = "ceoseshell@gmail.com"
@@ -604,19 +604,86 @@ def index():
         ''')
         popular_badges = [dict(row) for row in cursor.fetchall()]
         
-        return render_template('index.html',
-                             recent_packages=recent_packages,
-                             popular_badges=popular_badges,
-                             total_usrs=total_usrs,
-                             total_packages=total_packages,
-                             total_downloads=total_downloads,
-                             page='index')
+        # Page d'accueil simple
+        packages_html = ''
+        for pkg in recent_packages:
+            packages_html += f'''
+            <div style="border:1px solid #ddd;padding:15px;margin:10px 0;border-radius:5px;">
+                <h3>{pkg["name"]} v{pkg["version"]}</h3>
+                <p>{pkg.get("description", "Pas de description")}</p>
+                <p><small>Auteur: {pkg["author_name"] or "Inconnu"} | Téléchargements: {pkg["downloads_count"]}</small></p>
+            </div>
+            '''
+        
+        badges_html = ''
+        for badge in popular_badges:
+            badges_html += f'<img src="/badge/svg/{badge["name"]}" alt="{badge["label"]}: {badge["value"]}" style="margin:5px;">'
+        
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Zenv Package Hub</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 10px; text-align: center; margin-bottom: 30px; }}
+                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-bottom: 30px; }}
+                .stat-card {{ background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #667eea; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ margin: 0 10px; color: #667eea; text-decoration: none; font-weight: bold; }}
+                .nav a:hover {{ text-decoration: underline; }}
+                .section {{ margin-bottom: 40px; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🚀 Zenv Package Hub</h1>
+                <p>Le hub officiel des packages Zenv</p>
+                <div class="nav">
+                    <a href="/packages">📦 Packages</a>
+                    <a href="/badges">🏅 Badges</a>
+                    {'<a href="/dashboard">👤 Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">🔐 Connexion</a>'}
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value">{total_usrs}</div>
+                    <div>Utilisateurs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_packages}</div>
+                    <div>Packages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_downloads}</div>
+                    <div>Téléchargements</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>✨ Packages récents</h2>
+                {packages_html if packages_html else '<p>Aucun package pour le moment.</p>'}
+                <p style="text-align:center;"><a href="/packages">Voir tous les packages →</a></p>
+            </div>
+            
+            <div class="section">
+                <h2>🏅 Badges populaires</h2>
+                <div style="text-align:center;">
+                    {badges_html if badges_html else '<p>Aucun badge pour le moment.</p>'}
+                </div>
+                <p style="text-align:center;"><a href="/badges">Voir tous les badges →</a></p>
+            </div>
+        </body>
+        </html>
+        '''
         
     except Exception as e:
         print(f"⚠️ Erreur index: {e}")
         import traceback
         traceback.print_exc()
-        # Retourner une page simple si erreur
+        # Page d'accueil de secours
         return '''
         <!DOCTYPE html>
         <html>
@@ -624,14 +691,18 @@ def index():
             <title>Zenv Package Hub</title>
             <style>
                 body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                h1 { color: #007bff; }
-                .error { color: red; }
+                h1 { color: #667eea; }
+                .nav { margin: 20px 0; }
+                .nav a { margin: 0 10px; color: #667eea; text-decoration: none; }
             </style>
         </head>
         <body>
-            <h1>Zenv Package Hub</h1>
+            <h1>🚀 Zenv Package Hub</h1>
             <p>Bienvenue sur le hub de packages Zenv</p>
-            <p><a href="/login">Connexion</a> | <a href="/register">Inscription</a></p>
+            <div class="nav">
+                <a href="/login">Connexion</a>
+                <a href="/register">Inscription</a>
+            </div>
         </body>
         </html>
         '''
@@ -675,24 +746,26 @@ def login():
         except Exception as e:
             flash(f'Erreur: {str(e)}', 'danger')
     
-    # Si GET ou erreur, retourner une page simple
+    # Page de connexion simple
     return '''
     <!DOCTYPE html>
     <html>
     <head>
         <title>Connexion - Zenv Package Hub</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+            body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
             .form-group { margin-bottom: 15px; }
             label { display: block; margin-bottom: 5px; }
-            input { width: 100%; padding: 8px; box-sizing: border-box; }
-            button { background: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
+            input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+            button { background: #28a745; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
             .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
             .alert-danger { background: #f8d7da; color: #721c24; }
+            .nav { text-align: center; margin-top: 20px; }
+            .nav a { color: #667eea; text-decoration: none; }
         </style>
     </head>
     <body>
-        <h1>Connexion</h1>
+        <h1 style="text-align:center;color:#667eea;">🔐 Connexion</h1>
         <form method="POST">
             <div class="form-group">
                 <label>Nom d'utilisateur ou Email:</label>
@@ -707,8 +780,10 @@ def login():
             <button type="submit">Se connecter</button>
         </form>
         
-        <p>Pas de compte ? <a href="/register">S'inscrire</a></p>
-        <p><a href="/">Retour à l'accueil</a></p>
+        <div class="nav">
+            <p>Pas de compte ? <a href="/register">S'inscrire</a></p>
+            <p><a href="/">← Retour à l'accueil</a></p>
+        </div>
     </body>
     </html>
     '''
@@ -766,16 +841,17 @@ def register():
     <head>
         <title>Inscription - Zenv Package Hub</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+            body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
             .form-group { margin-bottom: 15px; }
             label { display: block; margin-bottom: 5px; }
-            input { width: 100%; padding: 8px; box-sizing: border-box; }
-            button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
-            .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
+            input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+            button { background: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+            .nav { text-align: center; margin-top: 20px; }
+            .nav a { color: #667eea; text-decoration: none; }
         </style>
     </head>
     <body>
-        <h1>Inscription</h1>
+        <h1 style="text-align:center;color:#007bff;">📝 Inscription</h1>
         <form method="POST">
             <div class="form-group">
                 <label>Nom d'utilisateur:</label>
@@ -800,8 +876,10 @@ def register():
             <button type="submit">S'inscrire</button>
         </form>
         
-        <p>Déjà inscrit ? <a href="/login">Se connecter</a></p>
-        <p><a href="/">Retour à l'accueil</a></p>
+        <div class="nav">
+            <p>Déjà inscrit ? <a href="/login">Se connecter</a></p>
+            <p><a href="/">← Retour à l'accueil</a></p>
+        </div>
     </body>
     </html>
     '''
@@ -810,13 +888,14 @@ def register():
 def logout():
     """Déconnexion"""
     session.clear()
-    flash('Vous avez été déconnecté', 'info')
     return redirect(url_for('index'))
 
 @app.route('/dashboard')
-@login_required
 def dashboard():
     """Tableau de bord"""
+    if 'usr_id' not in session:
+        return redirect(url_for('login'))
+    
     try:
         db = get_db()
         cursor = db.cursor()
@@ -828,7 +907,6 @@ def dashboard():
         if row:
             usr = dict(row)
         else:
-            flash('Utilisateur non trouvé', 'danger')
             return redirect(url_for('logout'))
         
         # Packages de l'usr
@@ -867,39 +945,52 @@ def dashboard():
         ''', (session['usr_id'],))
         usr_badges = [dict(row) for row in cursor.fetchall()]
         
-        # Page dashboard simple
+        # Générer HTML
+        packages_html = ''
+        for pkg in packages:
+            packages_html += f'''
+            <tr>
+                <td>{pkg['name']}</td>
+                <td>{pkg['version']}</td>
+                <td>{pkg['downloads_count']}</td>
+                <td>{pkg['created_at'][:10] if pkg['created_at'] else ''}</td>
+            </tr>
+            '''
+        
+        badges_html = ''
+        for badge in usr_badges:
+            badges_html += f'<img src="/badge/svg/{badge["name"]}" alt="{badge["label"]}: {badge["value"]}" style="margin:5px;">'
+        
         return f'''
         <!DOCTYPE html>
         <html>
         <head>
             <title>Tableau de bord - Zenv Package Hub</title>
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; }}
-                .header {{ background: #343a40; color: white; padding: 20px; margin-bottom: 20px; }}
+                body {{ font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }}
                 .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }}
                 .stat-card {{ background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
-                .stat-value {{ font-size: 2em; font-weight: bold; color: #007bff; }}
-                .section {{ margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }}
-                table {{ width: 100%; border-collapse: collapse; }}
-                th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid #dee2e6; }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #28a745; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ margin: 0 10px; color: white; text-decoration: none; font-weight: bold; }}
+                .section {{ margin-bottom: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px; }}
+                table {{ width: 100%; border-collapse: collapse; background: white; }}
+                th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }}
                 th {{ background: #e9ecef; }}
-                .badge {{ display: inline-block; padding: 5px 10px; background: #6c757d; color: white; border-radius: 20px; margin: 5px; }}
-                .nav {{ margin-bottom: 20px; }}
-                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
-                .nav a:hover {{ text-decoration: underline; }}
             </style>
         </head>
         <body>
             <div class="header">
-                <h1>Tableau de bord</h1>
-                <p>Bienvenue, {usr['username']} !</p>
-            </div>
-            
-            <div class="nav">
-                <a href="/">Accueil</a>
-                <a href="/packages">Packages</a>
-                <a href="/badges">Badges</a>
-                <a href="/logout">Déconnexion</a>
+                <h1>👤 Tableau de bord</h1>
+                <p>Bienvenue, <strong>{usr['username']}</strong> !</p>
+                <div class="nav">
+                    <a href="/">🏠 Accueil</a>
+                    <a href="/packages">📦 Packages</a>
+                    <a href="/badges">🏅 Badges</a>
+                    <a href="/badge/generate">✨ Créer un badge</a>
+                    <a href="/logout">🚪 Déconnexion</a>
+                </div>
             </div>
             
             <div class="stats">
@@ -914,15 +1005,15 @@ def dashboard():
             </div>
             
             <div class="section">
-                <h2>Mes Packages</h2>
-                {'<table><tr><th>Nom</th><th>Version</th><th>Téléchargements</th><th>Date</th></tr>' + 
-                 ''.join([f'<tr><td>{p["name"]}</td><td>{p["version"]}</td><td>{p["downloads_count"]}</td><td>{p["created_at"][:10] if p["created_at"] else ""}</td></tr>' for p in packages]) + 
-                 '</table>' if packages else '<p>Vous n\'avez pas encore de packages.</p>'}
+                <h2>📦 Mes Packages</h2>
+                {'<table><tr><th>Nom</th><th>Version</th><th>Téléchargements</th><th>Date</th></tr>' + packages_html + '</table>' if packages_html else '<p>Vous n\'avez pas encore de packages.</p>'}
             </div>
             
             <div class="section">
-                <h2>Mes Badges</h2>
-                {''.join([f'<div class="badge">{b["name"]}</div>' for b in usr_badges]) if usr_badges else '<p>Vous n\'avez pas encore de badges.</p>'}
+                <h2>🏅 Mes Badges</h2>
+                <div style="text-align:center;">
+                    {badges_html if badges_html else '<p>Vous n\'avez pas encore de badges.</p>'}
+                </div>
             </div>
         </body>
         </html>
@@ -930,9 +1021,6 @@ def dashboard():
         
     except Exception as e:
         print(f"⚠️ Erreur dashboard: {e}")
-        import traceback
-        traceback.print_exc()
-        flash('Erreur lors du chargement du tableau de bord', 'danger')
         return redirect(url_for('index'))
 
 @app.route('/packages')
@@ -956,15 +1044,15 @@ def list_packages():
         cursor.execute('SELECT COUNT(*) as total FROM packages WHERE is_private = 0')
         total = cursor.fetchone()[0] or 0
         
-        # Page simple des packages
+        # Générer HTML
         packages_html = ''
         for pkg in packages:
             packages_html += f'''
-            <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px;">
-                <h3>{pkg['name']} v{pkg['version']}</h3>
-                <p>{pkg['description'] or 'Pas de description'}</p>
-                <p><small>Auteur: {pkg['author_name'] or 'Inconnu'} | Téléchargements: {pkg['downloads_count']}</small></p>
-                <p><a href="/package/{pkg['name']}">Voir détails</a></p>
+            <div style="border:1px solid #ddd;padding:20px;margin:15px 0;border-radius:8px;background:white;">
+                <h3 style="margin-top:0;">{pkg['name']} v{pkg['version']}</h3>
+                <p>{pkg.get('description', 'Pas de description')}</p>
+                <p><small>👤 Auteur: {pkg['author_name'] or 'Inconnu'} | 📥 Téléchargements: {pkg['downloads_count']} | 📅 Créé le: {pkg['created_at'][:10] if pkg['created_at'] else 'N/A'}</small></p>
+                <p><a href="/package/{pkg['name']}" style="color:#667eea;text-decoration:none;">🔍 Voir détails →</a></p>
             </div>
             '''
         
@@ -975,30 +1063,28 @@ def list_packages():
             <title>Packages - Zenv Package Hub</title>
             <style>
                 body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
-                .nav {{ margin-bottom: 20px; }}
-                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
-                .package-count {{ color: #6c757d; margin-bottom: 20px; }}
+                .header {{ background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; text-align: center; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ margin: 0 10px; color: white; text-decoration: none; font-weight: bold; }}
+                .package-count {{ text-align: center; color: #6c757d; margin-bottom: 30px; }}
             </style>
         </head>
         <body>
             <div class="header">
-                <h1>Packages Zenv</h1>
+                <h1>📦 Packages Zenv</h1>
                 <p>Découvrez tous les packages disponibles</p>
-            </div>
-            
-            <div class="nav">
-                <a href="/">Accueil</a>
-                <a href="/dashboard">Tableau de bord</a>
-                <a href="/badges">Badges</a>
-                {'<a href="/logout">Déconnexion</a>' if 'usr_id' in session else '<a href="/login">Connexion</a>'}
+                <div class="nav">
+                    <a href="/">🏠 Accueil</a>
+                    <a href="/badges">🏅 Badges</a>
+                    {'<a href="/dashboard">👤 Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">🔐 Connexion</a>'}
+                </div>
             </div>
             
             <div class="package-count">
-                <strong>{total}</strong> packages disponibles
+                <h3>{total} packages disponibles</h3>
             </div>
             
-            {packages_html if packages else '<p>Aucun package disponible pour le moment.</p>'}
+            {packages_html if packages_html else '<div style="text-align:center;padding:40px;color:#6c757d;"><h3>📦 Aucun package disponible pour le moment.</h3></div>'}
         </body>
         </html>
         '''
@@ -1030,7 +1116,7 @@ def package_detail(package_name):
             <head><title>Package non trouvé</title></head>
             <body>
                 <h1>Package non trouvé</h1>
-                <p><a href="/packages">Retour aux packages</a></p>
+                <p><a href="/packages">← Retour aux packages</a></p>
             </body>
             </html>
             '''
@@ -1060,21 +1146,21 @@ def package_detail(package_name):
         # Convertir README en HTML
         readme_html = MarkdownProcessor.process_markdown(package.get('readme', ''))
         
-        # Page détail package
+        # Générer HTML
         releases_html = ''
         if releases:
             for release in releases:
                 releases_html += f'''
-                <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+                <div style="border:1px solid #dee2e6;padding:15px;margin:10px 0;border-radius:5px;background:#f8f9fa;">
                     <strong>Version {release['version']}</strong>
-                    <p>Taille: {release['file_size'] or 'N/A'} | Téléchargements: {release['download_count']}</p>
+                    <p>📦 Taille: {release['file_size'] or 'N/A'} | 📥 Téléchargements: {release['download_count']}</p>
                 </div>
                 '''
         
         badges_html = ''
         if badges:
             for badge in badges:
-                badges_html += f'<img src="/badge/svg/{badge["name"]}" alt="{badge["label"]}: {badge["value"]}" style="margin: 5px;">'
+                badges_html += f'<img src="/badge/svg/{badge["name"]}" alt="{badge["label"]}: {badge["value"]}" style="margin:5px;">'
         
         return f'''
         <!DOCTYPE html>
@@ -1083,45 +1169,46 @@ def package_detail(package_name):
             <title>{package['name']} - Zenv Package Hub</title>
             <style>
                 body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
-                .nav {{ margin-bottom: 20px; }}
-                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
+                .header {{ background: #f8f9fa; padding: 30px; border-radius: 10px; margin-bottom: 30px; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ margin: 0 10px; color: #667eea; text-decoration: none; font-weight: bold; }}
                 .section {{ margin-bottom: 30px; padding: 20px; background: white; border: 1px solid #dee2e6; border-radius: 8px; }}
-                .badges {{ margin: 20px 0; }}
-                code {{ background: #f8f9fa; padding: 2px 5px; border-radius: 3px; }}
+                code {{ background: #f8f9fa; padding: 5px 10px; border-radius: 4px; font-family: monospace; }}
+                .badges {{ text-align: center; margin: 20px 0; }}
             </style>
         </head>
         <body>
             <div class="nav">
-                <a href="/">Accueil</a>
-                <a href="/packages">Packages</a>
-                <a href="/badges">Badges</a>
-                {'<a href="/dashboard">Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">Connexion</a>'}
+                <a href="/">🏠 Accueil</a>
+                <a href="/packages">📦 Packages</a>
+                <a href="/badges">🏅 Badges</a>
+                {'<a href="/dashboard">👤 Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">🔐 Connexion</a>'}
             </div>
             
             <div class="header">
                 <h1>{package['name']} v{package['version']}</h1>
-                <p>{package['description'] or ''}</p>
-                <p><small>Auteur: {package['author_name'] or 'Inconnu'} | Téléchargements: {package['downloads_count']}</small></p>
+                <p style="font-size:1.2em;">{package.get('description', '')}</p>
+                <p><small>👤 Auteur: {package['author_name'] or 'Inconnu'} | 📥 Téléchargements: {package['downloads_count']} | 📅 Créé le: {package['created_at'][:10] if package['created_at'] else ''}</small></p>
             </div>
             
             <div class="badges">
-                {badges_html if badges_html else '<p>Aucun badge pour ce package.</p>'}
+                {badges_html if badges_html else '<p>🏅 Aucun badge pour ce package.</p>'}
             </div>
             
             <div class="section">
                 <h2>📦 Installation</h2>
+                <p>Utilisez pip pour installer ce package:</p>
                 <code>pip install {package['name']}</code>
             </div>
             
             <div class="section">
                 <h2>📄 Versions disponibles</h2>
-                {releases_html if releases_html else '<p>Aucune version disponible.</p>'}
+                {releases_html if releases_html else '<p>📦 Aucune version disponible.</p>'}
             </div>
             
             <div class="section">
                 <h2>📖 Documentation</h2>
-                <div>{readme_html if readme_html else '<p>Aucune documentation disponible.</p>'}</div>
+                <div>{readme_html if readme_html else '<p>📄 Aucune documentation disponible.</p>'}</div>
             </div>
         </body>
         </html>
@@ -1148,15 +1235,15 @@ def list_badges():
         
         badges = [dict(row) for row in cursor.fetchall()]
         
-        # Générer le HTML des badges
+        # Générer HTML
         badges_html = ''
         for badge in badges:
             badges_html += f'''
-            <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; text-align: center;">
-                <img src="/badge/svg/{badge['name']}" alt="{badge['label']}: {badge['value']}" style="margin-bottom: 10px;">
-                <h3>{badge['name']}</h3>
-                <p>{badge['label']}: {badge['value']}</p>
-                <p><small>Créé par: {badge['created_by_name'] or 'Inconnu'} | Utilisations: {badge['usage_count']}</small></p>
+            <div style="border:1px solid #dee2e6;padding:20px;margin:15px 0;border-radius:8px;background:white;text-align:center;">
+                <img src="/badge/svg/{badge['name']}" alt="{badge['label']}: {badge['value']}" style="margin-bottom:15px;">
+                <h3 style="margin-top:0;">{badge['name']}</h3>
+                <p><strong>{badge['label']}</strong>: {badge['value']}</p>
+                <p><small>👤 Créé par: {badge['created_by_name'] or 'Inconnu'} | 🔢 Utilisations: {badge['usage_count']}</small></p>
             </div>
             '''
         
@@ -1167,31 +1254,32 @@ def list_badges():
             <title>Badges - Zenv Package Hub</title>
             <style>
                 body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: #6f42c1; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
-                .nav {{ margin-bottom: 20px; }}
-                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
-                .badge-count {{ color: #6c757d; margin-bottom: 20px; }}
+                .header {{ background: linear-gradient(135deg, #6f42c1 0%, #9f5f9f 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; text-align: center; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ margin: 0 10px; color: white; text-decoration: none; font-weight: bold; }}
+                .badge-count {{ text-align: center; color: #6c757d; margin-bottom: 30px; }}
+                .create-badge {{ text-align: center; margin: 30px 0; }}
+                .create-badge a {{ display: inline-block; padding: 12px 24px; background: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }}
             </style>
         </head>
         <body>
             <div class="header">
-                <h1>Badges Zenv</h1>
+                <h1>🏅 Badges Zenv</h1>
                 <p>Découvrez tous les badges disponibles</p>
-            </div>
-            
-            <div class="nav">
-                <a href="/">Accueil</a>
-                <a href="/packages">Packages</a>
-                {'<a href="/dashboard">Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">Connexion</a>'}
+                <div class="nav">
+                    <a href="/">🏠 Accueil</a>
+                    <a href="/packages">📦 Packages</a>
+                    {'<a href="/dashboard">👤 Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">🔐 Connexion</a>'}
+                </div>
             </div>
             
             <div class="badge-count">
-                <strong>{len(badges)}</strong> badges disponibles
+                <h3>{len(badges)} badges disponibles</h3>
             </div>
             
-            {badges_html if badges else '<p>Aucun badge disponible pour le moment.</p>'}
+            {badges_html if badges_html else '<div style="text-align:center;padding:40px;color:#6c757d;"><h3>🏅 Aucun badge disponible pour le moment.</h3></div>'}
             
-            {'<p><a href="/badge/generate" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">Créer un badge</a></p>' if 'usr_id' in session else ''}
+            {'<div class="create-badge"><a href="/badge/generate">✨ Créer un nouveau badge</a></div>' if 'usr_id' in session else ''}
         </body>
         </html>
         '''
@@ -1201,9 +1289,11 @@ def list_badges():
         return redirect(url_for('index'))
 
 @app.route('/badge/generate', methods=['GET', 'POST'])
-@login_required
 def generate_badge():
     """Générer un nouveau badge"""
+    if 'usr_id' not in session:
+        return redirect(url_for('login'))
+    
     if request.method == 'POST':
         name = request.form.get('name')
         label = request.form.get('label')
@@ -1218,7 +1308,7 @@ def generate_badge():
             <body>
                 <h1>Erreur</h1>
                 <p>Tous les champs sont requis</p>
-                <p><a href="/badge/generate">Retour</a></p>
+                <p><a href="/badge/generate">← Retour</a></p>
             </body>
             </html>
             '''
@@ -1260,19 +1350,23 @@ def generate_badge():
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Badge créé</title>
+                <title>Badge créé - Zenv Package Hub</title>
                 <style>
-                    body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                    body {{ font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; text-align: center; }}
                     .success {{ color: #28a745; }}
                     img {{ margin: 20px; }}
+                    .nav {{ margin-top: 30px; }}
+                    .nav a {{ margin: 0 10px; color: #667eea; text-decoration: none; }}
                 </style>
             </head>
             <body>
                 <h1 class="success">✅ Badge créé avec succès!</h1>
                 <img src="/badge/svg/{name}" alt="{label}: {value}">
                 <p><strong>{name}</strong>: {label} - {value}</p>
-                <p><a href="/badges">Voir tous les badges</a></p>
-                <p><a href="/badge/generate">Créer un autre badge</a></p>
+                <div class="nav">
+                    <a href="/badges">🏅 Voir tous les badges</a>
+                    <a href="/badge/generate">✨ Créer un autre badge</a>
+                </div>
             </body>
             </html>
             '''
@@ -1285,7 +1379,7 @@ def generate_badge():
             <body>
                 <h1>Erreur</h1>
                 <p>Erreur lors de la création du badge: {str(e)}</p>
-                <p><a href="/badge/generate">Retour</a></p>
+                <p><a href="/badge/generate">← Retour</a></p>
             </body>
             </html>
             '''
@@ -1298,22 +1392,20 @@ def generate_badge():
         <title>Créer un badge - Zenv Package Hub</title>
         <style>
             body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
-            .form-group { margin-bottom: 15px; }
-            label { display: block; margin-bottom: 5px; }
-            input, select { width: 100%; padding: 8px; box-sizing: border-box; }
-            button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
-            .nav { margin-bottom: 20px; }
-            .nav a { margin-right: 15px; color: #007bff; text-decoration: none; }
+            .form-group { margin-bottom: 20px; }
+            label { display: block; margin-bottom: 5px; font-weight: bold; }
+            input, select { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+            button { background: #007bff; color: white; padding: 14px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
+            .nav { text-align: center; margin-top: 30px; }
+            .nav a { margin: 0 10px; color: #667eea; text-decoration: none; }
+            .header { text-align: center; margin-bottom: 30px; }
         </style>
     </head>
     <body>
-        <div class="nav">
-            <a href="/">Accueil</a>
-            <a href="/badges">Badges</a>
-            <a href="/dashboard">Tableau de bord</a>
+        <div class="header">
+            <h1 style="color:#007bff;">✨ Créer un badge</h1>
         </div>
         
-        <h1>Créer un badge</h1>
         <form method="POST">
             <div class="form-group">
                 <label>Nom du badge (unique):</label>
@@ -1333,20 +1425,23 @@ def generate_badge():
             <div class="form-group">
                 <label>Couleur:</label>
                 <select name="color">
-                    <option value="blue">Bleu</option>
-                    <option value="green">Vert</option>
-                    <option value="red">Rouge</option>
-                    <option value="orange">Orange</option>
-                    <option value="yellow">Jaune</option>
-                    <option value="purple">Violet</option>
-                    <option value="gray">Gris</option>
+                    <option value="blue">🔵 Bleu</option>
+                    <option value="green">🟢 Vert</option>
+                    <option value="red">🔴 Rouge</option>
+                    <option value="orange">🟠 Orange</option>
+                    <option value="yellow">🟡 Jaune</option>
+                    <option value="purple">🟣 Violet</option>
+                    <option value="gray">⚪ Gris</option>
                 </select>
             </div>
             
             <button type="submit">Créer le badge</button>
         </form>
         
-        <p><a href="/badges">Retour aux badges</a></p>
+        <div class="nav">
+            <a href="/badges">← Retour aux badges</a>
+            <a href="/dashboard">👤 Tableau de bord</a>
+        </div>
     </body>
     </html>
     '''
@@ -1363,14 +1458,12 @@ def serve_badge_svg(badge_name):
     
     return send_file(badge_path, mimetype='image/svg+xml')
 
-# ============================================================================
-# ROUTES ADMIN
-# ============================================================================
-
 @app.route('/admin')
-@admin_required
 def admin_dashboard():
     """Tableau de bord admin"""
+    if 'usr_id' not in session or session.get('role') != 'admin':
+        abort(403)
+    
     try:
         db = get_db()
         cursor = db.cursor()
@@ -1395,30 +1488,31 @@ def admin_dashboard():
         <head>
             <title>Admin - Zenv Package Hub</title>
             <style>
-                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; }}
-                .header {{ background: #dc3545; color: white; padding: 20px; margin-bottom: 20px; }}
-                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }}
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #dc3545 0%, #e4606d 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; text-align: center; }}
+                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 30px; }}
                 .stat-card {{ background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
                 .stat-value {{ font-size: 2em; font-weight: bold; color: #dc3545; }}
-                .nav {{ margin-bottom: 20px; }}
-                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
-                .admin-warning {{ background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+                .nav {{ text-align: center; margin: 20px 0; }}
+                .nav a {{ margin: 0 10px; color: white; text-decoration: none; font-weight: bold; }}
+                .admin-warning {{ background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center; }}
+                .actions {{ text-align: center; margin: 30px 0; }}
+                .actions a {{ display: inline-block; margin: 10px; padding: 12px 24px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; }}
             </style>
         </head>
         <body>
             <div class="header">
                 <h1>🏛️ Administration</h1>
-                <p>Bienvenue, administrateur</p>
+                <p>Zone réservée aux administrateurs</p>
+                <div class="nav">
+                    <a href="/">🏠 Accueil</a>
+                    <a href="/dashboard">👤 Tableau de bord</a>
+                    <a href="/logout">🚪 Déconnexion</a>
+                </div>
             </div>
             
             <div class="admin-warning">
                 ⚠️ Zone réservée aux administrateurs
-            </div>
-            
-            <div class="nav">
-                <a href="/">Accueil</a>
-                <a href="/dashboard">Tableau de bord</a>
-                <a href="/logout">Déconnexion</a>
             </div>
             
             <div class="stats">
@@ -1440,12 +1534,9 @@ def admin_dashboard():
                 </div>
             </div>
             
-            <div>
-                <h2>Actions d'administration</h2>
-                <ul>
-                    <li><a href="/packages">Gérer les packages</a></li>
-                    <li><a href="/badges">Gérer les badges</a></li>
-                </ul>
+            <div class="actions">
+                <a href="/packages">📦 Gérer les packages</a>
+                <a href="/badges">🏅 Gérer les badges</a>
             </div>
         </body>
         </html>
