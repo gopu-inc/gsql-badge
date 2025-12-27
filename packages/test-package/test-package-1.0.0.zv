@@ -1,0 +1,5 @@
+func hello() => {
+    zncv.[("Hello from Zenv!")]
+}
+
+hello()
