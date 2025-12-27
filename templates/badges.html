@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h1 class="display-6 fw-bold mb-3">
+                    <i class="bi bi-award me-3"></i>Badges de Qualité
+                </h1>
+                <p class="lead text-muted mb-4">
+                    Reconnaissez la qualité, la sécurité et la popularité des packages avec notre système de badges.
+                </p>
+                {% if session.get('usr_id') %}
+                <a href="{{ url_for('generate_badge') }}" class="btn btn-zenv btn-lg">
+                    <i class="bi bi-plus-circle me-2"></i>Créer un badge
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des badges -->
+<div class="row">
+    {% for badge in badges %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <img src="{{ url_for('serve_badge_svg', badge_name=badge.name) }}" 
+                         alt="{{ badge.label }}: {{ badge.value }}"
+                         class="img-fluid mb-3"
+                         style="max-height: 40px;">
+                    
+                    <h5 class="card-title">{{ badge.label }}</h5>
+                    <h6 class="card-subtitle mb-3 text-muted">{{ badge.value }}</h6>
+                    
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <span class="badge rounded-pill" 
+                              style="background-color: {{ badge.color }}; color: white;">
+                            {{ badge.color|title }}
+                        </span>
+                        <span class="badge bg-secondary rounded-pill">
+                            {{ badge.usage_count|default(0) }} utilisations
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('badge_detail', badge_name=badge.name) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>Détails
+                        </a>
+                        <button class="btn btn-outline-secondary" 
+                                onclick="copyBadgeCode('{{ badge.name }}')">
+                            <i class="bi bi-code me-1"></i>Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="bi bi-person me-1"></i>
+                        {{ badge.created_by_name|default('Système') }}
+                    </small>
+                    <small class="text-muted">
+                        {{ badge.created_at|datetimeformat('%d/%m/%Y') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-award display-1 text-muted mb-3"></i>
+                <h4>Aucun badge disponible</h4>
+                <p class="text-muted mb-4">
+                    Aucun badge n'a été créé pour le moment.
+                </p>
+                {% if session.get('usr_id') %}
+                <a href="{{ url_for('generate_badge') }}" class="btn btn-zenv">
+                    <i class="bi bi-plus-circle me-1"></i>Créer le premier badge
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Badges par catégorie -->
+<div class="row mt-5">
+    <div class="col-12 mb-4">
+        <h3 class="text-center mb-4">
+            <i class="bi bi-tags me-2"></i>Catégories de badges
+        </h3>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="badge-display mx-auto mb-3">
+                    <img src="{{ url_for('serve_badge_svg', badge_name='version') }}" 
+                         alt="version: 1.0.0"
+                         style="height: 20px;">
+                </div>
+                <h5>Version</h5>
+                <p class="text-muted small">
+                    Indique la version stable du package
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="badge-display mx-auto mb-3">
+                    <img src="{{ url_for('serve_badge_svg', badge_name='downloads') }}" 
+                         alt="downloads: 1k+"
+                         style="height: 20px;">
+                </div>
+                <h5>Popularité</h5>
+                <p class="text-muted small">
+                    Nombre de téléchargements et d'utilisateurs
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="badge-display mx-auto mb-3">
+                    <img src="{{ url_for('serve_badge_svg', badge_name='license') }}" 
+                         alt="license: MIT"
+                         style="height: 20px;">
+                </div>
+                <h5>Licence</h5>
+                <p class="text-muted small">
+                    Type de licence du package
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="badge-display mx-auto mb-3">
+                    <img src="{{ url_for('serve_badge_svg', badge_name='tests') }}" 
+                         alt="tests: passing"
+                         style="height: 20px;">
+                </div>
+                <h5>Qualité</h5>
+                <p class="text-muted small">
+                    Tests, couverture de code et documentation
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyBadgeCode(badgeName) {
+        const code = `![Badge]({{ url_for('serve_badge_svg', badge_name='${badgeName}') }})`;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Code du badge copié !');
+        });
+    }
+</script>
+{% endblock %}
