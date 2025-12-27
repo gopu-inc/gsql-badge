@@ -1,5 +1,5 @@
 """
-Zenv Package Hub - Version SQLite avec synchronisation Git et badges Base64
+Zenv Package Hub - Version complète avec synchronisation Git en temps réel
 """
 
 import os
@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, request, jsonify, redirect, url_for, session, send_file, Response, g
+from flask import Flask, request, jsonify, redirect, url_for, send_file, Response, g
 from flask_cors import CORS
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
@@ -37,13 +37,15 @@ from packaging.version import parse as parse_version
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, 'zenv_hub.db')
+GIT_REPO_PATH = os.path.join(BASE_DIR, 'zenv-data')
+GIT_AUTO_COMMIT = True  # Sauvegarde automatique dans Git
 
 # Configuration GitHub
 GITHUB_TOKEN = "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"
 GITHUB_REPO = "gopu-inc/zenv"
 GITHUB_USERNAME = "gopu-inc"
 GITHUB_EMAIL = "ceoseshell@gmail.com"
-GITHUB_BRANCH = "main"
+GITHUB_BRANCH = "package-data"
 
 # Configuration JWT
 JWT_SECRET = "votre_super_secret_jwt_changez_moi_12345"
@@ -57,6 +59,7 @@ app.config.update(
     SECRET_KEY=APP_SECRET,
     JWT_SECRET_KEY=JWT_SECRET,
     DATABASE_PATH=DATABASE_PATH,
+    GIT_REPO_PATH=GIT_REPO_PATH,
     PACKAGE_DIR=os.path.join(BASE_DIR, 'packages'),
     UPLOAD_DIR=os.path.join(BASE_DIR, 'uploads'),
     BUILD_DIR=os.path.join(BASE_DIR, 'builds'),
@@ -75,6 +78,177 @@ for dir_path in [app.config['PACKAGE_DIR'], app.config['UPLOAD_DIR'],
     os.makedirs(dir_path, exist_ok=True)
 
 # ============================================================================
+# GESTIONNAIRE GIT (Sauvegarde temps réel)
+# ============================================================================
+
+class GitSyncManager:
+    """Gestionnaire de synchronisation Git en temps réel"""
+    
+    @staticmethod
+    def init_git_repo():
+        """Initialiser le dépôt Git"""
+        repo_path = app.config['GIT_REPO_PATH']
+        
+        if not os.path.exists(repo_path):
+            print(f"🔄 Initialisation du dépôt Git...")
+            os.makedirs(repo_path, exist_ok=True)
+            
+            try:
+                # Initialiser Git
+                subprocess.run(['git', 'init'], cwd=repo_path, check=True, capture_output=True)
+                
+                # Configurer Git
+                subprocess.run(['git', 'config', 'user.name', GITHUB_USERNAME], 
+                             cwd=repo_path, check=True)
+                subprocess.run(['git', 'config', 'user.email', GITHUB_EMAIL], 
+                             cwd=repo_path, check=True)
+                
+                # Créer README
+                readme_content = f"""# Zenv Package Hub - Backup Repository
+
+Ce dépôt contient les sauvegardes automatiques de Zenv Package Hub.
+
+## Structure
+- `zenv_hub.db` : Base de données SQLite complète
+- `packages/` : Fichiers de packages (.whl, .tar.gz)
+- `badges/` : Fichiers de badges SVG
+- `logs/` : Journaux d'activité
+
+## Dernière sauvegarde : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+                with open(os.path.join(repo_path, 'README.md'), 'w') as f:
+                    f.write(readme_content)
+                
+                print("✅ Dépôt Git initialisé")
+                
+            except Exception as e:
+                print(f"⚠️ Erreur initialisation Git: {e}")
+    
+    @staticmethod
+    def sync_to_git(action="auto"):
+        """Synchroniser toutes les données vers Git"""
+        if not GIT_AUTO_COMMIT:
+            return True
+        
+        try:
+            repo_path = app.config['GIT_REPO_PATH']
+            
+            # 1. Copier la base de données
+            if os.path.exists(app.config['DATABASE_PATH']):
+                shutil.copy2(app.config['DATABASE_PATH'], 
+                           os.path.join(repo_path, 'zenv_hub.db'))
+            
+            # 2. Copier les packages
+            packages_src = app.config['PACKAGE_DIR']
+            packages_dst = os.path.join(repo_path, 'packages')
+            
+            if os.path.exists(packages_src):
+                if os.path.exists(packages_dst):
+                    shutil.rmtree(packages_dst)
+                shutil.copytree(packages_src, packages_dst)
+            
+            # 3. Copier les badges
+            badges_src = app.config['SVG_DIR']
+            badges_dst = os.path.join(repo_path, 'badges')
+            
+            if os.path.exists(badges_src):
+                if os.path.exists(badges_dst):
+                    shutil.rmtree(badges_dst)
+                shutil.copytree(badges_src, badges_dst)
+            
+            # 4. Ajouter tout au Git
+            subprocess.run(['git', 'add', '-A'], cwd=repo_path, check=True, capture_output=True)
+            
+            # 5. Commit avec message descriptif
+            commit_msg = f"[{action}] Backup automatique - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            result = subprocess.run(['git', 'commit', '-m', commit_msg], 
+                                  cwd=repo_path, capture_output=True, text=True)
+            
+            # Si rien à committer
+            if "nothing to commit" in result.stdout:
+                print("ℹ️ Rien à synchroniser avec Git")
+                return True
+            
+            print(f"✅ Données synchronisées avec Git: {commit_msg}")
+            
+            # 6. Push vers GitHub (si configuré)
+            if GITHUB_TOKEN and GITHUB_REPO != "gopu-inc/zenv":
+                try:
+                    # Configurer l'URL avec token
+                    remote_url = f"https://{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git"
+                    
+                    # Vérifier si remote existe
+                    remote_check = subprocess.run(['git', 'remote', '-v'], 
+                                                cwd=repo_path, capture_output=True, text=True)
+                    
+                    if "origin" not in remote_check.stdout:
+                        subprocess.run(['git', 'remote', 'add', 'origin', remote_url], 
+                                     cwd=repo_path, check=True)
+                    else:
+                        subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url], 
+                                     cwd=repo_path, check=True)
+                    
+                    # Push avec force si nécessaire
+                    subprocess.run(['git', 'push', '-u', 'origin', 'main', '--force'], 
+                                 cwd=repo_path, check=True, capture_output=True)
+                    
+                    print("✅ Données poussées vers GitHub")
+                    
+                except Exception as e:
+                    print(f"⚠️ Erreur push GitHub: {e}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Erreur synchronisation Git: {e}")
+            return False
+    
+    @staticmethod
+    def restore_from_git():
+        """Restaurer les données depuis Git"""
+        repo_path = app.config['GIT_REPO_PATH']
+        
+        if not os.path.exists(repo_path):
+            return False
+        
+        try:
+            # Pull les dernières modifications (si remote configuré)
+            if GITHUB_TOKEN:
+                try:
+                    subprocess.run(['git', 'pull', 'origin', 'main'], 
+                                 cwd=repo_path, check=True, capture_output=True)
+                except:
+                    pass
+            
+            # 1. Restaurer la base de données
+            db_backup = os.path.join(repo_path, 'zenv_hub.db')
+            if os.path.exists(db_backup):
+                shutil.copy2(db_backup, app.config['DATABASE_PATH'])
+                print("✅ Base de données restaurée depuis Git")
+            
+            # 2. Restaurer les packages
+            packages_backup = os.path.join(repo_path, 'packages')
+            if os.path.exists(packages_backup):
+                if os.path.exists(app.config['PACKAGE_DIR']):
+                    shutil.rmtree(app.config['PACKAGE_DIR'])
+                shutil.copytree(packages_backup, app.config['PACKAGE_DIR'])
+                print("✅ Packages restaurés depuis Git")
+            
+            # 3. Restaurer les badges
+            badges_backup = os.path.join(repo_path, 'badges')
+            if os.path.exists(badges_backup):
+                if os.path.exists(app.config['SVG_DIR']):
+                    shutil.rmtree(app.config['SVG_DIR'])
+                shutil.copytree(badges_backup, app.config['SVG_DIR'])
+                print("✅ Badges restaurés depuis Git")
+            
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Erreur restauration Git: {e}")
+            return False
+
+# ============================================================================
 # UTILITAIRES SQLITE
 # ============================================================================
 
@@ -83,6 +257,7 @@ def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(app.config['DATABASE_PATH'])
         g.db.row_factory = sqlite3.Row
+    
     return g.db
 
 def close_db(e=None):
@@ -111,9 +286,8 @@ def init_sqlite():
                     email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
                     role TEXT DEFAULT 'user',
-                    github_token TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    is_verified BOOLEAN DEFAULT 0,
+                    is_verified BOOLEAN DEFAULT 1,
                     last_login TIMESTAMP,
                     avatar_url TEXT,
                     bio TEXT
@@ -140,12 +314,11 @@ def init_sqlite():
                     downloads_count INTEGER DEFAULT 0,
                     is_private BOOLEAN DEFAULT 0,
                     language TEXT DEFAULT 'python',
-                    UNIQUE(name, version),
                     FOREIGN KEY (usr_id) REFERENCES usrs(id) ON DELETE CASCADE
                 )
             ''')
             
-            # Table badges avec support Base64
+            # Table badges
             cursor.execute('''
                 CREATE TABLE badges (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,7 +328,6 @@ def init_sqlite():
                     color TEXT DEFAULT 'blue',
                     svg_content TEXT NOT NULL,
                     base64_content TEXT,
-                    base64_type TEXT DEFAULT 'svg',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_by INTEGER,
@@ -165,7 +337,7 @@ def init_sqlite():
                 )
             ''')
             
-            # Table logo
+            # Table logos
             cursor.execute('''
                 CREATE TABLE logos (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,37 +352,46 @@ def init_sqlite():
                 )
             ''')
             
-            # Table badge_assignments
-            cursor.execute('''
-                CREATE TABLE badge_assignments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    badge_id INTEGER,
-                    package_id INTEGER,
-                    usr_id INTEGER,
-                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    assigned_by INTEGER,
-                    UNIQUE(badge_id, package_id, usr_id),
-                    FOREIGN KEY (badge_id) REFERENCES badges(id) ON DELETE CASCADE,
-                    FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
-                    FOREIGN KEY (usr_id) REFERENCES usrs(id) ON DELETE CASCADE,
-                    FOREIGN KEY (assigned_by) REFERENCES usrs(id) ON DELETE SET NULL
-                )
-            ''')
-            
-            # Table releases
+            # Table releases (fichiers)
             cursor.execute('''
                 CREATE TABLE releases (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     package_id INTEGER,
                     version TEXT NOT NULL,
-                    filename TEXT,
+                    filename TEXT NOT NULL,
+                    file_path TEXT NOT NULL,
                     file_size INTEGER,
                     file_hash TEXT,
                     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     download_count INTEGER DEFAULT 0,
-                    github_release_id TEXT,
-                    UNIQUE(package_id, version),
                     FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE
+                )
+            ''')
+            
+            # Table downloads
+            cursor.execute('''
+                CREATE TABLE downloads (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    release_id INTEGER,
+                    usr_id INTEGER,
+                    download_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    FOREIGN KEY (release_id) REFERENCES releases(id) ON DELETE CASCADE,
+                    FOREIGN KEY (usr_id) REFERENCES usrs(id) ON DELETE SET NULL
+                )
+            ''')
+            
+            # Table sync_log (pour tracking Git)
+            cursor.execute('''
+                CREATE TABLE sync_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    action TEXT NOT NULL,
+                    entity_type TEXT,
+                    entity_id INTEGER,
+                    sync_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    status TEXT DEFAULT 'success',
+                    error_message TEXT
                 )
             ''')
             
@@ -248,12 +429,10 @@ class SecurityUtils:
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash bcrypt"""
         return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     
     @staticmethod
     def verify_password(password: str, hashed: str) -> bool:
-        """Vérifie le mot de passe"""
         try:
             return bcrypt.checkpw(password.encode(), hashed.encode())
         except:
@@ -261,7 +440,6 @@ class SecurityUtils:
     
     @staticmethod
     def generate_token(usr_id: int, role: str = "user") -> dict:
-        """Génère les tokens JWT"""
         access_payload = {
             'usr_id': usr_id,
             'role': role,
@@ -280,7 +458,6 @@ class SecurityUtils:
     
     @staticmethod
     def verify_token(token: str):
-        """Vérifie un token JWT"""
         try:
             return jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         except jwt.ExpiredSignatureError:
@@ -289,7 +466,7 @@ class SecurityUtils:
             raise Exception("Token invalide")
 
 class BadgeGenerator:
-    """Générateur de badges SVG et Base64"""
+    """Générateur de badges"""
     
     COLORS = {
         'blue': '#007ec6',
@@ -303,7 +480,6 @@ class BadgeGenerator:
     
     @staticmethod
     def create_svg_badge(label: str, value: str, color: str = "blue") -> str:
-        """Crée un badge SVG"""
         color_hex = BadgeGenerator.COLORS.get(color, BadgeGenerator.COLORS['blue'])
         
         label_width = max(len(label) * 6 + 10, 30)
@@ -338,69 +514,9 @@ class BadgeGenerator:
     
     @staticmethod
     def svg_to_base64(svg_content: str) -> str:
-        """Convertit SVG en Base64"""
         svg_bytes = svg_content.encode('utf-8')
         base64_str = base64.b64encode(svg_bytes).decode('utf-8')
         return f"data:image/svg+xml;base64,{base64_str}"
-    
-    @staticmethod
-    def create_base64_badge(label: str, value: str, color: str = "blue") -> tuple:
-        """Crée un badge et retourne SVG + Base64"""
-        svg_content = BadgeGenerator.create_svg_badge(label, value, color)
-        base64_content = BadgeGenerator.svg_to_base64(svg_content)
-        return svg_content, base64_content
-    
-    @staticmethod
-    def create_custom_base64_badge(label: str, value: str, base64_logo: str = None, color: str = "blue") -> tuple:
-        """Crée un badge avec logo personnalisé en Base64"""
-        color_hex = BadgeGenerator.COLORS.get(color, BadgeGenerator.COLORS['blue'])
-        
-        label_width = max(len(label) * 6 + 10, 30)
-        value_width = max(len(value) * 6 + 10, 30)
-        total_width = label_width + value_width
-        height = 20
-        
-        svg = f'<?xml version="1.0" encoding="UTF-8"?>'
-        svg += f'<svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">'
-        svg += f'<title>{label}: {value}</title>'
-        svg += f'<linearGradient id="s" x2="0" y2="100%">'
-        svg += f'<stop offset="0" stop-color="#bbb" stop-opacity=".1"/>'
-        svg += f'<stop offset="1" stop-opacity=".1"/>'
-        svg += f'</linearGradient>'
-        svg += f'<mask id="r">'
-        svg += f'<rect width="{total_width}" height="{height}" rx="3" fill="#fff"/>'
-        svg += f'</mask>'
-        svg += f'<g mask="url(#r)">'
-        svg += f'<rect width="{label_width}" height="{height}" fill="{color_hex}"/>'
-        svg += f'<rect x="{label_width}" width="{value_width}" height="{height}" fill="#555"/>'
-        svg += f'<rect width="{total_width}" height="{height}" fill="url(#s)"/>'
-        svg += f'</g>'
-        
-        # Ajouter le logo si fourni
-        if base64_logo:
-            svg += f'<image href="{base64_logo}" x="5" y="2" width="16" height="16"/>'
-            label_x = label_width/2 + 8
-        else:
-            label_x = label_width/2
-            
-        svg += f'<g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">'
-        svg += f'<text x="{label_x}" y="14" fill="#010101" fill-opacity=".3">{label.upper()}</text>'
-        svg += f'<text x="{label_x}" y="13">{label.upper()}</text>'
-        svg += f'<text x="{label_width + value_width/2}" y="14" fill="#010101" fill-opacity=".3">{value}</text>'
-        svg += f'<text x="{label_width + value_width/2}" y="13">{value}</text>'
-        svg += f'</g>'
-        svg += f'</svg>'
-        
-        base64_content = BadgeGenerator.svg_to_base64(svg)
-        return svg, base64_content
-    
-    @staticmethod
-    def save_badge_svg(badge_name: str, svg_content: str) -> str:
-        """Sauvegarde un badge SVG"""
-        badge_path = os.path.join(app.config['SVG_DIR'], f"{badge_name}.svg")
-        with open(badge_path, 'w', encoding='utf-8') as f:
-            f.write(svg_content)
-        return badge_path
 
 # ============================================================================
 # DÉCORATEURS
@@ -412,7 +528,11 @@ def token_required(f):
         token = None
         
         if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1] if " " in request.headers['Authorization'] else request.headers['Authorization']
+            auth_header = request.headers['Authorization']
+            if " " in auth_header:
+                token = auth_header.split(" ")[1]
+            else:
+                token = auth_header
         
         if not token:
             return jsonify({'error': 'Token manquant'}), 401
@@ -437,55 +557,26 @@ def admin_required(f):
     return decorated_function
 
 # ============================================================================
-# ROUTES API
+# ROUTES API - AUTHENTIFICATION
 # ============================================================================
 
 @app.route('/')
 def index():
-    """Page d'accueil API"""
     return jsonify({
-        'message': 'Bienvenue sur Zenv Package Hub API',
-        'version': '1.0.0',
+        'message': 'Zenv Package Hub API',
+        'version': '2.0.0',
+        'features': ['Git Sync', 'Package Hosting', 'Badge Generator', 'JWT Auth'],
         'endpoints': {
-            'auth': {
-                'register': '/api/auth/register (POST)',
-                'login': '/api/auth/login (POST)',
-                'profile': '/api/auth/profile (GET)'
-            },
-            'badges': {
-                'list': '/api/badges (GET)',
-                'create': '/api/badges (POST)',
-                'get': '/api/badges/<name> (GET)',
-                'update': '/api/badges/<name> (PUT)',
-                'delete': '/api/badges/<name> (DELETE)'
-            },
-            'logos': {
-                'list': '/api/logos (GET)',
-                'create': '/api/logos (POST)',
-                'get': '/api/logos/<name> (GET)',
-                'set_default': '/api/logos/<name>/default (PUT)'
-            },
-            'packages': {
-                'list': '/api/packages (GET)',
-                'create': '/api/packages (POST)',
-                'get': '/api/packages/<name> (GET)'
-            }
-        },
-        'badge_urls': {
-            'svg': 'https://zenv-hub.onrender.com/badge/svg/{badge_name}',
-            'base64': 'https://zenv-hub.onrender.com/badge/base64/{badge_name}',
-            'custom': 'https://zenv-hub.onrender.com/badge/custom/{label}/{value}/{color}',
-            'custom_with_logo': 'https://zenv-hub.onrender.com/badge/custom/{label}/{value}/{color}?logo={logo_name}'
+            'auth': '/api/auth/*',
+            'packages': '/api/packages/*',
+            'badges': '/api/badges/*',
+            'logos': '/api/logos/*',
+            'sync': '/api/sync/*'
         }
     })
 
-# ============================================================================
-# AUTHENTIFICATION
-# ============================================================================
-
 @app.route('/api/auth/register', methods=['POST'])
 def register():
-    """Inscription"""
     data = request.get_json()
     
     if not data or 'username' not in data or 'email' not in data or 'password' not in data:
@@ -496,7 +587,7 @@ def register():
     password = data['password']
     
     if len(password) < 8:
-        return jsonify({'error': 'Le mot de passe doit contenir au moins 8 caractères'}), 400
+        return jsonify({'error': 'Mot de passe trop court (min 8 caractères)'}), 400
     
     hashed_pw = SecurityUtils.hash_password(password)
     
@@ -512,31 +603,28 @@ def register():
         usr_id = cursor.lastrowid
         db.commit()
         
+        # Sauvegarde Git
+        GitSyncManager.sync_to_git("register")
+        
         token = SecurityUtils.generate_token(usr_id, 'user')
         
         return jsonify({
             'message': 'Inscription réussie',
-            'user': {
-                'id': usr_id,
-                'username': username,
-                'email': email
-            },
+            'user': {'id': usr_id, 'username': username, 'email': email},
             'token': token
         }), 201
         
     except sqlite3.IntegrityError as e:
         if 'username' in str(e):
-            return jsonify({'error': 'Ce nom d\'utilisateur existe déjà'}), 400
+            return jsonify({'error': 'Nom d\'utilisateur déjà utilisé'}), 400
         elif 'email' in str(e):
-            return jsonify({'error': 'Cet email est déjà utilisé'}), 400
-        else:
-            return jsonify({'error': 'Erreur lors de l\'inscription'}), 400
+            return jsonify({'error': 'Email déjà utilisé'}), 400
+        return jsonify({'error': 'Erreur d\'intégrité'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    """Connexion"""
     data = request.get_json()
     
     if not data or 'username' not in data or 'password' not in data:
@@ -549,12 +637,8 @@ def login():
         db = get_db()
         cursor = db.cursor()
         
-        cursor.execute('''
-            SELECT id, username, email, password, role 
-            FROM usrs 
-            WHERE username = ? OR email = ?
-        ''', (username, username))
-        
+        cursor.execute('SELECT id, username, email, password, role FROM usrs WHERE username = ? OR email = ?', 
+                      (username, username))
         row = cursor.fetchone()
         
         if row and SecurityUtils.verify_password(password, row['password']):
@@ -563,6 +647,9 @@ def login():
             db.commit()
             
             token = SecurityUtils.generate_token(row['id'], row['role'])
+            
+            # Sauvegarde Git
+            GitSyncManager.sync_to_git("login")
             
             return jsonify({
                 'message': 'Connexion réussie',
@@ -583,18 +670,15 @@ def login():
 @app.route('/api/auth/profile', methods=['GET'])
 @token_required
 def get_profile():
-    """Obtenir le profil"""
     try:
         db = get_db()
         cursor = db.cursor()
         
-        cursor.execute('SELECT id, username, email, role, created_at FROM usrs WHERE id = ?', (g.usr_id,))
+        cursor.execute('SELECT id, username, email, role, created_at, last_login FROM usrs WHERE id = ?', (g.usr_id,))
         row = cursor.fetchone()
         
         if row:
-            return jsonify({
-                'user': dict(row)
-            })
+            return jsonify({'user': dict(row)})
         else:
             return jsonify({'error': 'Utilisateur non trouvé'}), 404
             
@@ -602,493 +686,27 @@ def get_profile():
         return jsonify({'error': str(e)}), 500
 
 # ============================================================================
-# LOGOS
-# ============================================================================
-
-@app.route('/api/logos', methods=['POST'])
-@token_required
-def create_logo():
-    """Créer un logo en Base64"""
-    data = request.get_json()
-    
-    if not data or 'name' not in data or 'base64_content' not in data or 'mime_type' not in data:
-        return jsonify({'error': 'Données manquantes'}), 400
-    
-    name = data['name']
-    base64_content = data['base64_content']
-    mime_type = data['mime_type']
-    
-    # Vérifier que c'est bien du Base64
-    try:
-        base64.b64decode(base64_content.split(',')[-1] if ',' in base64_content else base64_content)
-    except:
-        return jsonify({'error': 'Contenu Base64 invalide'}), 400
-    
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Si c'est le logo par défaut, désactiver les autres
-        if data.get('is_default', False):
-            cursor.execute('UPDATE logos SET is_default = 0 WHERE is_default = 1')
-        
-        cursor.execute('''
-            INSERT INTO logos (name, base64_content, mime_type, created_by, is_default)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(name) DO UPDATE 
-            SET base64_content = excluded.base64_content,
-                mime_type = excluded.mime_type,
-                updated_at = CURRENT_TIMESTAMP,
-                is_default = excluded.is_default
-        ''', (name, base64_content, mime_type, g.usr_id, data.get('is_default', False)))
-        
-        logo_id = cursor.lastrowid
-        db.commit()
-        
-        return jsonify({
-            'message': 'Logo créé avec succès',
-            'logo': {
-                'id': logo_id,
-                'name': name,
-                'mime_type': mime_type,
-                'is_default': data.get('is_default', False)
-            }
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/logos', methods=['GET'])
-def list_logos():
-    """Lister tous les logos"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, mime_type, created_at, updated_at, created_by, is_default
-            FROM logos
-            ORDER BY is_default DESC, created_at DESC
-        ''')
-        
-        logos = [dict(row) for row in cursor.fetchall()]
-        
-        return jsonify({
-            'logos': logos,
-            'count': len(logos)
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/logos/<name>', methods=['GET'])
-def get_logo(name):
-    """Obtenir un logo spécifique"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('''
-            SELECT name, base64_content, mime_type, is_default
-            FROM logos
-            WHERE name = ?
-        ''', (name,))
-        
-        row = cursor.fetchone()
-        
-        if row:
-            return jsonify({
-                'logo': dict(row)
-            })
-        else:
-            return jsonify({'error': 'Logo non trouvé'}), 404
-            
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/logos/<name>/default', methods=['PUT'])
-@token_required
-def set_default_logo(name):
-    """Définir un logo comme défaut"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Vérifier si le logo existe
-        cursor.execute('SELECT id FROM logos WHERE name = ?', (name,))
-        if not cursor.fetchone():
-            return jsonify({'error': 'Logo non trouvé'}), 404
-        
-        # Désactiver tous les logos par défaut
-        cursor.execute('UPDATE logos SET is_default = 0 WHERE is_default = 1')
-        
-        # Définir ce logo comme défaut
-        cursor.execute('UPDATE logos SET is_default = 1 WHERE name = ?', (name,))
-        db.commit()
-        
-        return jsonify({'message': f'Logo {name} défini comme défaut'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/logo/<name>', methods=['GET'])
-def serve_logo(name):
-    """Servir un logo en image"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('SELECT base64_content, mime_type FROM logos WHERE name = ?', (name,))
-        row = cursor.fetchone()
-        
-        if row:
-            base64_content = row['base64_content']
-            mime_type = row['mime_type']
-            
-            # Extraire les données Base64
-            if ',' in base64_content:
-                base64_data = base64_content.split(',')[1]
-            else:
-                base64_data = base64_content
-            
-            image_data = base64.b64decode(base64_data)
-            return Response(image_data, mimetype=mime_type)
-        else:
-            # Logo par défaut si non trouvé
-            default_svg = BadgeGenerator.create_svg_badge("LOGO", "404", "red")
-            return Response(default_svg, mimetype='image/svg+xml')
-            
-    except Exception as e:
-        default_svg = BadgeGenerator.create_svg_badge("ERROR", str(e)[:20], "red")
-        return Response(default_svg, mimetype='image/svg+xml')
-
-# ============================================================================
-# BADGES
-# ============================================================================
-
-@app.route('/api/badges', methods=['POST'])
-@token_required
-def create_badge():
-    """Créer un nouveau badge"""
-    data = request.get_json()
-    
-    if not data or 'name' not in data or 'label' not in data or 'value' not in data:
-        return jsonify({'error': 'Données manquantes'}), 400
-    
-    name = data['name']
-    label = data['label']
-    value = data['value']
-    color = data.get('color', 'blue')
-    logo_name = data.get('logo')
-    custom_base64 = data.get('base64_content')
-    
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Si un logo est spécifié, le récupérer
-        base64_logo = None
-        if logo_name:
-            cursor.execute('SELECT base64_content FROM logos WHERE name = ?', (logo_name,))
-            logo_row = cursor.fetchone()
-            if logo_row:
-                base64_logo = logo_row['base64_content']
-        
-        # Si du Base64 personnalisé est fourni, l'utiliser
-        if custom_base64:
-            svg_content = None
-            base64_content = custom_base64
-            base64_type = data.get('base64_type', 'custom')
-        else:
-            # Générer le badge normal ou avec logo
-            if base64_logo:
-                svg_content, base64_content = BadgeGenerator.create_custom_base64_badge(label, value, base64_logo, color)
-            else:
-                svg_content, base64_content = BadgeGenerator.create_base64_badge(label, value, color)
-            base64_type = 'svg'
-        
-        # Sauvegarder en base
-        cursor.execute('''
-            INSERT INTO badges (name, label, value, color, svg_content, base64_content, base64_type, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(name) DO UPDATE 
-            SET label = excluded.label,
-                value = excluded.value,
-                color = excluded.color,
-                svg_content = excluded.svg_content,
-                base64_content = excluded.base64_content,
-                base64_type = excluded.base64_type,
-                updated_at = CURRENT_TIMESTAMP
-        ''', (name, label, value, color, svg_content, base64_content, base64_type, g.usr_id))
-        
-        badge_id = cursor.lastrowid
-        
-        # Assigner à l'utilisateur
-        cursor.execute('''
-            INSERT OR IGNORE INTO badge_assignments (badge_id, usr_id, assigned_by)
-            VALUES (?, ?, ?)
-        ''', (badge_id, g.usr_id, g.usr_id))
-        
-        # Incrémenter le compteur d'utilisation
-        cursor.execute('UPDATE badges SET usage_count = usage_count + 1 WHERE id = ?', (badge_id,))
-        
-        db.commit()
-        
-        # Sauvegarder le SVG si généré
-        if svg_content:
-            BadgeGenerator.save_badge_svg(name, svg_content)
-        
-        return jsonify({
-            'message': 'Badge créé avec succès',
-            'badge': {
-                'id': badge_id,
-                'name': name,
-                'label': label,
-                'value': value,
-                'color': color,
-                'base64_url': f'https://zenv-hub.onrender.com/badge/base64/{name}',
-                'svg_url': f'https://zenv-hub.onrender.com/badge/svg/{name}',
-                'markdown': f'![{label}: {value}](https://zenv-hub.onrender.com/badge/svg/{name})'
-            }
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/badges', methods=['GET'])
-def list_badges():
-    """Lister tous les badges"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.is_active = 1
-            ORDER BY b.usage_count DESC, b.name
-        ''')
-        
-        badges = []
-        for row in cursor.fetchall():
-            badge = dict(row)
-            badge['svg_url'] = f'https://zenv-hub.onrender.com/badge/svg/{badge["name"]}'
-            badge['base64_url'] = f'https://zenv-hub.onrender.com/badge/base64/{badge["name"]}'
-            badges.append(badge)
-        
-        return jsonify({
-            'badges': badges,
-            'count': len(badges)
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/badges/<name>', methods=['GET'])
-def get_badge(name):
-    """Obtenir un badge spécifique"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.name = ? AND b.is_active = 1
-        ''', (name,))
-        
-        row = cursor.fetchone()
-        
-        if row:
-            badge = dict(row)
-            badge['svg_url'] = f'https://zenv-hub.onrender.com/badge/svg/{badge["name"]}'
-            badge['base64_url'] = f'https://zenv-hub.onrender.com/badge/base64/{badge["name"]}'
-            badge['markdown'] = f'![{badge["label"]}: {badge["value"]}](https://zenv-hub.onrender.com/badge/svg/{badge["name"]})'
-            
-            return jsonify({'badge': badge})
-        else:
-            return jsonify({'error': 'Badge non trouvé'}), 404
-            
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/badges/<name>', methods=['PUT'])
-@token_required
-def update_badge(name):
-    """Mettre à jour un badge"""
-    data = request.get_json()
-    
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Vérifier si le badge existe et appartient à l'utilisateur
-        cursor.execute('SELECT created_by FROM badges WHERE name = ?', (name,))
-        row = cursor.fetchone()
-        
-        if not row:
-            return jsonify({'error': 'Badge non trouvé'}), 404
-        
-        if g.role != 'admin' and row['created_by'] != g.usr_id:
-            return jsonify({'error': 'Accès refusé'}), 403
-        
-        # Mettre à jour les champs
-        update_fields = []
-        params = []
-        
-        if 'label' in data:
-            update_fields.append('label = ?')
-            params.append(data['label'])
-        
-        if 'value' in data:
-            update_fields.append('value = ?')
-            params.append(data['value'])
-        
-        if 'color' in data:
-            update_fields.append('color = ?')
-            params.append(data['color'])
-        
-        if update_fields:
-            update_fields.append('updated_at = CURRENT_TIMESTAMP')
-            params.append(name)
-            
-            query = f'UPDATE badges SET {", ".join(update_fields)} WHERE name = ?'
-            cursor.execute(query, params)
-            db.commit()
-        
-        return jsonify({'message': 'Badge mis à jour'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/badges/<name>', methods=['DELETE'])
-@token_required
-def delete_badge(name):
-    """Supprimer un badge"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        # Vérifier si le badge existe et appartient à l'utilisateur
-        cursor.execute('SELECT created_by FROM badges WHERE name = ?', (name,))
-        row = cursor.fetchone()
-        
-        if not row:
-            return jsonify({'error': 'Badge non trouvé'}), 404
-        
-        if g.role != 'admin' and row['created_by'] != g.usr_id:
-            return jsonify({'error': 'Accès refusé'}), 403
-        
-        # Désactiver le badge (soft delete)
-        cursor.execute('UPDATE badges SET is_active = 0 WHERE name = ?', (name,))
-        db.commit()
-        
-        return jsonify({'message': 'Badge supprimé'})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ============================================================================
-# ROUTES BADGES PUBLIC
-# ============================================================================
-
-@app.route('/badge/svg/<badge_name>', methods=['GET'])
-def serve_badge_svg(badge_name):
-    """Servir un badge SVG"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('SELECT svg_content FROM badges WHERE name = ? AND is_active = 1', (badge_name,))
-        row = cursor.fetchone()
-        
-        if row and row['svg_content']:
-            return Response(row['svg_content'], mimetype='image/svg+xml')
-        else:
-            # Générer un badge par défaut
-            svg_content = BadgeGenerator.create_svg_badge("Not Found", "404", "red")
-            return Response(svg_content, mimetype='image/svg+xml')
-            
-    except Exception as e:
-        svg_content = BadgeGenerator.create_svg_badge("Error", str(e)[:20], "red")
-        return Response(svg_content, mimetype='image/svg+xml')
-
-@app.route('/badge/base64/<badge_name>', methods=['GET'])
-def serve_badge_base64(badge_name):
-    """Servir un badge en Base64"""
-    try:
-        db = get_db()
-        cursor = db.cursor()
-        
-        cursor.execute('SELECT base64_content FROM badges WHERE name = ? AND is_active = 1', (badge_name,))
-        row = cursor.fetchone()
-        
-        if row and row['base64_content']:
-            # Extraire les données Base64
-            base64_content = row['base64_content']
-            if ',' in base64_content:
-                base64_data = base64_content.split(',')[1]
-                mime_type = base64_content.split(',')[0].split(':')[1].split(';')[0]
-            else:
-                base64_data = base64_content
-                mime_type = 'image/svg+xml'
-            
-            image_data = base64.b64decode(base64_data)
-            return Response(image_data, mimetype=mime_type)
-        else:
-            # Générer un badge par défaut
-            svg_content = BadgeGenerator.create_svg_badge("Not Found", "404", "red")
-            return Response(svg_content, mimetype='image/svg+xml')
-            
-    except Exception as e:
-        svg_content = BadgeGenerator.create_svg_badge("Error", str(e)[:20], "red")
-        return Response(svg_content, mimetype='image/svg+xml')
-
-@app.route('/badge/custom/<label>/<value>', methods=['GET'])
-@app.route('/badge/custom/<label>/<value>/<color>', methods=['GET'])
-def generate_custom_badge(label, value, color="blue"):
-    """Générer un badge personnalisé à la volée"""
-    try:
-        logo_name = request.args.get('logo')
-        base64_logo = None
-        
-        if logo_name:
-            db = get_db()
-            cursor = db.cursor()
-            cursor.execute('SELECT base64_content FROM logos WHERE name = ?', (logo_name,))
-            logo_row = cursor.fetchone()
-            if logo_row:
-                base64_logo = logo_row['base64_content']
-        
-        if base64_logo:
-            svg_content, _ = BadgeGenerator.create_custom_base64_badge(label, value, base64_logo, color)
-        else:
-            svg_content = BadgeGenerator.create_svg_badge(label, value, color)
-        
-        return Response(svg_content, mimetype='image/svg+xml')
-        
-    except Exception as e:
-        svg_content = BadgeGenerator.create_svg_badge("Error", str(e)[:20], "red")
-        return Response(svg_content, mimetype='image/svg+xml')
-
-# ============================================================================
-# PACKAGES
+# ROUTES API - PACKAGES (avec Git Sync)
 # ============================================================================
 
 @app.route('/api/packages', methods=['POST'])
 @token_required
 def create_package():
-    """Créer un package"""
+    """Créer un package (métadonnées)"""
     data = request.get_json()
     
     if not data or 'name' not in data or 'version' not in data:
-        return jsonify({'error': 'Données manquantes'}), 400
+        return jsonify({'error': 'Nom et version requis'}), 400
     
     try:
         db = get_db()
         cursor = db.cursor()
+        
+        # Vérifier si le package existe déjà
+        cursor.execute('SELECT id FROM packages WHERE name = ? AND version = ?', 
+                      (data['name'], data['version']))
+        if cursor.fetchone():
+            return jsonify({'error': 'Cette version du package existe déjà'}), 400
         
         cursor.execute('''
             INSERT INTO packages (
@@ -1098,15 +716,15 @@ def create_package():
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             data['name'],
-            data.get('description'),
+            data.get('description', ''),
             data['version'],
-            data.get('author'),
-            data.get('author_email'),
-            data.get('license'),
-            data.get('python_requires'),
-            json.dumps(data.get('dependencies', [])) if data.get('dependencies') else None,
-            data.get('readme'),
-            data.get('github_url'),
+            data.get('author', ''),
+            data.get('author_email', ''),
+            data.get('license', 'MIT'),
+            data.get('python_requires', '>=3.6'),
+            json.dumps(data.get('dependencies', [])),
+            data.get('readme', ''),
+            data.get('github_url', ''),
             g.usr_id,
             data.get('language', 'python')
         ))
@@ -1114,8 +732,11 @@ def create_package():
         package_id = cursor.lastrowid
         db.commit()
         
+        # Sauvegarde Git immédiate
+        GitSyncManager.sync_to_git(f"create_package:{data['name']}")
+        
         return jsonify({
-            'message': 'Package créé avec succès',
+            'message': 'Package créé',
             'package': {
                 'id': package_id,
                 'name': data['name'],
@@ -1123,8 +744,123 @@ def create_package():
             }
         }), 201
         
-    except sqlite3.IntegrityError:
-        return jsonify({'error': 'Ce package existe déjà'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/packages/upload', methods=['POST'])
+@token_required
+def upload_package_file():
+    """Uploader un fichier de package"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'Aucun fichier'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Fichier vide'}), 400
+        
+        package_name = request.form.get('name')
+        version = request.form.get('version')
+        
+        if not package_name or not version:
+            return jsonify({'error': 'Nom et version requis'}), 400
+        
+        # Vérifier que le package existe
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT id FROM packages WHERE name = ?', (package_name,))
+        package_row = cursor.fetchone()
+        
+        if not package_row:
+            # Créer le package automatiquement
+            cursor.execute('''
+                INSERT INTO packages (name, version, usr_id)
+                VALUES (?, ?, ?)
+            ''', (package_name, version, g.usr_id))
+            package_id = cursor.lastrowid
+        else:
+            package_id = package_row['id']
+        
+        # Créer le répertoire
+        package_dir = os.path.join(app.config['PACKAGE_DIR'], package_name)
+        os.makedirs(package_dir, exist_ok=True)
+        
+        # Nom du fichier
+        file_ext = os.path.splitext(file.filename)[1]
+        filename = f"{package_name}-{version}{file_ext}"
+        filepath = os.path.join(package_dir, filename)
+        
+        # Sauvegarder le fichier
+        file.save(filepath)
+        
+        # Calculer le hash
+        with open(filepath, 'rb') as f:
+            file_hash = hashlib.sha256(f.read()).hexdigest()
+        
+        # Enregistrer dans releases
+        cursor.execute('''
+            INSERT OR REPLACE INTO releases 
+            (package_id, version, filename, file_path, file_size, file_hash)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (package_id, version, filename, filepath, os.path.getsize(filepath), file_hash))
+        
+        db.commit()
+        
+        # Sauvegarde Git immédiate
+        GitSyncManager.sync_to_git(f"upload_file:{filename}")
+        
+        return jsonify({
+            'message': 'Fichier uploadé',
+            'package': {
+                'name': package_name,
+                'version': version,
+                'filename': filename,
+                'size': os.path.getsize(filepath),
+                'hash': file_hash,
+                'download_url': f'https://zenv-hub.onrender.com/api/packages/download/{package_name}/{version}'
+            }
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/packages/download/<package_name>/<version>', methods=['GET'])
+def download_package(package_name, version):
+    """Télécharger un package"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        
+        # Chercher le fichier
+        cursor.execute('''
+            SELECT r.filename, r.file_path 
+            FROM releases r
+            JOIN packages p ON r.package_id = p.id
+            WHERE p.name = ? AND r.version = ?
+        ''', (package_name, version))
+        
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': 'Package non trouvé'}), 404
+        
+        filepath = row['file_path']
+        filename = row['filename']
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'Fichier non trouvé'}), 404
+        
+        # Mettre à jour les stats
+        cursor.execute('UPDATE packages SET downloads_count = downloads_count + 1 WHERE name = ?', 
+                      (package_name,))
+        cursor.execute('UPDATE releases SET download_count = download_count + 1 WHERE filename = ?', 
+                      (filename,))
+        db.commit()
+        
+        # Sauvegarde Git
+        GitSyncManager.sync_to_git(f"download:{filename}")
+        
+        return send_file(filepath, as_attachment=True, download_name=filename)
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1144,6 +880,12 @@ def list_packages():
         ''')
         
         packages = [dict(row) for row in cursor.fetchall()]
+        
+        # Ajouter les fichiers disponibles
+        for package in packages:
+            cursor.execute('SELECT version, filename FROM releases WHERE package_id = ?', 
+                          (package['id'],))
+            package['files'] = [dict(row) for row in cursor.fetchall()]
         
         return jsonify({
             'packages': packages,
@@ -1168,165 +910,309 @@ def get_package(name):
         ''', (name,))
         
         row = cursor.fetchone()
-        
-        if row:
-            package = dict(row)
-            
-            # Récupérer les badges du package
-            cursor.execute('''
-                SELECT b.*
-                FROM badges b
-                JOIN badge_assignments ba ON b.id = ba.badge_id
-                WHERE ba.package_id = ? AND b.is_active = 1
-            ''', (package['id'],))
-            
-            badges = []
-            for badge_row in cursor.fetchall():
-                badge = dict(badge_row)
-                badge['svg_url'] = f'https://zenv-hub.onrender.com/badge/svg/{badge["name"]}'
-                badge['base64_url'] = f'https://zenv-hub.onrender.com/badge/base64/{badge["name"]}'
-                badges.append(badge)
-            
-            package['badges'] = badges
-            
-            return jsonify({'package': package})
-        else:
+        if not row:
             return jsonify({'error': 'Package non trouvé'}), 404
-            
+        
+        package = dict(row)
+        
+        # Fichiers disponibles
+        cursor.execute('SELECT * FROM releases WHERE package_id = ?', (package['id'],))
+        package['releases'] = [dict(row) for row in cursor.fetchall()]
+        
+        return jsonify({'package': package})
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-# Ajoute cette route dans ton app.py
 
-@app.route('/api/packages/upload', methods=['POST'])
+# ============================================================================
+# ROUTES API - BADGES (avec Git Sync)
+# ============================================================================
+
+@app.route('/api/badges', methods=['POST'])
 @token_required
-def upload_package_file():
-    """Uploader un fichier de package"""
+def create_badge():
+    """Créer un badge"""
+    data = request.get_json()
+    
+    if not data or 'name' not in data or 'label' not in data or 'value' not in data:
+        return jsonify({'error': 'Données manquantes'}), 400
+    
+    name = data['name']
+    label = data['label']
+    value = data['value']
+    color = data.get('color', 'blue')
+    
     try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'Aucun fichier fourni'}), 400
+        # Générer le badge
+        svg_content = BadgeGenerator.create_svg_badge(label, value, color)
+        base64_content = BadgeGenerator.svg_to_base64(svg_content)
         
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'Nom de fichier vide'}), 400
+        # Sauvegarder le fichier SVG
+        badge_path = os.path.join(app.config['SVG_DIR'], f"{name}.svg")
+        with open(badge_path, 'w', encoding='utf-8') as f:
+            f.write(svg_content)
         
-        # Vérifier l'extension
-        allowed_extensions = {'.whl', '.tar.gz', '.zip', '.egg'}
-        if not any(file.filename.endswith(ext) for ext in allowed_extensions):
-            return jsonify({'error': 'Type de fichier non supporté'}), 400
-        
-        # Récupérer les métadonnées du formulaire
-        package_name = request.form.get('name')
-        version = request.form.get('version')
-        
-        if not package_name or not version:
-            return jsonify({'error': 'Nom et version du package requis'}), 400
-        
-        # Créer le répertoire pour le package
-        package_dir = os.path.join(app.config['PACKAGE_DIR'], package_name)
-        os.makedirs(package_dir, exist_ok=True)
-        
-        # Sauvegarder le fichier
-        filename = f"{package_name}-{version}{os.path.splitext(file.filename)[1]}"
-        filepath = os.path.join(package_dir, filename)
-        file.save(filepath)
-        
-        # Calculer le hash
-        with open(filepath, 'rb') as f:
-            file_hash = hashlib.sha256(f.read()).hexdigest()
-        
-        # Sauvegarder en base de données
+        # Sauvegarder en base
         db = get_db()
         cursor = db.cursor()
         
         cursor.execute('''
-            INSERT OR REPLACE INTO releases (package_id, version, filename, file_size, file_hash)
-            VALUES (
-                (SELECT id FROM packages WHERE name = ?),
-                ?, ?, ?, ?
-            )
-        ''', (package_name, version, filename, os.path.getsize(filepath), file_hash))
+            INSERT INTO badges (name, label, value, color, svg_content, base64_content, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE 
+            SET label = excluded.label,
+                value = excluded.value,
+                color = excluded.color,
+                svg_content = excluded.svg_content,
+                base64_content = excluded.base64_content,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (name, label, value, color, svg_content, base64_content, g.usr_id))
         
+        badge_id = cursor.lastrowid
+        cursor.execute('UPDATE badges SET usage_count = usage_count + 1 WHERE id = ?', (badge_id,))
         db.commit()
         
+        # Sauvegarde Git immédiate
+        GitSyncManager.sync_to_git(f"create_badge:{name}")
+        
         return jsonify({
-            'message': 'Fichier uploadé avec succès',
-            'package': {
-                'name': package_name,
-                'version': version,
-                'filename': filename,
-                'size': os.path.getsize(filepath),
-                'hash': file_hash,
-                'download_url': f'https://zenv-hub.onrender.com/api/packages/download/{package_name}/{version}'
+            'message': 'Badge créé',
+            'badge': {
+                'id': badge_id,
+                'name': name,
+                'label': label,
+                'value': value,
+                'color': color,
+                'svg_url': f'https://zenv-hub.onrender.com/badge/svg/{name}',
+                'base64_url': f'https://zenv-hub.onrender.com/badge/base64/{name}',
+                'markdown': f'![{label}: {value}](https://zenv-hub.onrender.com/badge/svg/{name})'
             }
         }), 201
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/packages/download/<package_name>/<version>', methods=['GET'])
-def download_package(package_name, version):
-    """Télécharger un package"""
+@app.route('/api/badges', methods=['GET'])
+def list_badges():
+    """Lister tous les badges"""
     try:
         db = get_db()
         cursor = db.cursor()
         
-        # Récupérer le fichier
         cursor.execute('''
-            SELECT filename FROM releases r
-            JOIN packages p ON r.package_id = p.id
-            WHERE p.name = ? AND r.version = ?
-        ''', (package_name, version))
+            SELECT b.*, u.username as created_by_name
+            FROM badges b
+            LEFT JOIN usrs u ON b.created_by = u.id
+            WHERE b.is_active = 1
+            ORDER BY b.usage_count DESC
+        ''')
         
-        row = cursor.fetchone()
-        if not row:
-            return jsonify({'error': 'Package non trouvé'}), 404
+        badges = []
+        for row in cursor.fetchall():
+            badge = dict(row)
+            badge['svg_url'] = f'https://zenv-hub.onrender.com/badge/svg/{badge["name"]}'
+            badge['base64_url'] = f'https://zenv-hub.onrender.com/badge/base64/{badge["name"]}'
+            badges.append(badge)
         
-        filename = row['filename']
-        filepath = os.path.join(app.config['PACKAGE_DIR'], package_name, filename)
-        
-        if not os.path.exists(filepath):
-            return jsonify({'error': 'Fichier non trouvé'}), 404
-        
-        # Incrémenter le compteur de téléchargements
-        cursor.execute('''
-            UPDATE packages 
-            SET downloads_count = downloads_count + 1 
-            WHERE name = ?
-        ''', (package_name,))
-        db.commit()
-        
-        return send_file(filepath, as_attachment=True, download_name=filename)
+        return jsonify({
+            'badges': badges,
+            'count': len(badges)
+        })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/packages/files', methods=['GET'])
-def list_package_files():
-    """Lister tous les fichiers de packages disponibles"""
-    packages_dir = app.config['PACKAGE_DIR']
+@app.route('/badge/svg/<name>', methods=['GET'])
+def serve_badge_svg(name):
+    """Servir un badge SVG"""
+    badge_path = os.path.join(app.config['SVG_DIR'], f"{name}.svg")
     
-    if not os.path.exists(packages_dir):
-        return jsonify({'files': [], 'count': 0})
+    if os.path.exists(badge_path):
+        return send_file(badge_path, mimetype='image/svg+xml')
     
-    files_list = []
-    for package_name in os.listdir(packages_dir):
-        package_dir = os.path.join(packages_dir, package_name)
-        if os.path.isdir(package_dir):
-            for filename in os.listdir(package_dir):
-                filepath = os.path.join(package_dir, filename)
-                if os.path.isfile(filepath):
-                    files_list.append({
-                        'package': package_name,
-                        'filename': filename,
-                        'size': os.path.getsize(filepath),
-                        'modified': datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat(),
-                        'download_url': f'https://zenv-hub.onrender.com/api/packages/download/{package_name}/{filename}'
-                    })
+    # Générer à la volée depuis la base
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT svg_content FROM badges WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        
+        if row and row['svg_content']:
+            return Response(row['svg_content'], mimetype='image/svg+xml')
+    except:
+        pass
     
-    return jsonify({
-        'files': files_list,
-        'count': len(files_list)
-    })
+    # Badge par défaut
+    svg_content = BadgeGenerator.create_svg_badge("404", "Not Found", "red")
+    return Response(svg_content, mimetype='image/svg+xml')
+
+@app.route('/badge/base64/<name>', methods=['GET'])
+def serve_badge_base64(name):
+    """Servir un badge en Base64"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT base64_content FROM badges WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        
+        if row and row['base64_content']:
+            base64_data = row['base64_content']
+            if ',' in base64_data:
+                image_data = base64.b64decode(base64_data.split(',')[1])
+                mime_type = base64_data.split(',')[0].split(':')[1].split(';')[0]
+            else:
+                image_data = base64.b64decode(base64_data)
+                mime_type = 'image/svg+xml'
+            
+            return Response(image_data, mimetype=mime_type)
+    except:
+        pass
+    
+    # Badge par défaut
+    svg_content = BadgeGenerator.create_svg_badge("404", "Not Found", "red")
+    return Response(svg_content, mimetype='image/svg+xml')
+
+@app.route('/badge/custom/<label>/<value>', methods=['GET'])
+@app.route('/badge/custom/<label>/<value>/<color>', methods=['GET'])
+def generate_custom_badge(label, value, color="blue"):
+    """Générer un badge personnalisé à la volée"""
+    svg_content = BadgeGenerator.create_svg_badge(label, value, color)
+    return Response(svg_content, mimetype='image/svg+xml')
+
+# ============================================================================
+# ROUTES API - LOGOS
+# ============================================================================
+
+@app.route('/api/logos', methods=['POST'])
+@token_required
+def create_logo():
+    """Créer un logo en Base64"""
+    data = request.get_json()
+    
+    if not data or 'name' not in data or 'base64_content' not in data or 'mime_type' not in data:
+        return jsonify({'error': 'Données manquantes'}), 400
+    
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        
+        if data.get('is_default', False):
+            cursor.execute('UPDATE logos SET is_default = 0 WHERE is_default = 1')
+        
+        cursor.execute('''
+            INSERT INTO logos (name, base64_content, mime_type, created_by, is_default)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE 
+            SET base64_content = excluded.base64_content,
+                mime_type = excluded.mime_type,
+                updated_at = CURRENT_TIMESTAMP,
+                is_default = excluded.is_default
+        ''', (data['name'], data['base64_content'], data['mime_type'], g.usr_id, data.get('is_default', False)))
+        
+        logo_id = cursor.lastrowid
+        db.commit()
+        
+        # Sauvegarde Git
+        GitSyncManager.sync_to_git(f"create_logo:{data['name']}")
+        
+        return jsonify({
+            'message': 'Logo créé',
+            'logo': {
+                'id': logo_id,
+                'name': data['name'],
+                'mime_type': data['mime_type'],
+                'is_default': data.get('is_default', False)
+            }
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/logo/<name>', methods=['GET'])
+def serve_logo(name):
+    """Servir un logo"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT base64_content, mime_type FROM logos WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        
+        if row:
+            base64_data = row['base64_content']
+            if ',' in base64_data:
+                image_data = base64.b64decode(base64_data.split(',')[1])
+                mime_type = row['mime_type']
+            else:
+                image_data = base64.b64decode(base64_data)
+                mime_type = 'image/svg+xml'
+            
+            return Response(image_data, mimetype=mime_type)
+    except:
+        pass
+    
+    # Logo par défaut
+    svg_content = BadgeGenerator.create_svg_badge("LOGO", "404", "red")
+    return Response(svg_content, mimetype='image/svg+xml')
+
+# ============================================================================
+# ROUTES API - SYNCHRONISATION
+# ============================================================================
+
+@app.route('/api/sync/now', methods=['POST'])
+@admin_required
+def sync_now():
+    """Forcer une synchronisation Git immédiate"""
+    try:
+        success = GitSyncManager.sync_to_git("manual_sync")
+        
+        if success:
+            return jsonify({
+                'message': 'Synchronisation Git réussie',
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({'error': 'Échec de synchronisation'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sync/status', methods=['GET'])
+@admin_required
+def sync_status():
+    """Obtenir le statut de synchronisation"""
+    repo_path = app.config['GIT_REPO_PATH']
+    
+    status = {
+        'git_enabled': GIT_AUTO_COMMIT,
+        'repo_exists': os.path.exists(repo_path),
+        'last_sync': None,
+        'commit_count': 0
+    }
+    
+    if os.path.exists(repo_path):
+        try:
+            # Dernier commit
+            result = subprocess.run(['git', 'log', '-1', '--format=%H|%s|%cd'], 
+                                  cwd=repo_path, capture_output=True, text=True)
+            if result.stdout:
+                commit_hash, commit_msg, commit_date = result.stdout.strip().split('|')
+                status['last_commit'] = {
+                    'hash': commit_hash[:8],
+                    'message': commit_msg,
+                    'date': commit_date
+                }
+            
+            # Nombre de commits
+            result = subprocess.run(['git', 'rev-list', '--count', 'HEAD'], 
+                                  cwd=repo_path, capture_output=True, text=True)
+            if result.stdout:
+                status['commit_count'] = int(result.stdout.strip())
+                
+        except Exception as e:
+            status['git_error'] = str(e)
+    
+    return jsonify(status)
+
 # ============================================================================
 # INITIALISATION
 # ============================================================================
@@ -1338,11 +1224,17 @@ def initialize_app():
     # Initialiser SQLite
     success = init_sqlite()
     if success:
-        print("✅ SQLite initialisé avec succès")
+        print("✅ SQLite initialisé")
     else:
         print("⚠️ SQLite déjà initialisé")
     
-    print("🎉 Application prête à fonctionner!")
+    # Initialiser Git
+    GitSyncManager.init_git_repo()
+    
+    # Restaurer depuis Git
+    GitSyncManager.restore_from_git()
+    
+    print("🎉 Application prête avec synchronisation Git!")
 
 # ============================================================================
 # HOOKS FLASK
@@ -1350,8 +1242,21 @@ def initialize_app():
 
 @app.teardown_appcontext
 def teardown_db(exception):
-    """Fermer la base de données à la fin de la requête"""
+    """Fermer la base de données"""
     close_db()
+
+@app.after_request
+def after_request(response):
+    """Synchroniser avec Git après certaines actions"""
+    if response.status_code in [200, 201] and GIT_AUTO_COMMIT:
+        try:
+            # Ne pas synchroniser pour les requêtes GET ou les downloads
+            if request.method in ['POST', 'PUT', 'DELETE']:
+                if not request.path.startswith('/badge/') and not request.path.startswith('/logo/'):
+                    GitSyncManager.sync_to_git(f"after_{request.method}")
+        except:
+            pass
+    return response
 
 # ============================================================================
 # POINT D'ENTRÉE
