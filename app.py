@@ -1,5 +1,5 @@
 """
-Zenv Package Hub - Version complète et corrigée pour Flask moderne
+Zenv Package Hub - Version finale corrigée pour production
 """
 
 import os
@@ -35,7 +35,7 @@ import yaml
 from packaging.version import parse as parse_version
 
 # ============================================================================
-# CONFIGURATION - SIMPLIFIÉE
+# CONFIGURATION
 # ============================================================================
 
 # Configuration PostgreSQL
@@ -53,7 +53,7 @@ JWT_SECRET = os.environ.get('JWT_SECRET', "votre_super_secret_jwt_changez_moi_12
 APP_SECRET = os.environ.get('APP_SECRET', "votre_app_secret_changez_moi_67890")
 
 # Initialisation Flask
-app = Flask(__name__, template_folder='templates')
+app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
 app.config.update(
@@ -74,11 +74,11 @@ app.config.update(
 # Créer les répertoires
 for dir_path in [app.config['PACKAGE_DIR'], app.config['UPLOAD_DIR'], 
                  app.config['BUILD_DIR'], app.config['BADGES_DIR'],
-                 app.config['SVG_DIR']]:
+                 app.config['SVG_DIR'], 'templates', 'static']:
     os.makedirs(dir_path, exist_ok=True)
 
 # ============================================================================
-# UTILITAIRES POSTGRESQL - CORRIGÉ
+# UTILITAIRES POSTGRESQL
 # ============================================================================
 
 def get_db_connection():
@@ -89,13 +89,17 @@ def get_db_connection():
         return conn
     except Exception as e:
         print(f"❌ Erreur connexion PostgreSQL: {e}")
-        raise
+        return None
 
 def init_postgresql():
-    """Initialise les tables PostgreSQL - VERSION CORRIGÉE avec vérification"""
+    """Initialise les tables PostgreSQL"""
     conn = None
     try:
         conn = get_db_connection()
+        if not conn:
+            print("❌ Impossible de se connecter à PostgreSQL")
+            return False
+            
         cur = conn.cursor()
         
         # Vérifier si la table usrs existe
@@ -237,7 +241,6 @@ def init_postgresql():
             
     except Exception as e:
         print(f"❌ Erreur initialisation PostgreSQL: {e}")
-        # En production, on loggue mais on continue
         import traceback
         traceback.print_exc()
         return False
@@ -247,7 +250,7 @@ def init_postgresql():
             conn.close()
 
 # ============================================================================
-# UTILITAIRES AMÉLIORÉS - CORRIGÉS
+# UTILITAIRES
 # ============================================================================
 
 class SecurityUtils:
@@ -306,77 +309,16 @@ class SecurityUtils:
             raise Exception("Token invalide")
 
 class MarkdownProcessor:
-    """Processeur Markdown avancé avec support multi-langages"""
-    
-    LANGUAGE_KEYWORDS = {
-        'zenv': ['==>', 'zncv.', 'zen[', 'apend[', '{{', '}}', '~'],
-        'python': ['import ', 'def ', 'class ', 'from ', 'return ', 'print('],
-        'docker': ['FROM ', 'RUN ', 'COPY ', 'CMD ', 'EXPOSE ', 'ENV '],
-        'bash': ['#!/bin/bash', '#!/bin/sh', 'echo ', 'export ', 'sudo '],
-        'javascript': ['function ', 'const ', 'let ', 'console.log', 'export '],
-        'html': ['<!DOCTYPE', '<html', '<div ', '<script ', '<style '],
-        'css': ['{', '}', ':', ';', '.class', '#id'],
-        'sql': ['SELECT ', 'INSERT ', 'UPDATE ', 'DELETE ', 'CREATE TABLE'],
-        'yaml': ['---', ':', '- ', 'version:'],
-        'json': ['{', '}', '":', '"'],
-        'rust': ['fn ', 'let ', 'mut ', 'impl ', 'struct '],
-        'go': ['package ', 'func ', 'import ', 'var ', 'const '],
-        'java': ['public ', 'class ', 'void ', 'import ', 'System.out']
-    }
+    """Processeur Markdown avancé"""
     
     @staticmethod
     def process_markdown(text: str) -> str:
-        """Convertit Markdown en HTML avec coloration syntaxique"""
+        """Convertit Markdown en HTML"""
         if not text:
             return ""
         
-        # Nettoyer et normaliser
+        # Nettoyer
         text = text.replace('\r\n', '\n').replace('\r', '\n')
-        
-        # Traitement spécial pour les blocs de code
-        lines = text.split('\n')
-        processed_lines = []
-        i = 0
-        
-        while i < len(lines):
-            line = lines[i]
-            
-            # Détecter les blocs de code ```lang
-            code_match = re.match(r'^```(\w+)?\s*(.*?)$', line.strip())
-            if code_match:
-                lang = code_match.group(1) or ""
-                code_info = code_match.group(2) or ""
-                
-                # Trouver la fin du bloc
-                j = i + 1
-                code_content = []
-                while j < len(lines) and not lines[j].strip().startswith('```'):
-                    code_content.append(lines[j])
-                    j += 1
-                
-                if j < len(lines):
-                    # Formater le bloc de code
-                    formatted = MarkdownProcessor._format_code_block(
-                        '\n'.join(code_content), 
-                        lang,
-                        code_info
-                    )
-                    processed_lines.append(formatted)
-                    i = j + 1
-                    continue
-            
-            # Détecter le code inline
-            line = re.sub(
-                r'`([^`\n]+?)`',
-                r'<code class="inline-code">\1</code>',
-                line
-            )
-            
-            processed_lines.append(line)
-            i += 1
-        
-        # Rejoindre et traiter avec markdown
-        processed_text = '\n'.join(processed_lines)
         
         # Extensions Markdown
         extensions = [
@@ -393,60 +335,11 @@ class MarkdownProcessor:
             FencedCodeExtension()
         ]
         
-        html = markdown.markdown(processed_text, extensions=extensions)
+        html = markdown.markdown(text, extensions=extensions)
         
         # Post-traitement
-        html = MarkdownProcessor._post_process_html(html)
-        
-        return html
-    
-    @staticmethod
-    def _format_code_block(code: str, lang: str = "", info: str = "") -> str:
-        """Formate un bloc de code"""
-        code = code.rstrip()
-        
-        # Détecter le langage
-        if not lang:
-            lang = MarkdownProcessor.detect_language_from_content(code)
-        
-        lang = lang.lower().strip()
-        
-        return f'''
-        <div class="code-block">
-            <div class="code-header">
-                <span class="language-tag">{lang.upper() if lang else "TEXT"}</span>
-                <button class="copy-btn" onclick="copyCode(this)">Copier</button>
-            </div>
-            <pre><code class="language-{lang}">{code}</code></pre>
-        </div>
-        '''
-    
-    @staticmethod
-    def detect_language_from_content(content: str) -> str:
-        """Détecte le langage basé sur le contenu"""
-        content_lower = content.lower()
-        
-        for lang, keywords in MarkdownProcessor.LANGUAGE_KEYWORDS.items():
-            for keyword in keywords:
-                if keyword.lower() in content_lower:
-                    return lang
-        
-        # Détection spécifique Zenv
-        if re.search(r'==>\s*', content):
-            return 'zenv'
-        if re.search(r'zncv\.\[\(', content):
-            return 'zenv'
-        
-        return 'text'
-    
-    @staticmethod
-    def _post_process_html(html: str) -> str:
-        """Post-traitement HTML"""
-        # Ajouter des classes aux tableaux
-        html = re.sub(r'<table>', r'<table class="table table-dark table-striped">', html)
-        
-        # Améliorer les blocs de citation
-        html = re.sub(r'<blockquote>', r'<blockquote class="blockquote">', html)
+        html = html.replace('<table>', '<table class="table table-dark table-striped">')
+        html = html.replace('<blockquote>', '<blockquote class="blockquote">')
         
         return html
 
@@ -478,16 +371,9 @@ class BadgeGenerator:
         <svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
             <title>{label}: {value}</title>
             
-            <defs>
-                <linearGradient id="labelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="{color_hex}" stop-opacity="0.9"/>
-                    <stop offset="100%" stop-color="{BadgeGenerator._darken_color(color_hex)}" stop-opacity="0.9"/>
-                </linearGradient>
-            </defs>
-            
             <g>
                 <!-- Partie label -->
-                <rect width="{label_width}" height="{height}" fill="url(#labelGrad)" rx="3"/>
+                <rect width="{label_width}" height="{height}" fill="{color_hex}" rx="3"/>
                 
                 <!-- Partie value -->
                 <rect x="{label_width}" width="{value_width}" height="{height}" fill="#555" rx="3"/>
@@ -507,20 +393,6 @@ class BadgeGenerator:
         return svg
     
     @staticmethod
-    def _darken_color(hex_color: str, factor: float = 0.2) -> str:
-        """Assombrit une couleur"""
-        hex_color = hex_color.lstrip('#')
-        r = int(hex_color[0:2], 16)
-        g = int(hex_color[2:4], 16)
-        b = int(hex_color[4:6], 16)
-        
-        r = max(0, int(r * (1 - factor)))
-        g = max(0, int(g * (1 - factor)))
-        b = max(0, int(b * (1 - factor)))
-        
-        return f"#{r:02x}{g:02x}{b:02x}"
-    
-    @staticmethod
     def save_badge_svg(badge_name: str, svg_content: str) -> str:
         """Sauvegarde un badge SVG"""
         badge_path = os.path.join(app.config['SVG_DIR'], f"{badge_name}.svg")
@@ -534,31 +406,21 @@ class BadgeGenerator:
     def get_badge_url(badge_name: str) -> str:
         """Retourne l'URL d'un badge"""
         return f"/static/badges/{badge_name}.svg"
-    
-    @staticmethod
-    def generate_markdown_badge(badge_name: str, alt_text: str = None) -> str:
-        """Génère le code Markdown pour un badge"""
-        url = BadgeGenerator.get_badge_url(badge_name)
-        alt = alt_text or badge_name.replace('-', ' ').title()
-        
-        return f'![{alt}]({url})'
 
 # ============================================================================
-# DÉCORATEURS D'AUTHENTIFICATION - CORRIGÉS
+# DÉCORATEURS D'AUTHENTIFICATION
 # ============================================================================
 
 def login_required(f):
     """Décorateur pour les routes nécessitant une authentification"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Vérifier la session
         if 'usr_id' not in session:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
             flash('Veuillez vous connecter pour accéder à cette page', 'warning')
             return redirect(url_for('login'))
         
-        # Vérifier le token JWT
         token = None
         auth_header = request.headers.get('Authorization')
         
@@ -593,13 +455,11 @@ def admin_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        # Vérifier le rôle
         if session.get('role') != 'admin':
             if request.is_json:
                 return jsonify({'error': 'Admin access required'}), 403
             abort(403)
         
-        # Définir les attributs de requête
         request.usr_id = session['usr_id']
         request.usr_role = session['role']
         
@@ -612,12 +472,13 @@ def admin_required(f):
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
-    """Filtre de formatage de date pour les templates"""
+    """Filtre de formatage de date"""
     if value is None:
         return ''
+    
     if isinstance(value, str):
         try:
-            # Essayer différents formats de date
+            # Essayer de parser la date
             for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%d', '%Y-%m-%d %H:%M:%S.%f']:
                 try:
                     value = datetime.strptime(value, fmt)
@@ -625,7 +486,6 @@ def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
                 except ValueError:
                     continue
             if isinstance(value, str):
-                # Si on n'a pas pu parser, retourner la valeur originale
                 return value
         except Exception:
             return value
@@ -637,7 +497,7 @@ def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
 
 @app.template_filter('truncate')
 def truncate_filter(s, length=100):
-    """Tronque une chaîne à une longueur donnée"""
+    """Tronque une chaîne"""
     if not s:
         return ''
     if len(s) <= length:
@@ -645,67 +505,69 @@ def truncate_filter(s, length=100):
     return s[:length] + '...'
 
 # ============================================================================
-# ROUTES PRINCIPALES - CORRIGÉES
+# ROUTES PRINCIPALES
 # ============================================================================
 
 @app.route('/')
 def index():
     """Page d'accueil"""
-    conn = None
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Packages récents
-        cur.execute('''
-            SELECT p.*, u.username as author_name
-            FROM packages p
-            LEFT JOIN usrs u ON p.usr_id = u.id
-            WHERE p.is_private = FALSE
-            ORDER BY p.created_at DESC
-            LIMIT 6
-        ''')
-        recent_packages = cur.fetchall()
-        
-        # Statistiques
-        cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
-        total_usrs = cur.fetchone()['total_usrs'] or 0
-        
-        cur.execute('SELECT COUNT(*) as total_packages FROM packages WHERE is_private = FALSE')
-        total_packages = cur.fetchone()['total_packages'] or 0
-        
-        cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
-        total_downloads = cur.fetchone()['total_downloads'] or 0
-        
-        # Badges populaires
-        cur.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.is_active = TRUE
-            ORDER BY b.usage_count DESC
-            LIMIT 4
-        ''')
-        popular_badges = cur.fetchall()
-        
-    except Exception as e:
-        print(f"⚠️ Erreur index: {e}")
-        recent_packages = []
-        popular_badges = []
-        total_usrs = 0
-        total_packages = 0
-        total_downloads = 0
-    finally:
         if conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Packages récents
+            cur.execute('''
+                SELECT p.*, u.username as author_name
+                FROM packages p
+                LEFT JOIN usrs u ON p.usr_id = u.id
+                WHERE p.is_private = FALSE
+                ORDER BY p.created_at DESC
+                LIMIT 6
+            ''')
+            recent_packages = cur.fetchall()
+            
+            # Statistiques
+            cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
+            total_usrs = cur.fetchone()['total_usrs'] or 0
+            
+            cur.execute('SELECT COUNT(*) as total_packages FROM packages WHERE is_private = FALSE')
+            total_packages = cur.fetchone()['total_packages'] or 0
+            
+            cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
+            total_downloads = cur.fetchone()['total_downloads'] or 0
+            
+            # Badges populaires
+            cur.execute('''
+                SELECT b.*, u.username as created_by_name
+                FROM badges b
+                LEFT JOIN usrs u ON b.created_by = u.id
+                WHERE b.is_active = TRUE
+                ORDER BY b.usage_count DESC
+                LIMIT 4
+            ''')
+            popular_badges = cur.fetchall()
+            
             cur.close()
             conn.close()
+            
+            return render_template('home.html',
+                                recent_packages=recent_packages,
+                                popular_badges=popular_badges,
+                                total_usrs=total_usrs,
+                                total_packages=total_packages,
+                                total_downloads=total_downloads,
+                                page='index')
+    except Exception as e:
+        print(f"⚠️ Erreur index: {e}")
     
+    # Fallback si erreur
     return render_template('home.html',
-                         recent_packages=recent_packages,
-                         popular_badges=popular_badges,
-                         total_usrs=total_usrs,
-                         total_packages=total_packages,
-                         total_downloads=total_downloads,
+                         recent_packages=[],
+                         popular_badges=[],
+                         total_usrs=0,
+                         total_packages=0,
+                         total_downloads=0,
                          page='index')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -715,9 +577,12 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        conn = None
+        conn = get_db_connection()
+        if not conn:
+            flash('Erreur de connexion à la base de données', 'danger')
+            return render_template('login.html', page='login')
+        
         try:
-            conn = get_db_connection()
             cur = conn.cursor(cursor_factory=RealDictCursor)
             
             cur.execute('''
@@ -732,14 +597,10 @@ def login():
                 # Mettre à jour last_login
                 cur.execute('UPDATE usrs SET last_login = CURRENT_TIMESTAMP WHERE id = %s', (usr['id'],))
                 
-                # Générer les tokens
-                tokens = SecurityUtils.generate_token(usr['id'], usr['role'])
-                
                 # Stocker en session
                 session['usr_id'] = usr['id']
                 session['username'] = usr['username']
                 session['role'] = usr['role']
-                session['access_token'] = tokens['access_token']
                 
                 conn.commit()
                 
@@ -778,9 +639,12 @@ def register():
         # Hasher le mot de passe
         hashed_pw = SecurityUtils.hash_password(password)
         
-        conn = None
+        conn = get_db_connection()
+        if not conn:
+            flash('Erreur de connexion à la base de données', 'danger')
+            return render_template('register.html', page='register')
+        
         try:
-            conn = get_db_connection()
             cur = conn.cursor()
             
             cur.execute('''
@@ -796,8 +660,7 @@ def register():
             return redirect(url_for('login'))
             
         except psycopg2.IntegrityError as e:
-            if conn:
-                conn.rollback()
+            conn.rollback()
             if 'username' in str(e):
                 flash('Ce nom d\'utilisateur existe déjà', 'danger')
             elif 'email' in str(e):
@@ -805,13 +668,11 @@ def register():
             else:
                 flash('Erreur lors de l\'inscription', 'danger')
         except Exception as e:
-            if conn:
-                conn.rollback()
+            conn.rollback()
             flash(f'Erreur: {str(e)}', 'danger')
         finally:
-            if conn:
-                cur.close()
-                conn.close()
+            cur.close()
+            conn.close()
     
     return render_template('register.html', page='register')
 
@@ -826,9 +687,12 @@ def logout():
 @login_required
 def dashboard():
     """Tableau de bord"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return redirect(url_for('index'))
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         # Infos usr
@@ -867,23 +731,20 @@ def dashboard():
         ''', (session['usr_id'],))
         usr_badges = cur.fetchall()
         
+        return render_template('dashboard.html',
+                             usr=usr,
+                             packages=packages,
+                             stats=stats,
+                             usr_badges=usr_badges,
+                             page='dashboard')
+        
     except Exception as e:
         print(f"⚠️ Erreur dashboard: {e}")
-        usr = {}
-        packages = []
-        stats = {}
-        usr_badges = []
+        flash('Erreur lors du chargement du tableau de bord', 'danger')
+        return redirect(url_for('index'))
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('dashboard.html',
-                         usr=usr,
-                         packages=packages,
-                         stats=stats,
-                         usr_badges=usr_badges,
-                         page='dashboard')
+        cur.close()
+        conn.close()
 
 @app.route('/packages')
 def list_packages():
@@ -893,9 +754,12 @@ def list_packages():
     search = request.args.get('q', '')
     language = request.args.get('lang', '')
     
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return render_template('packages.html', packages=[], page='packages')
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         query = '''
@@ -941,33 +805,33 @@ def list_packages():
         cur.execute('SELECT DISTINCT language FROM packages WHERE language IS NOT NULL ORDER BY language')
         languages = [row['language'] for row in cur.fetchall()]
         
+        return render_template('packages.html',
+                             packages=packages,
+                             page_num=page,
+                             per_page=per_page,
+                             total=total,
+                             total_pages=(total + per_page - 1) // per_page if per_page > 0 else 0,
+                             search=search,
+                             language=language,
+                             languages=languages,
+                             page='packages')
+        
     except Exception as e:
         print(f"⚠️ Erreur list_packages: {e}")
-        packages = []
-        total = 0
-        languages = []
+        return render_template('packages.html', packages=[], page='packages')
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('packages.html',
-                         packages=packages,
-                         page_num=page,
-                         per_page=per_page,
-                         total=total,
-                         total_pages=(total + per_page - 1) // per_page if per_page > 0 else 0,
-                         search=search,
-                         language=language,
-                         languages=languages,
-                         page='packages')
+        cur.close()
+        conn.close()
 
 @app.route('/package/<package_name>')
 def package_detail(package_name):
     """Détails d'un package"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return redirect(url_for('list_packages'))
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         # Package
@@ -1007,28 +871,30 @@ def package_detail(package_name):
         # Convertir README en HTML
         readme_html = MarkdownProcessor.process_markdown(package.get('readme', ''))
         
+        return render_template('package_detail.html',
+                             package=package,
+                             releases=releases,
+                             badges=badges,
+                             readme_html=readme_html,
+                             page='package_detail')
+        
     except Exception as e:
         print(f"⚠️ Erreur package_detail: {e}")
         flash('Erreur lors du chargement du package', 'danger')
         return redirect(url_for('list_packages'))
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('package_detail.html',
-                         package=package,
-                         releases=releases,
-                         badges=badges,
-                         readme_html=readme_html,
-                         page='package_detail')
+        cur.close()
+        conn.close()
 
 @app.route('/badges')
 def list_badges():
     """Liste des badges"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return render_template('badges.html', badges=[], page='badges')
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute('''
@@ -1041,22 +907,24 @@ def list_badges():
         
         badges = cur.fetchall()
         
+        return render_template('badges.html', badges=badges, page='badges')
+        
     except Exception as e:
         print(f"⚠️ Erreur list_badges: {e}")
-        badges = []
+        return render_template('badges.html', badges=[], page='badges')
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('badges.html', badges=badges, page='badges')
+        cur.close()
+        conn.close()
 
 @app.route('/badge/<badge_name>')
 def badge_detail(badge_name):
     """Détails d'un badge"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return redirect(url_for('list_badges'))
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute('''
@@ -1083,23 +951,18 @@ def badge_detail(badge_name):
         
         packages = cur.fetchall()
         
-        # Générer le code Markdown
-        markdown_code = BadgeGenerator.generate_markdown_badge(badge_name, f"{badge['label']}: {badge['value']}")
+        return render_template('badge_detail.html',
+                             badge=badge,
+                             packages=packages,
+                             page='badge_detail')
         
     except Exception as e:
         print(f"⚠️ Erreur badge_detail: {e}")
         flash('Erreur lors du chargement du badge', 'danger')
         return redirect(url_for('list_badges'))
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('badge_detail.html',
-                         badge=badge,
-                         packages=packages,
-                         markdown_code=markdown_code,
-                         page='badge_detail')
+        cur.close()
+        conn.close()
 
 @app.route('/badge/generate', methods=['GET', 'POST'])
 @login_required
@@ -1122,9 +985,12 @@ def generate_badge():
         # Sauvegarder sur disque
         BadgeGenerator.save_badge_svg(name, svg_content)
         
-        conn = None
+        conn = get_db_connection()
+        if not conn:
+            flash('Erreur de connexion à la base de données', 'danger')
+            return render_template('generate_badge.html', page='generate_badge')
+        
         try:
-            conn = get_db_connection()
             cur = conn.cursor()
             
             # Sauvegarder en base
@@ -1155,13 +1021,11 @@ def generate_badge():
             return redirect(url_for('badge_detail', badge_name=name))
             
         except Exception as e:
-            if conn:
-                conn.rollback()
+            conn.rollback()
             flash(f'Erreur: {str(e)}', 'danger')
         finally:
-            if conn:
-                cur.close()
-                conn.close()
+            cur.close()
+            conn.close()
     
     return render_template('generate_badge.html', page='generate_badge')
 
@@ -1178,16 +1042,19 @@ def serve_badge_svg(badge_name):
     return send_file(badge_path, mimetype='image/svg+xml')
 
 # ============================================================================
-# ROUTES ADMIN - CORRIGÉES
+# ROUTES ADMIN
 # ============================================================================
 
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
     """Tableau de bord admin"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return render_template('admin_dashboard.html', page='admin_dashboard')
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         # Statistiques
@@ -1227,32 +1094,32 @@ def admin_dashboard():
         ''')
         recent_badges = cur.fetchall()
         
+        return render_template('admin_dashboard.html',
+                             total_usrs=total_usrs,
+                             total_packages=total_packages,
+                             total_badges=total_badges,
+                             total_downloads=total_downloads,
+                             recent_usrs=recent_usrs,
+                             recent_packages=recent_packages,
+                             recent_badges=recent_badges,
+                             page='admin_dashboard')
+        
     except Exception as e:
         print(f"⚠️ Erreur admin_dashboard: {e}")
-        total_usrs = total_packages = total_badges = total_downloads = 0
-        recent_usrs = []
-        recent_packages = []
-        recent_badges = []
+        flash('Erreur lors du chargement du dashboard admin', 'danger')
+        return render_template('admin_dashboard.html', page='admin_dashboard')
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('admin_dashboard.html',
-                         total_usrs=total_usrs,
-                         total_packages=total_packages,
-                         total_badges=total_badges,
-                         total_downloads=total_downloads,
-                         recent_usrs=recent_usrs,
-                         recent_packages=recent_packages,
-                         recent_badges=recent_badges,
-                         page='admin_dashboard')
+        cur.close()
+        conn.close()
 
 @app.route('/admin/badges', methods=['GET', 'POST'])
 @admin_required
 def admin_manage_badges():
     """Gestion des badges par l'admin"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return render_template('admin_manage_badges.html', badges=[], page='admin_manage_badges')
     
     if request.method == 'POST':
         action = request.form.get('action')
@@ -1273,7 +1140,6 @@ def admin_manage_badges():
                 BadgeGenerator.save_badge_svg(name, svg_content)
                 
                 # Mettre à jour la base
-                conn = get_db_connection()
                 cur = conn.cursor()
                 cur.execute('''
                     UPDATE badges 
@@ -1286,34 +1152,25 @@ def admin_manage_badges():
                 flash('Badge mis à jour avec succès', 'success')
                 
             except Exception as e:
-                if conn:
-                    conn.rollback()
+                conn.rollback()
                 flash(f'Erreur: {str(e)}', 'danger')
             finally:
-                if conn:
-                    cur.close()
-                    conn.close()
+                cur.close()
         
         elif action == 'delete' and badge_id:
             try:
-                conn = get_db_connection()
                 cur = conn.cursor()
                 cur.execute('DELETE FROM badges WHERE id = %s', (badge_id,))
                 conn.commit()
                 flash('Badge supprimé avec succès', 'success')
             except Exception as e:
-                if conn:
-                    conn.rollback()
+                conn.rollback()
                 flash(f'Erreur: {str(e)}', 'danger')
             finally:
-                if conn:
-                    cur.close()
-                    conn.close()
+                cur.close()
     
     # Récupérer tous les badges
-    badges = []
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute('''
@@ -1325,23 +1182,25 @@ def admin_manage_badges():
         
         badges = cur.fetchall()
         
+        return render_template('admin_manage_badges.html', badges=badges, page='admin_manage_badges')
+        
     except Exception as e:
         print(f"⚠️ Erreur admin_manage_badges: {e}")
-        badges = []
+        return render_template('admin_manage_badges.html', badges=[], page='admin_manage_badges')
     finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    return render_template('admin_manage_badges.html', badges=badges, page='admin_manage_badges')
+        cur.close()
+        conn.close()
 
 @app.route('/admin/badge/editor/<badge_id>')
 @admin_required
 def admin_badge_editor(badge_id):
     """Éditeur de badge pour admin"""
-    conn = None
+    conn = get_db_connection()
+    if not conn:
+        flash('Erreur de connexion à la base de données', 'danger')
+        return redirect(url_for('admin_manage_badges'))
+    
     try:
-        conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute('SELECT * FROM badges WHERE id = %s', (badge_id,))
@@ -1351,35 +1210,34 @@ def admin_badge_editor(badge_id):
             flash('Badge non trouvé', 'danger')
             return redirect(url_for('admin_manage_badges'))
         
+        return render_template('admin_badge_editor.html', badge=badge, page='admin_badge_editor')
+        
     except Exception as e:
         print(f"⚠️ Erreur admin_badge_editor: {e}")
-        badge = None
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
-    
-    if not badge:
+        flash('Erreur lors du chargement du badge', 'danger')
         return redirect(url_for('admin_manage_badges'))
-    
-    return render_template('admin_badge_editor.html', badge=badge, page='admin_badge_editor')
+    finally:
+        cur.close()
+        conn.close()
 
 # ============================================================================
-# ROUTES API - CORRIGÉES
+# ROUTES API
 # ============================================================================
 
 @app.route('/api/v1/packages')
 def api_list_packages():
     """API: Liste des packages"""
-    page = int(request.args.get('page', 1))
-    per_page = min(int(request.args.get('per_page', 20)), 100)
-    search = request.args.get('q', '')
-    language = request.args.get('lang', '')
-    
-    conn = None
     try:
         conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database unavailable'}), 503
+            
         cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        page = int(request.args.get('page', 1))
+        per_page = min(int(request.args.get('per_page', 20)), 100)
+        search = request.args.get('q', '')
+        language = request.args.get('lang', '')
         
         query = '''
             SELECT p.id, p.name, p.version, p.description, p.language,
@@ -1421,6 +1279,9 @@ def api_list_packages():
         cur.execute(count_query, params[:-2] if where_clauses else [])
         total = cur.fetchone()['count'] or 0
         
+        cur.close()
+        conn.close()
+        
         return jsonify({
             'packages': packages,
             'pagination': {
@@ -1433,17 +1294,15 @@ def api_list_packages():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
 
 @app.route('/api/v1/badges')
 def api_list_badges():
     """API: Liste des badges"""
-    conn = None
     try:
         conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database unavailable'}), 503
+            
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         cur.execute('''
@@ -1455,14 +1314,13 @@ def api_list_badges():
         
         badges = cur.fetchall()
         
+        cur.close()
+        conn.close()
+        
         return jsonify({'badges': badges})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    finally:
-        if conn:
-            cur.close()
-            conn.close()
 
 # ============================================================================
 # CONTEXT PROCESSOR
@@ -1486,97 +1344,117 @@ def inject_variables():
 @app.errorhandler(404)
 def page_not_found(e):
     """Page 404"""
-    return render_template('error.html', error='404 - Page non trouvée'), 404
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>404 - Page non trouvée</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #dc3545; }
+        </style>
+    </head>
+    <body>
+        <h1>404 - Page non trouvée</h1>
+        <p>La page que vous recherchez n'existe pas.</p>
+        <a href="/">Retour à l'accueil</a>
+    </body>
+    </html>
+    """, 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
     """Erreur interne du serveur"""
-    return render_template('error.html', error='500 - Erreur interne du serveur'), 500
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>500 - Erreur interne du serveur</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #dc3545; }
+        </style>
+    </head>
+    <body>
+        <h1>500 - Erreur interne du serveur</h1>
+        <p>Une erreur s'est produite. Veuillez réessayer plus tard.</p>
+        <a href="/">Retour à l'accueil</a>
+    </body>
+    </html>
+    """, 500
 
 @app.errorhandler(403)
 def forbidden(e):
     """Accès interdit"""
-    return render_template('error.html', error='403 - Accès interdit'), 403
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>403 - Accès interdit</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            h1 { color: #ffc107; }
+        </style>
+    </head>
+    <body>
+        <h1>403 - Accès interdit</h1>
+        <p>Vous n'avez pas la permission d'accéder à cette page.</p>
+        <a href="/">Retour à l'accueil</a>
+    </body>
+    </html>
+    """, 403
 
 # ============================================================================
-# INITIALISATION AU DÉMARRAGE - CORRIGÉ POUR FLASK MODERNE
+# INITIALISATION
 # ============================================================================
 
-def initialize_app_on_startup():
-    """Fonction d'initialisation appelée au démarrage"""
+def initialize_app():
+    """Fonction d'initialisation"""
     print("🚀 Initialisation de Zenv Package Hub...")
     
-    try:
-        # Initialiser PostgreSQL - avec plusieurs tentatives
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                print(f"🔄 Tentative {attempt + 1}/{max_retries} d'initialisation PostgreSQL...")
-                success = init_postgresql()
-                if success:
-                    print("✅ PostgreSQL initialisé avec succès")
-                    break
-                else:
-                    print(f"⚠️ Échec de l'initialisation PostgreSQL (tentative {attempt + 1})")
-                    if attempt < max_retries - 1:
-                        import time
-                        time.sleep(2)  # Attendre avant de réessayer
-            except Exception as e:
-                print(f"❌ Erreur lors de la tentative {attempt + 1}: {e}")
+    # Initialiser PostgreSQL
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            print(f"🔄 Tentative {attempt + 1}/{max_retries} d'initialisation PostgreSQL...")
+            success = init_postgresql()
+            if success:
+                print("✅ PostgreSQL initialisé avec succès")
+                break
+            else:
+                print(f"⚠️ Échec de l'initialisation PostgreSQL (tentative {attempt + 1})")
                 if attempt < max_retries - 1:
                     import time
                     time.sleep(2)
-        
-        # Vérifier les répertoires
-        for dir_name, dir_path in [
-            ('Packages', app.config['PACKAGE_DIR']),
-            ('Uploads', app.config['UPLOAD_DIR']),
-            ('Builds', app.config['BUILD_DIR']),
-            ('Badges', app.config['BADGES_DIR']),
-            ('SVG', app.config['SVG_DIR'])
-        ]:
-            if os.path.exists(dir_path):
-                print(f"✅ Répertoire {dir_name}: {dir_path}")
-            else:
-                print(f"⚠️  Répertoire {dir_name} manquant: {dir_path}")
-        
-        print("🎉 Application prête à fonctionner!")
-        
-    except Exception as e:
-        print(f"❌ Erreur d'initialisation: {e}")
-        import traceback
-        traceback.print_exc()
-
-# ============================================================================
-# MIDDLEWARE POUR VÉRIFIER LA BASE DE DONNÉES
-# ============================================================================
-
-@app.before_request
-def check_database():
-    """Vérifie si la base de données est accessible avant chaque requête"""
-    if request.endpoint and request.endpoint not in ['static', 'serve_badge_svg']:
-        try:
-            # Vérifier rapidement si les tables existent
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT 1 FROM usrs LIMIT 1")
-            cur.close()
-            conn.close()
         except Exception as e:
-            # Si c'est une page API, retourner une erreur JSON
-            if request.path.startswith('/api/'):
-                return jsonify({'error': 'Database unavailable', 'message': str(e)}), 503
-            # Sinon, afficher une page d'erreur
-            return render_template('error.html', 
-                                 error='Base de données non disponible',
-                                 message='Veuillez réessayer dans quelques instants.'), 503
+            print(f"❌ Erreur lors de la tentative {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(2)
+    
+    # Vérifier les répertoires
+    for dir_name, dir_path in [
+        ('Packages', app.config['PACKAGE_DIR']),
+        ('Uploads', app.config['UPLOAD_DIR']),
+        ('Builds', app.config['BUILD_DIR']),
+        ('Badges', app.config['BADGES_DIR']),
+        ('SVG', app.config['SVG_DIR']),
+        ('Templates', 'templates'),
+        ('Static', 'static')
+    ]:
+        if os.path.exists(dir_path):
+            print(f"✅ Répertoire {dir_name}: {dir_path}")
+        else:
+            print(f"⚠️  Répertoire {dir_name} manquant: {dir_path}")
+    
+    print("🎉 Application prête à fonctionner!")
 
 # ============================================================================
-# POINT D'ENTRÉE PRINCIPAL - CORRIGÉ
+# POINT D'ENTRÉE
 # ============================================================================
 
-# Appeler l'initialisation immédiatement
-initialize_app_on_startup()
+# Initialiser l'application
+initialize_app()
 
 if __name__ == '__main__':
     # En développement
@@ -1585,7 +1463,3 @@ if __name__ == '__main__':
         port=int(os.environ.get('PORT', 5000)),
         debug=os.environ.get('FLASK_DEBUG', 'True') == 'True'
     )
-else:
-    # En production (gunicorn)
-    # L'initialisation est déjà faite par initialize_app_on_startup()
-    pass
