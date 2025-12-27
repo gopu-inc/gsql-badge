@@ -7,3 +7,4 @@ markdown
 PyYAML
 packaging
 requests
+gunicorn
