@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Contenu principal -->
+    <div class="col-lg-8 mb-4">
+        <!-- En-tête du package -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h1 class="h2 mb-1">{{ package.name }}</h1>
+                        <p class="lead text-muted mb-2">{{ package.description }}</p>
+                        
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="version-tag">{{ package.version }}</span>
+                            <span class="badge bg-secondary">{{ package.language|default('Python') }}</span>
+                            {% if package.license %}
+                            <span class="badge bg-info">{{ package.license }}</span>
+                            {% endif %}
+                            {% if package.is_private %}
+                            <span class="badge bg-warning">
+                                <i class="bi bi-lock me-1"></i>Privé
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" 
+                                type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-download me-2"></i>Télécharger
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-star me-2"></i>Ajouter aux favoris
+                                </a>
+                            </li>
+                            {% if session.get('usr_id') == package.usr_id or session.get('role') == 'admin' %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-warning" href="#">
+                                    <i class="bi bi-pencil me-2"></i>Éditer
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#"
+                                   onclick="return confirmDelete('Supprimer ce package ?')">
+                                    <i class="bi bi-trash me-2"></i>Supprimer
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Statistiques -->
+                <div class="row mb-3">
+                    <div class="col-md-3 col-6">
+                        <div class="text-center">
+                            <h4 class="fw-bold mb-0">{{ package.downloads_count|default(0) }}</h4>
+                            <small class="text-muted">
+                                <i class="bi bi-download me-1"></i>Téléchargements
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="text-center">
+                            <h4 class="fw-bold mb-0">{{ releases|length }}</h4>
+                            <small class="text-muted">
+                                <i class="bi bi-tag me-1"></i>Versions
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="text-center">
+                            <h4 class="fw-bold mb-0">{{ badges|length }}</h4>
+                            <small class="text-muted">
+                                <i class="bi bi-award me-1"></i>Badges
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="text-center">
+                            <h4 class="fw-bold mb-0">{{ package.created_at|datetimeformat('%d/%m/%Y') }}</h4>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar me-1"></i>Publié le
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Badges -->
+                {% if badges %}
+                <div class="mb-3">
+                    <h6 class="mb-2">
+                        <i class="bi bi-award me-2"></i>Badges attribués
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for badge in badges %}
+                        <a href="{{ url_for('badge_detail', badge_name=badge.name) }}" 
+                           class="text-decoration-none">
+                            <img src="{{ url_for('serve_badge_svg', badge_name=badge.name) }}" 
+                                 alt="{{ badge.label }}: {{ badge.value }}"
+                                 title="{{ badge.label }}: {{ badge.value }}"
+                                 style="height: 20px;">
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Actions -->
+                <div class="d-flex gap-2">
+                    <a href="#" class="btn btn-zenv">
+                        <i class="bi bi-download me-1"></i>Télécharger {{ package.version }}
+                    </a>
+                    {% if session.get('usr_id') %}
+                    <button class="btn btn-outline-primary">
+                        <i class="bi bi-star me-1"></i>Suivre
+                    </button>
+                    <button class="btn btn-outline-secondary">
+                        <i class="bi bi-bug me-1"></i>Signaler un problème
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- README -->
+        {% if readme_html %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-text me-2"></i>README
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="markdown-content">
+                    {{ readme_html|safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Versions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-tags me-2"></i>Versions disponibles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Version</th>
+                                <th>Téléchargements</th>
+                                <th>Date</th>
+                                <th>Taille</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for release in releases %}
+                            <tr>
+                                <td>
+                                    <strong>{{ release.version }}</strong>
+                                    {% if release.version == package.version %}
+                                    <span class="badge bg-success ms-2">Dernière</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ release.download_count|default(0) }}</td>
+                                <td>{{ release.upload_date|datetimeformat('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if release.file_size %}
+                                        {{ (release.file_size / 1024 / 1024)|round(2) }} MB
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    Aucune version disponible
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Auteur -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person me-2"></i>Auteur
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-circle display-6 text-muted"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">{{ package.author_name }}</h6>
+                        {% if package.author_email %}
+                        <small class="text-muted">{{ package.author_email }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="#" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-person-plus me-1"></i>Suivre
+                    </a>
+                    {% if session.get('usr_id') == package.usr_id or session.get('role') == 'admin' %}
+                    <a href="#" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-pencil me-1"></i>Éditer le package
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Métadonnées -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Métadonnées
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    {% if package.python_requires %}
+                    <dt class="col-sm-5">Python requis</dt>
+                    <dd class="col-sm-7">
+                        <code>{{ package.python_requires }}</code>
+                    </dd>
+                    {% endif %}
+                    
+                    {% if package.keywords %}
+                    <dt class="col-sm-5">Mots-clés</dt>
+                    <dd class="col-sm-7">
+                        {% for keyword in package.keywords %}
+                        <span class="badge bg-secondary me-1">{{ keyword }}</span>
+                        {% endfor %}
+                    </dd>
+                    {% endif %}
+                    
+                    {% if package.github_url %}
+                    <dt class="col-sm-5">GitHub</dt>
+                    <dd class="col-sm-7">
+                        <a href="{{ package.github_url }}" target="_blank" class="text-decoration-none">
+                            {{ package.github_url|truncate(30) }}
+                        </a>
+                    </dd>
+                    {% endif %}
+                    
+                    <dt class="col-sm-5">Dernière mise à jour</dt>
+                    <dd class="col-sm-7">{{ package.updated_at|datetimeformat('%d/%m/%Y %H:%M') }}</dd>
+                    
+                    <dt class="col-sm-5">Date de création</dt>
+                    <dd class="col-sm-7">{{ package.created_at|datetimeformat('%d/%m/%Y') }}</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <!-- Installation -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-terminal me-2"></i>Installation
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="language-tag">BASH</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="bi bi-clipboard"></i> Copier
+                        </button>
+                    </div>
+                    <pre><code class="language-bash">pip install {{ package.name }}</code></pre>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="language-tag">ZENV</span>
+                        <button class="copy-btn" onclick="copyCode(this)">
+                            <i class="bi bi-clipboard"></i> Copier
+                        </button>
+                    </div>
+                    <pre><code class="language-bash">zenv install {{ package.name }}</code></pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Partager -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-share me-2"></i>Partager
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary flex-fill">
+                        <i class="bi bi-twitter"></i>
+                    </button>
+                    <button class="btn btn-outline-dark flex-fill">
+                        <i class="bi bi-github"></i>
+                    </button>
+                    <button class="btn btn-outline-danger flex-fill">
+                        <i class="bi bi-reddit"></i>
+                    </button>
+                    <button class="btn btn-outline-info flex-fill">
+                        <i class="bi bi-discord"></i>
+                    </button>
+                </div>
+                
+                <div class="input-group mt-3">
+                    <input type="text" 
+                           class="form-control" 
+                           id="shareUrl"
+                           value="{{ request.url }}"
+                           readonly>
+                    <button class="btn btn-outline-secondary" 
+                            type="button"
+                            onclick="copyToClipboard('shareUrl', 'URL copiée !')">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Package similaire -->
+{% if similar_packages %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-boxes me-2"></i>Packages similaires
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for similar in similar_packages %}
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="card package-card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <a href="{{ url_for('package_detail', package_name=similar.name) }}" 
+                                       class="text-decoration-none">
+                                        {{ similar.name }}
+                                    </a>
+                                </h6>
+                                <p class="card-text text-muted small">
+                                    {{ similar.description|truncate(80) }}
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent py-2">
+                                <small class="text-muted">
+                                    {{ similar.downloads_count|default(0) }} téléchargements
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function copyToClipboard(elementId, message) {
+        const element = document.getElementById(elementId);
+        element.select();
+        document.execCommand('copy');
+        
+        // Afficher un toast
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '11';
+        toast.innerHTML = `
+            <div class="toast show" role="alert">
+                <div class="toast-header">
+                    <strong class="me-auto">Succès</strong>
+                    <button type="button" class="btn-close" onclick="this.closest('.toast').remove()"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}
