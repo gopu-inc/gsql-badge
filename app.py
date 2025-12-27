@@ -40,16 +40,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATABASE_PATH = os.path.join(BASE_DIR, 'zenv_hub.db')
 GIT_REPO_PATH = os.path.join(BASE_DIR, 'zenv-data')
 
-# Configuration GitHub
-GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "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")
-GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/zenv")
-GITHUB_USERNAME = os.environ.get('GITHUB_USERNAME', "gopu-inc")
-GITHUB_EMAIL = os.environ.get('GITHUB_EMAIL', "ceoseshell@gmail.com")
-GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package-data")
+# ⚠️ CONFIGURATION GITHUB AVEC TOKEN DANS LE CODE (NON RECOMMANDÉ)
+GITHUB_TOKEN = "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"  # ⚠️ NE FAITES PAS ÇA EN PRODUCTION
+GITHUB_REPO = "gopu-inc/zenv"
+GITHUB_USERNAME = "gopu-inc"
+GITHUB_EMAIL = "ceoseshell@gmail.com"
+GITHUB_BRANCH = "main"
 
 # Configuration JWT et sécurité
-JWT_SECRET = os.environ.get('JWT_SECRET', "votre_super_secret_jwt_changez_moi_12345")
-APP_SECRET = os.environ.get('APP_SECRET', "votre_app_secret_changez_moi_67890")
+JWT_SECRET = "votre_super_secret_jwt_changez_moi_12345"
+APP_SECRET = "votre_app_secret_changez_moi_67890"
 
 # Initialisation Flask
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -264,7 +264,7 @@ class GitManager:
         if not os.path.exists(repo_path):
             print(f"🔄 Clonage du dépôt Git {GITHUB_REPO}...")
             try:
-                # Clone du dépôt
+                # Clone du dépôt avec token
                 subprocess.run([
                     'git', 'clone',
                     f'https://{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git',
@@ -284,6 +284,16 @@ class GitManager:
                          cwd=repo_path, check=True)
             subprocess.run(['git', 'config', 'user.email', GITHUB_EMAIL], 
                          cwd=repo_path, check=True)
+            
+            # Vérifier et créer la branche si nécessaire
+            result = subprocess.run(['git', 'branch', '--show-current'], 
+                                  cwd=repo_path, capture_output=True, text=True)
+            current_branch = result.stdout.strip()
+            
+            if current_branch != GITHUB_BRANCH:
+                subprocess.run(['git', 'checkout', '-b', GITHUB_BRANCH], 
+                             cwd=repo_path, capture_output=True)
+                
         except Exception as e:
             print(f"⚠️ Erreur configuration Git: {e}")
     
@@ -294,25 +304,26 @@ class GitManager:
             return False
         
         try:
+            repo_path = app.config['GIT_REPO_PATH']
+            
             # Copier la base de données
             db_path = app.config['DATABASE_PATH']
-            backup_path = os.path.join(app.config['GIT_REPO_PATH'], 'zenv_hub.db')
+            backup_path = os.path.join(repo_path, 'zenv_hub.db')
             
             if os.path.exists(db_path):
                 shutil.copy2(db_path, backup_path)
             
             # Ajouter au Git
-            repo_path = app.config['GIT_REPO_PATH']
             subprocess.run(['git', 'add', '.'], cwd=repo_path, check=True)
             
             # Commit
             commit_message = f"Backup automatique - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             subprocess.run(['git', 'commit', '-m', commit_message], 
-                         cwd=repo_path, check=True)
+                         cwd=repo_path, check=True, capture_output=True)
             
             # Push vers GitHub
-            subprocess.run(['git', 'push', 'origin', GITHUB_BRANCH], 
-                         cwd=repo_path, check=True)
+            subprocess.run(['git', 'push', '-u', 'origin', GITHUB_BRANCH, '--force'], 
+                         cwd=repo_path, check=True, capture_output=True)
             
             print("✅ Base de données sauvegardée dans Git")
             return True
@@ -331,7 +342,7 @@ class GitManager:
             try:
                 # Pull les dernières modifications
                 subprocess.run(['git', 'pull', 'origin', GITHUB_BRANCH], 
-                             cwd=repo_path, check=True)
+                             cwd=repo_path, check=True, capture_output=True)
                 
                 # Restaurer la base de données
                 db_path = app.config['DATABASE_PATH']
@@ -458,15 +469,27 @@ class BadgeGenerator:
         height = 20
         
         svg = f'''<?xml version="1.0" encoding="UTF-8"?>
-        <svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
-            <title>{label}: {value}</title>
-            <g>
-                <rect width="{label_width}" height="{height}" fill="{color_hex}" rx="3"/>
-                <rect x="{label_width}" width="{value_width}" height="{height}" fill="#555" rx="3"/>
-                <text x="{label_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">{label.upper()}</text>
-                <text x="{label_width + value_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">{value}</text>
-            </g>
-        </svg>'''
+<svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
+    <title>{label}: {value}</title>
+    <linearGradient id="s" x2="0" y2="100%">
+        <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+        <stop offset="1" stop-opacity=".1"/>
+    </linearGradient>
+    <mask id="r">
+        <rect width="{total_width}" height="{height}" rx="3" fill="#fff"/>
+    </mask>
+    <g mask="url(#r)">
+        <rect width="{label_width}" height="{height}" fill="{color_hex}"/>
+        <rect x="{label_width}" width="{value_width}" height="{height}" fill="#555"/>
+        <rect width="{total_width}" height="{height}" fill="url(#s)"/>
+    </g>
+    <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+        <text x="{label_width/2}" y="14" fill="#010101" fill-opacity=".3">{label.upper()}</text>
+        <text x="{label_width/2}" y="13">{label.upper()}</text>
+        <text x="{label_width + value_width/2}" y="14" fill="#010101" fill-opacity=".3">{value}</text>
+        <text x="{label_width + value_width/2}" y="13">{value}</text>
+    </g>
+</svg>'''
         
         return svg
     
@@ -581,7 +604,7 @@ def index():
         ''')
         popular_badges = [dict(row) for row in cursor.fetchall()]
         
-        return render_template('home.html',
+        return render_template('index.html',
                              recent_packages=recent_packages,
                              popular_badges=popular_badges,
                              total_usrs=total_usrs,
@@ -591,13 +614,27 @@ def index():
         
     except Exception as e:
         print(f"⚠️ Erreur index: {e}")
-        return render_template('home.html',
-                             recent_packages=[],
-                             popular_badges=[],
-                             total_usrs=0,
-                             total_packages=0,
-                             total_downloads=0,
-                             page='index')
+        import traceback
+        traceback.print_exc()
+        # Retourner une page simple si erreur
+        return '''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Zenv Package Hub</title>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                h1 { color: #007bff; }
+                .error { color: red; }
+            </style>
+        </head>
+        <body>
+            <h1>Zenv Package Hub</h1>
+            <p>Bienvenue sur le hub de packages Zenv</p>
+            <p><a href="/login">Connexion</a> | <a href="/register">Inscription</a></p>
+        </body>
+        </html>
+        '''
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -638,7 +675,43 @@ def login():
         except Exception as e:
             flash(f'Erreur: {str(e)}', 'danger')
     
-    return render_template('login.html', page='login')
+    # Si GET ou erreur, retourner une page simple
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Connexion - Zenv Package Hub</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+            .form-group { margin-bottom: 15px; }
+            label { display: block; margin-bottom: 5px; }
+            input { width: 100%; padding: 8px; box-sizing: border-box; }
+            button { background: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
+            .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
+            .alert-danger { background: #f8d7da; color: #721c24; }
+        </style>
+    </head>
+    <body>
+        <h1>Connexion</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label>Nom d'utilisateur ou Email:</label>
+                <input type="text" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Mot de passe:</label>
+                <input type="password" name="password" required>
+            </div>
+            
+            <button type="submit">Se connecter</button>
+        </form>
+        
+        <p>Pas de compte ? <a href="/register">S'inscrire</a></p>
+        <p><a href="/">Retour à l'accueil</a></p>
+    </body>
+    </html>
+    '''
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -651,11 +724,11 @@ def register():
         
         if password != confirm:
             flash('Les mots de passe ne correspondent pas', 'danger')
-            return render_template('register.html', page='register')
+            return redirect(url_for('register'))
         
         if len(password) < 8:
             flash('Le mot de passe doit contenir au moins 8 caractères', 'danger')
-            return render_template('register.html', page='register')
+            return redirect(url_for('register'))
         
         hashed_pw = SecurityUtils.hash_password(password)
         
@@ -686,7 +759,52 @@ def register():
         except Exception as e:
             flash(f'Erreur: {str(e)}', 'danger')
     
-    return render_template('register.html', page='register')
+    # Page d'inscription simple
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Inscription - Zenv Package Hub</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+            .form-group { margin-bottom: 15px; }
+            label { display: block; margin-bottom: 5px; }
+            input { width: 100%; padding: 8px; box-sizing: border-box; }
+            button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
+            .alert { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        </style>
+    </head>
+    <body>
+        <h1>Inscription</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label>Nom d'utilisateur:</label>
+                <input type="text" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Mot de passe:</label>
+                <input type="password" name="password" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Confirmer le mot de passe:</label>
+                <input type="password" name="confirm_password" required>
+            </div>
+            
+            <button type="submit">S'inscrire</button>
+        </form>
+        
+        <p>Déjà inscrit ? <a href="/login">Se connecter</a></p>
+        <p><a href="/">Retour à l'accueil</a></p>
+    </body>
+    </html>
+    '''
 
 @app.route('/logout')
 def logout():
@@ -706,7 +824,12 @@ def dashboard():
         # Infos usr
         cursor.execute('SELECT username, email, role, created_at FROM usrs WHERE id = ?', 
                       (session['usr_id'],))
-        usr = dict(cursor.fetchone())
+        row = cursor.fetchone()
+        if row:
+            usr = dict(row)
+        else:
+            flash('Utilisateur non trouvé', 'danger')
+            return redirect(url_for('logout'))
         
         # Packages de l'usr
         cursor.execute('''
@@ -726,7 +849,12 @@ def dashboard():
             FROM packages p
             WHERE p.usr_id = ?
         ''', (session['usr_id'],))
-        stats = dict(cursor.fetchone()) if cursor.fetchone() else {'total_packages': 0, 'total_downloads': 0}
+        
+        stats_row = cursor.fetchone()
+        if stats_row:
+            stats = dict(stats_row)
+        else:
+            stats = {'total_packages': 0, 'total_downloads': 0}
         
         # Badges de l'usr
         cursor.execute('''
@@ -739,87 +867,145 @@ def dashboard():
         ''', (session['usr_id'],))
         usr_badges = [dict(row) for row in cursor.fetchall()]
         
-        return render_template('dashboard.html',
-                             usr=usr,
-                             packages=packages,
-                             stats=stats,
-                             usr_badges=usr_badges,
-                             page='dashboard')
+        # Page dashboard simple
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Tableau de bord - Zenv Package Hub</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; }}
+                .header {{ background: #343a40; color: white; padding: 20px; margin-bottom: 20px; }}
+                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }}
+                .stat-card {{ background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #007bff; }}
+                .section {{ margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }}
+                table {{ width: 100%; border-collapse: collapse; }}
+                th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid #dee2e6; }}
+                th {{ background: #e9ecef; }}
+                .badge {{ display: inline-block; padding: 5px 10px; background: #6c757d; color: white; border-radius: 20px; margin: 5px; }}
+                .nav {{ margin-bottom: 20px; }}
+                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
+                .nav a:hover {{ text-decoration: underline; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Tableau de bord</h1>
+                <p>Bienvenue, {usr['username']} !</p>
+            </div>
+            
+            <div class="nav">
+                <a href="/">Accueil</a>
+                <a href="/packages">Packages</a>
+                <a href="/badges">Badges</a>
+                <a href="/logout">Déconnexion</a>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value">{stats['total_packages']}</div>
+                    <div>Packages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{stats['total_downloads']}</div>
+                    <div>Téléchargements</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Mes Packages</h2>
+                {'<table><tr><th>Nom</th><th>Version</th><th>Téléchargements</th><th>Date</th></tr>' + 
+                 ''.join([f'<tr><td>{p["name"]}</td><td>{p["version"]}</td><td>{p["downloads_count"]}</td><td>{p["created_at"][:10] if p["created_at"] else ""}</td></tr>' for p in packages]) + 
+                 '</table>' if packages else '<p>Vous n\'avez pas encore de packages.</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>Mes Badges</h2>
+                {''.join([f'<div class="badge">{b["name"]}</div>' for b in usr_badges]) if usr_badges else '<p>Vous n\'avez pas encore de badges.</p>'}
+            </div>
+        </body>
+        </html>
+        '''
         
     except Exception as e:
         print(f"⚠️ Erreur dashboard: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Erreur lors du chargement du tableau de bord', 'danger')
         return redirect(url_for('index'))
 
 @app.route('/packages')
 def list_packages():
     """Liste des packages"""
-    page = int(request.args.get('page', 1))
-    per_page = 20
-    search = request.args.get('q', '')
-    language = request.args.get('lang', '')
-    
     try:
         db = get_db()
         cursor = db.cursor()
         
-        query = '''
+        # Récupérer tous les packages publics
+        cursor.execute('''
             SELECT p.*, u.username as author_name
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
             WHERE p.is_private = 0
-        '''
-        
-        params = []
-        where_clauses = []
-        
-        if search:
-            where_clauses.append('(p.name LIKE ? OR p.description LIKE ?)')
-            params.extend([f'%{search}%', f'%{search}%'])
-        
-        if language:
-            where_clauses.append('p.language = ?')
-            params.append(language)
-        
-        if where_clauses:
-            query += ' AND ' + ' AND '.join(where_clauses)
-        
-        query += ' ORDER BY p.updated_at DESC'
-        
-        # Pagination
-        offset = (page - 1) * per_page
-        query += ' LIMIT ? OFFSET ?'
-        params.extend([per_page, offset])
-        
-        cursor.execute(query, params)
+            ORDER BY p.created_at DESC
+        ''')
         packages = [dict(row) for row in cursor.fetchall()]
         
-        # Total
-        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = 0'
-        if where_clauses:
-            count_query += ' AND ' + ' AND '.join(where_clauses)
-        
-        cursor.execute(count_query, params[:-2] if where_clauses else [])
+        # Compter le total
+        cursor.execute('SELECT COUNT(*) as total FROM packages WHERE is_private = 0')
         total = cursor.fetchone()[0] or 0
         
-        # Langages disponibles
-        cursor.execute('SELECT DISTINCT language FROM packages WHERE language IS NOT NULL ORDER BY language')
-        languages = [row[0] for row in cursor.fetchall()]
+        # Page simple des packages
+        packages_html = ''
+        for pkg in packages:
+            packages_html += f'''
+            <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px;">
+                <h3>{pkg['name']} v{pkg['version']}</h3>
+                <p>{pkg['description'] or 'Pas de description'}</p>
+                <p><small>Auteur: {pkg['author_name'] or 'Inconnu'} | Téléchargements: {pkg['downloads_count']}</small></p>
+                <p><a href="/package/{pkg['name']}">Voir détails</a></p>
+            </div>
+            '''
         
-        return render_template('packages.html',
-                             packages=packages,
-                             page_num=page,
-                             per_page=per_page,
-                             total=total,
-                             total_pages=(total + per_page - 1) // per_page if per_page > 0 else 0,
-                             search=search,
-                             language=language,
-                             languages=languages,
-                             page='packages')
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Packages - Zenv Package Hub</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+                .nav {{ margin-bottom: 20px; }}
+                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
+                .package-count {{ color: #6c757d; margin-bottom: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Packages Zenv</h1>
+                <p>Découvrez tous les packages disponibles</p>
+            </div>
+            
+            <div class="nav">
+                <a href="/">Accueil</a>
+                <a href="/dashboard">Tableau de bord</a>
+                <a href="/badges">Badges</a>
+                {'<a href="/logout">Déconnexion</a>' if 'usr_id' in session else '<a href="/login">Connexion</a>'}
+            </div>
+            
+            <div class="package-count">
+                <strong>{total}</strong> packages disponibles
+            </div>
+            
+            {packages_html if packages else '<p>Aucun package disponible pour le moment.</p>'}
+        </body>
+        </html>
+        '''
         
     except Exception as e:
         print(f"⚠️ Erreur list_packages: {e}")
-        return render_template('packages.html', packages=[], page='packages')
+        return redirect(url_for('index'))
 
 @app.route('/package/<package_name>')
 def package_detail(package_name):
@@ -838,8 +1024,16 @@ def package_detail(package_name):
         
         row = cursor.fetchone()
         if not row:
-            flash('Package non trouvé', 'danger')
-            return redirect(url_for('list_packages'))
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Package non trouvé</title></head>
+            <body>
+                <h1>Package non trouvé</h1>
+                <p><a href="/packages">Retour aux packages</a></p>
+            </body>
+            </html>
+            '''
         
         package = dict(row)
         
@@ -866,16 +1060,75 @@ def package_detail(package_name):
         # Convertir README en HTML
         readme_html = MarkdownProcessor.process_markdown(package.get('readme', ''))
         
-        return render_template('package_detail.html',
-                             package=package,
-                             releases=releases,
-                             badges=badges,
-                             readme_html=readme_html,
-                             page='package_detail')
+        # Page détail package
+        releases_html = ''
+        if releases:
+            for release in releases:
+                releases_html += f'''
+                <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+                    <strong>Version {release['version']}</strong>
+                    <p>Taille: {release['file_size'] or 'N/A'} | Téléchargements: {release['download_count']}</p>
+                </div>
+                '''
+        
+        badges_html = ''
+        if badges:
+            for badge in badges:
+                badges_html += f'<img src="/badge/svg/{badge["name"]}" alt="{badge["label"]}: {badge["value"]}" style="margin: 5px;">'
+        
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>{package['name']} - Zenv Package Hub</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+                .nav {{ margin-bottom: 20px; }}
+                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
+                .section {{ margin-bottom: 30px; padding: 20px; background: white; border: 1px solid #dee2e6; border-radius: 8px; }}
+                .badges {{ margin: 20px 0; }}
+                code {{ background: #f8f9fa; padding: 2px 5px; border-radius: 3px; }}
+            </style>
+        </head>
+        <body>
+            <div class="nav">
+                <a href="/">Accueil</a>
+                <a href="/packages">Packages</a>
+                <a href="/badges">Badges</a>
+                {'<a href="/dashboard">Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">Connexion</a>'}
+            </div>
+            
+            <div class="header">
+                <h1>{package['name']} v{package['version']}</h1>
+                <p>{package['description'] or ''}</p>
+                <p><small>Auteur: {package['author_name'] or 'Inconnu'} | Téléchargements: {package['downloads_count']}</small></p>
+            </div>
+            
+            <div class="badges">
+                {badges_html if badges_html else '<p>Aucun badge pour ce package.</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>📦 Installation</h2>
+                <code>pip install {package['name']}</code>
+            </div>
+            
+            <div class="section">
+                <h2>📄 Versions disponibles</h2>
+                {releases_html if releases_html else '<p>Aucune version disponible.</p>'}
+            </div>
+            
+            <div class="section">
+                <h2>📖 Documentation</h2>
+                <div>{readme_html if readme_html else '<p>Aucune documentation disponible.</p>'}</div>
+            </div>
+        </body>
+        </html>
+        '''
         
     except Exception as e:
         print(f"⚠️ Erreur package_detail: {e}")
-        flash('Erreur lors du chargement du package', 'danger')
         return redirect(url_for('list_packages'))
 
 @app.route('/badges')
@@ -895,11 +1148,57 @@ def list_badges():
         
         badges = [dict(row) for row in cursor.fetchall()]
         
-        return render_template('badges.html', badges=badges, page='badges')
+        # Générer le HTML des badges
+        badges_html = ''
+        for badge in badges:
+            badges_html += f'''
+            <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; text-align: center;">
+                <img src="/badge/svg/{badge['name']}" alt="{badge['label']}: {badge['value']}" style="margin-bottom: 10px;">
+                <h3>{badge['name']}</h3>
+                <p>{badge['label']}: {badge['value']}</p>
+                <p><small>Créé par: {badge['created_by_name'] or 'Inconnu'} | Utilisations: {badge['usage_count']}</small></p>
+            </div>
+            '''
+        
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Badges - Zenv Package Hub</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #6f42c1; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+                .nav {{ margin-bottom: 20px; }}
+                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
+                .badge-count {{ color: #6c757d; margin-bottom: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Badges Zenv</h1>
+                <p>Découvrez tous les badges disponibles</p>
+            </div>
+            
+            <div class="nav">
+                <a href="/">Accueil</a>
+                <a href="/packages">Packages</a>
+                {'<a href="/dashboard">Tableau de bord</a>' if 'usr_id' in session else '<a href="/login">Connexion</a>'}
+            </div>
+            
+            <div class="badge-count">
+                <strong>{len(badges)}</strong> badges disponibles
+            </div>
+            
+            {badges_html if badges else '<p>Aucun badge disponible pour le moment.</p>'}
+            
+            {'<p><a href="/badge/generate" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">Créer un badge</a></p>' if 'usr_id' in session else ''}
+        </body>
+        </html>
+        '''
         
     except Exception as e:
         print(f"⚠️ Erreur list_badges: {e}")
-        return render_template('badges.html', badges=[], page='badges')
+        return redirect(url_for('index'))
 
 @app.route('/badge/generate', methods=['GET', 'POST'])
 @login_required
@@ -912,8 +1211,17 @@ def generate_badge():
         color = request.form.get('color', 'blue')
         
         if not name or not label or not value:
-            flash('Tous les champs sont requis', 'danger')
-            return render_template('generate_badge.html', page='generate_badge')
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Erreur</title></head>
+            <body>
+                <h1>Erreur</h1>
+                <p>Tous les champs sont requis</p>
+                <p><a href="/badge/generate">Retour</a></p>
+            </body>
+            </html>
+            '''
         
         # Générer le SVG
         svg_content = BadgeGenerator.create_svg_badge(label, value, color)
@@ -948,13 +1256,100 @@ def generate_badge():
             # Sauvegarder dans Git
             GitManager.backup_database()
             
-            flash('Badge créé avec succès!', 'success')
-            return redirect(url_for('list_badges'))
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Badge créé</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                    .success {{ color: #28a745; }}
+                    img {{ margin: 20px; }}
+                </style>
+            </head>
+            <body>
+                <h1 class="success">✅ Badge créé avec succès!</h1>
+                <img src="/badge/svg/{name}" alt="{label}: {value}">
+                <p><strong>{name}</strong>: {label} - {value}</p>
+                <p><a href="/badges">Voir tous les badges</a></p>
+                <p><a href="/badge/generate">Créer un autre badge</a></p>
+            </body>
+            </html>
+            '''
             
         except Exception as e:
-            flash(f'Erreur: {str(e)}', 'danger')
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Erreur</title></head>
+            <body>
+                <h1>Erreur</h1>
+                <p>Erreur lors de la création du badge: {str(e)}</p>
+                <p><a href="/badge/generate">Retour</a></p>
+            </body>
+            </html>
+            '''
     
-    return render_template('generate_badge.html', page='generate_badge')
+    # Page de génération de badge
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Créer un badge - Zenv Package Hub</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+            .form-group { margin-bottom: 15px; }
+            label { display: block; margin-bottom: 5px; }
+            input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+            button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
+            .nav { margin-bottom: 20px; }
+            .nav a { margin-right: 15px; color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <div class="nav">
+            <a href="/">Accueil</a>
+            <a href="/badges">Badges</a>
+            <a href="/dashboard">Tableau de bord</a>
+        </div>
+        
+        <h1>Créer un badge</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label>Nom du badge (unique):</label>
+                <input type="text" name="name" placeholder="ex: version" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Label (texte gauche):</label>
+                <input type="text" name="label" placeholder="ex: version" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Valeur (texte droite):</label>
+                <input type="text" name="value" placeholder="ex: 1.0.0" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Couleur:</label>
+                <select name="color">
+                    <option value="blue">Bleu</option>
+                    <option value="green">Vert</option>
+                    <option value="red">Rouge</option>
+                    <option value="orange">Orange</option>
+                    <option value="yellow">Jaune</option>
+                    <option value="purple">Violet</option>
+                    <option value="gray">Gris</option>
+                </select>
+            </div>
+            
+            <button type="submit">Créer le badge</button>
+        </form>
+        
+        <p><a href="/badges">Retour aux badges</a></p>
+    </body>
+    </html>
+    '''
 
 @app.route('/badge/svg/<badge_name>')
 def serve_badge_svg(badge_name):
@@ -962,6 +1357,7 @@ def serve_badge_svg(badge_name):
     badge_path = os.path.join(app.config['SVG_DIR'], f"{badge_name}.svg")
     
     if not os.path.exists(badge_path):
+        # Générer un badge par défaut si non trouvé
         svg_content = BadgeGenerator.create_svg_badge("Not Found", "404", "red")
         return Response(svg_content, mimetype='image/svg+xml')
     
@@ -992,43 +1388,72 @@ def admin_dashboard():
         cursor.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
         total_downloads = cursor.fetchone()[0] or 0
         
-        # Usrs récents
-        cursor.execute('SELECT id, username, email, role, created_at FROM usrs ORDER BY created_at DESC LIMIT 10')
-        recent_usrs = [dict(row) for row in cursor.fetchall()]
-        
-        # Packages récents
-        cursor.execute('''
-            SELECT p.*, u.username as author_name
-            FROM packages p
-            LEFT JOIN usrs u ON p.usr_id = u.id
-            ORDER BY p.created_at DESC
-            LIMIT 10
-        ''')
-        recent_packages = [dict(row) for row in cursor.fetchall()]
-        
-        # Badges récents
-        cursor.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            ORDER BY b.created_at DESC
-            LIMIT 10
-        ''')
-        recent_badges = [dict(row) for row in cursor.fetchall()]
-        
-        return render_template('admin_dashboard.html',
-                             total_usrs=total_usrs,
-                             total_packages=total_packages,
-                             total_badges=total_badges,
-                             total_downloads=total_downloads,
-                             recent_usrs=recent_usrs,
-                             recent_packages=recent_packages,
-                             recent_badges=recent_badges,
-                             page='admin_dashboard')
+        # Page admin simple
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Admin - Zenv Package Hub</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; }}
+                .header {{ background: #dc3545; color: white; padding: 20px; margin-bottom: 20px; }}
+                .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }}
+                .stat-card {{ background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                .stat-value {{ font-size: 2em; font-weight: bold; color: #dc3545; }}
+                .nav {{ margin-bottom: 20px; }}
+                .nav a {{ margin-right: 15px; color: #007bff; text-decoration: none; }}
+                .admin-warning {{ background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🏛️ Administration</h1>
+                <p>Bienvenue, administrateur</p>
+            </div>
+            
+            <div class="admin-warning">
+                ⚠️ Zone réservée aux administrateurs
+            </div>
+            
+            <div class="nav">
+                <a href="/">Accueil</a>
+                <a href="/dashboard">Tableau de bord</a>
+                <a href="/logout">Déconnexion</a>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value">{total_usrs}</div>
+                    <div>Utilisateurs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_packages}</div>
+                    <div>Packages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_badges}</div>
+                    <div>Badges</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{total_downloads}</div>
+                    <div>Téléchargements</div>
+                </div>
+            </div>
+            
+            <div>
+                <h2>Actions d'administration</h2>
+                <ul>
+                    <li><a href="/packages">Gérer les packages</a></li>
+                    <li><a href="/badges">Gérer les badges</a></li>
+                </ul>
+            </div>
+        </body>
+        </html>
+        '''
         
     except Exception as e:
         print(f"⚠️ Erreur admin_dashboard: {e}")
-        return render_template('admin_dashboard.html', page='admin_dashboard')
+        return redirect(url_for('index'))
 
 # ============================================================================
 # API ENDPOINTS
@@ -1041,63 +1466,56 @@ def api_list_packages():
         db = get_db()
         cursor = db.cursor()
         
-        page = int(request.args.get('page', 1))
-        per_page = min(int(request.args.get('per_page', 20)), 100)
-        search = request.args.get('q', '')
-        language = request.args.get('lang', '')
-        
-        query = '''
+        cursor.execute('''
             SELECT p.id, p.name, p.version, p.description, p.language,
                    p.downloads_count, p.created_at, u.username as author
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
             WHERE p.is_private = 0
-        '''
+            ORDER BY p.created_at DESC
+            LIMIT 50
+        ''')
         
-        params = []
-        where_clauses = []
-        
-        if search:
-            where_clauses.append('(p.name LIKE ? OR p.description LIKE ?)')
-            params.extend([f'%{search}%', f'%{search}%'])
-        
-        if language:
-            where_clauses.append('p.language = ?')
-            params.append(language)
-        
-        if where_clauses:
-            query += ' AND ' + ' AND '.join(where_clauses)
-        
-        query += ' ORDER BY p.created_at DESC'
-        
-        # Pagination
-        offset = (page - 1) * per_page
-        query += ' LIMIT ? OFFSET ?'
-        params.extend([per_page, offset])
-        
-        cursor.execute(query, params)
         packages = [dict(row) for row in cursor.fetchall()]
         
-        # Total
-        count_query = 'SELECT COUNT(*) FROM packages WHERE is_private = 0'
-        if where_clauses:
-            count_query += ' AND ' + ' AND '.join(where_clauses)
-        
-        cursor.execute(count_query, params[:-2] if where_clauses else [])
-        total = cursor.fetchone()[0] or 0
-        
         return jsonify({
-            'packages': packages,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': total,
-                'total_pages': (total + per_page - 1) // per_page if per_page > 0 else 0
+            'status': 'success',
+            'data': {
+                'packages': packages,
+                'count': len(packages)
             }
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/v1/badges')
+def api_list_badges():
+    """API: Liste des badges"""
+    try:
+        db = get_db()
+        cursor = db.cursor()
+        
+        cursor.execute('''
+            SELECT b.*, u.username as created_by_name
+            FROM badges b
+            LEFT JOIN usrs u ON b.created_by = u.id
+            WHERE b.is_active = 1
+            ORDER BY b.usage_count DESC
+        ''')
+        
+        badges = [dict(row) for row in cursor.fetchall()]
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'badges': badges,
+                'count': len(badges)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # ============================================================================
 # CONTEXT PROCESSOR
@@ -1119,35 +1537,85 @@ def inject_variables():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return """
+    return '''
     <!DOCTYPE html>
     <html>
     <head>
         <title>404 - Page non trouvée</title>
-        <style>body { font-family: Arial; text-align: center; padding: 50px; }</style>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                padding: 50px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            h1 { font-size: 3em; margin-bottom: 20px; }
+            a { 
+                color: white; 
+                text-decoration: none;
+                border: 2px solid white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                margin-top: 20px;
+                display: inline-block;
+            }
+            a:hover { background: white; color: #667eea; }
+        </style>
     </head>
     <body>
         <h1>404 - Page non trouvée</h1>
-        <p><a href="/">Retour à l'accueil</a></p>
+        <p>La page que vous cherchez n'existe pas.</p>
+        <a href="/">🏠 Retour à l'accueil</a>
     </body>
     </html>
-    """, 404
+    ''', 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return """
+    return '''
     <!DOCTYPE html>
     <html>
     <head>
         <title>500 - Erreur serveur</title>
-        <style>body { font-family: Arial; text-align: center; padding: 50px; }</style>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                padding: 50px;
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            h1 { font-size: 3em; margin-bottom: 20px; }
+            a { 
+                color: white; 
+                text-decoration: none;
+                border: 2px solid white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                margin-top: 20px;
+                display: inline-block;
+            }
+            a:hover { background: white; color: #f5576c; }
+        </style>
     </head>
     <body>
         <h1>500 - Erreur serveur</h1>
-        <p><a href="/">Retour à l'accueil</a></p>
+        <p>Une erreur interne s'est produite.</p>
+        <a href="/">🏠 Retour à l'accueil</a>
     </body>
     </html>
-    """, 500
+    ''', 500
 
 # ============================================================================
 # INITIALISATION
@@ -1170,19 +1638,6 @@ def initialize_app():
     # Essayer de restaurer depuis Git
     GitManager.restore_database()
     
-    # Vérifier les répertoires
-    for dir_name, dir_path in [
-        ('Packages', app.config['PACKAGE_DIR']),
-        ('Uploads', app.config['UPLOAD_DIR']),
-        ('Builds', app.config['BUILD_DIR']),
-        ('Badges', app.config['BADGES_DIR']),
-        ('SVG', app.config['SVG_DIR']),
-        ('Templates', 'templates'),
-        ('Static', 'static')
-    ]:
-        if os.path.exists(dir_path):
-            print(f"✅ Répertoire {dir_name}: {dir_path}")
-    
     print("🎉 Application prête à fonctionner!")
 
 # ============================================================================
@@ -1193,10 +1648,6 @@ def initialize_app():
 def teardown_db(exception):
     """Fermer la base de données à la fin de la requête"""
     close_db()
-    
-    # Sauvegarder dans Git après certaines actions importantes
-    if request and request.endpoint in ['login', 'register', 'generate_badge']:
-        GitManager.backup_database()
 
 # ============================================================================
 # POINT D'ENTRÉE
