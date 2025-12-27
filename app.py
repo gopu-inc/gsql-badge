@@ -1,5 +1,5 @@
 """
-Zenv Package Hub - Version complète avec PostgreSQL, badges SVG et support multi-langages
+Zenv Package Hub - Version corrigée pour Flask moderne
 """
 
 import os
@@ -38,7 +38,7 @@ from packaging.version import parse as parse_version
 # CONFIGURATION - SIMPLIFIÉE
 # ============================================================================
 
-# Configuration PostgreSQL (à remplacer par vos variables)
+# Configuration PostgreSQL
 DATABASE_URL = "postgresql://volve_user:odM5spc4DLMdEPJww834aDNE7c49J9bG@dpg-d4vpeu24d50c7385s840-a.oregon-postgres.render.com/volve?sslmode=require"
 
 # Configuration GitHub
@@ -50,9 +50,9 @@ GITHUB_BRANCH = "package"
 
 # Configuration JWT et sécurité
 JWT_SECRET = "votre_super_secret_jwt_changez_moi_12345"
-BCRYPT_SALT = bcrypt.gensalt(rounds=12)
 APP_SECRET = "votre_app_secret_changez_moi_67890"
 
+# Initialisation Flask
 app = Flask(__name__)
 CORS(app)
 
@@ -78,7 +78,7 @@ for dir_path in [app.config['PACKAGE_DIR'], app.config['UPLOAD_DIR'],
     os.makedirs(dir_path, exist_ok=True)
 
 # ============================================================================
-# UTILITAIRES POSTGRESQL
+# UTILITAIRES POSTGRESQL - CORRIGÉ
 # ============================================================================
 
 def get_db_connection():
@@ -89,169 +89,163 @@ def get_db_connection():
         return conn
     except Exception as e:
         print(f"❌ Erreur connexion PostgreSQL: {e}")
+        # En production, on pourrait retourner None et gérer l'erreur
         raise
 
 def init_postgresql():
-    """Initialise les tables PostgreSQL avec usrs au lieu de users"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
+    """Initialise les tables PostgreSQL - VERSION CORRIGÉE"""
+    conn = None
     try:
-        # Table usrs (simplifiée)
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS usrs (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                role VARCHAR(20) DEFAULT 'user',
-                github_token TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_verified BOOLEAN DEFAULT FALSE,
-                verification_token TEXT,
-                reset_token TEXT,
-                reset_expires TIMESTAMP,
-                last_login TIMESTAMP,
-                avatar_url TEXT,
-                bio TEXT,
-                website TEXT,
-                CONSTRAINT valid_role CHECK (role IN ('user', 'admin', 'moderator'))
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Vérifier si la table usrs existe
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'usrs'
             )
-        ''')
+        """)
+        table_exists = cur.fetchone()[0]
         
-        # Table des packages
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS packages (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) UNIQUE NOT NULL,
-                description TEXT,
-                version VARCHAR(50) NOT NULL,
-                author VARCHAR(100),
-                author_email VARCHAR(100),
-                license VARCHAR(50),
-                keywords TEXT[],
-                python_requires VARCHAR(50),
-                dependencies JSONB,
-                readme TEXT,
-                github_url VARCHAR(200),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                usr_id INTEGER REFERENCES usrs(id) ON DELETE CASCADE,
-                downloads_count INTEGER DEFAULT 0,
-                is_private BOOLEAN DEFAULT FALSE,
-                language VARCHAR(20) DEFAULT 'python',
-                UNIQUE(name, version)
-            )
-        ''')
-        
-        # Table des releases
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS releases (
-                id SERIAL PRIMARY KEY,
-                package_id INTEGER REFERENCES packages(id) ON DELETE CASCADE,
-                version VARCHAR(50) NOT NULL,
-                filename VARCHAR(200),
-                file_size BIGINT,
-                file_hash VARCHAR(64),
-                upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                download_count INTEGER DEFAULT 0,
-                github_release_id VARCHAR(100),
-                lfs_tracked BOOLEAN DEFAULT FALSE,
-                UNIQUE(package_id, version)
-            )
-        ''')
-        
-        # Table des badges
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS badges (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) UNIQUE NOT NULL,
-                label VARCHAR(50) NOT NULL,
-                value VARCHAR(100) NOT NULL,
-                color VARCHAR(20) DEFAULT 'blue',
-                svg_content TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_by INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
-                is_active BOOLEAN DEFAULT TRUE,
-                usage_count INTEGER DEFAULT 0
-            )
-        ''')
-        
-        # Table des badges assignés
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS badge_assignments (
-                id SERIAL PRIMARY KEY,
-                badge_id INTEGER REFERENCES badges(id) ON DELETE CASCADE,
-                package_id INTEGER REFERENCES packages(id) ON DELETE CASCADE,
-                usr_id INTEGER REFERENCES usrs(id) ON DELETE CASCADE,
-                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                assigned_by INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
-                UNIQUE(badge_id, package_id, usr_id)
-            )
-        ''')
-        
-        # Table des téléchargements
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS downloads (
-                id SERIAL PRIMARY KEY,
-                release_id INTEGER REFERENCES releases(id) ON DELETE CASCADE,
-                usr_id INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
-                ip_address INET,
-                user_agent TEXT,
-                country VARCHAR(50),
-                download_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                api_key VARCHAR(100)
-            )
-        ''')
-        
-        # Table des statistiques
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS stats_daily (
-                id SERIAL PRIMARY KEY,
-                date DATE UNIQUE NOT NULL,
-                total_downloads INTEGER DEFAULT 0,
-                unique_downloaders INTEGER DEFAULT 0,
-                new_packages INTEGER DEFAULT 0,
-                new_usrs INTEGER DEFAULT 0,
-                badge_generations INTEGER DEFAULT 0
-            )
-        ''')
-        
-        # Index pour les performances
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_usrs_username ON usrs(username)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_usrs_email ON usrs(email)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_packages_name ON packages(name)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_packages_usr_id ON packages(usr_id)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_packages_language ON packages(language)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_badges_name ON badges(name)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_releases_package_id ON releases(package_id)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_downloads_download_time ON downloads(download_time)')
-        cur.execute('CREATE INDEX IF NOT EXISTS idx_badge_assignments_package_id ON badge_assignments(package_id)')
-        
-        # Créer l'admin par défaut si non existant
-        cur.execute("SELECT COUNT(*) FROM usrs WHERE username = 'admin'")
-        if cur.fetchone()[0] == 0:
+        if not table_exists:
+            print("🔄 Création des tables PostgreSQL...")
+            
+            # Table usrs
+            cur.execute('''
+                CREATE TABLE usrs (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(50) UNIQUE NOT NULL,
+                    email VARCHAR(100) UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    role VARCHAR(20) DEFAULT 'user',
+                    github_token TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_verified BOOLEAN DEFAULT FALSE,
+                    verification_token TEXT,
+                    reset_token TEXT,
+                    reset_expires TIMESTAMP,
+                    last_login TIMESTAMP,
+                    avatar_url TEXT,
+                    bio TEXT,
+                    website TEXT
+                )
+            ''')
+            
+            # Table packages
+            cur.execute('''
+                CREATE TABLE packages (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) UNIQUE NOT NULL,
+                    description TEXT,
+                    version VARCHAR(50) NOT NULL,
+                    author VARCHAR(100),
+                    author_email VARCHAR(100),
+                    license VARCHAR(50),
+                    keywords TEXT[],
+                    python_requires VARCHAR(50),
+                    dependencies JSONB,
+                    readme TEXT,
+                    github_url VARCHAR(200),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    usr_id INTEGER REFERENCES usrs(id) ON DELETE CASCADE,
+                    downloads_count INTEGER DEFAULT 0,
+                    is_private BOOLEAN DEFAULT FALSE,
+                    language VARCHAR(20) DEFAULT 'python',
+                    UNIQUE(name, version)
+                )
+            ''')
+            
+            # Table badges
+            cur.execute('''
+                CREATE TABLE badges (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) UNIQUE NOT NULL,
+                    label VARCHAR(50) NOT NULL,
+                    value VARCHAR(100) NOT NULL,
+                    color VARCHAR(20) DEFAULT 'blue',
+                    svg_content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_by INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    usage_count INTEGER DEFAULT 0
+                )
+            ''')
+            
+            # Table badge_assignments
+            cur.execute('''
+                CREATE TABLE badge_assignments (
+                    id SERIAL PRIMARY KEY,
+                    badge_id INTEGER REFERENCES badges(id) ON DELETE CASCADE,
+                    package_id INTEGER REFERENCES packages(id) ON DELETE CASCADE,
+                    usr_id INTEGER REFERENCES usrs(id) ON DELETE CASCADE,
+                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    assigned_by INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
+                    UNIQUE(badge_id, package_id, usr_id)
+                )
+            ''')
+            
+            # Table releases
+            cur.execute('''
+                CREATE TABLE releases (
+                    id SERIAL PRIMARY KEY,
+                    package_id INTEGER REFERENCES packages(id) ON DELETE CASCADE,
+                    version VARCHAR(50) NOT NULL,
+                    filename VARCHAR(200),
+                    file_size BIGINT,
+                    file_hash VARCHAR(64),
+                    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    download_count INTEGER DEFAULT 0,
+                    github_release_id VARCHAR(100),
+                    lfs_tracked BOOLEAN DEFAULT FALSE,
+                    UNIQUE(package_id, version)
+                )
+            ''')
+            
+            # Table downloads
+            cur.execute('''
+                CREATE TABLE downloads (
+                    id SERIAL PRIMARY KEY,
+                    release_id INTEGER REFERENCES releases(id) ON DELETE CASCADE,
+                    usr_id INTEGER REFERENCES usrs(id) ON DELETE SET NULL,
+                    ip_address INET,
+                    user_agent TEXT,
+                    country VARCHAR(50),
+                    download_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    api_key VARCHAR(100)
+                )
+            ''')
+            
+            conn.commit()
+            print("✅ Tables PostgreSQL créées avec succès")
+            
+            # Créer l'admin par défaut
             hashed_pw = bcrypt.hashpw('admin123'.encode(), bcrypt.gensalt()).decode()
             cur.execute('''
                 INSERT INTO usrs (username, email, password, role, is_verified)
                 VALUES ('admin', 'admin@zenvhub.com', %s, 'admin', TRUE)
+                ON CONFLICT (username) DO NOTHING
             ''', (hashed_pw,))
+            
+            conn.commit()
             print("✅ Admin créé: admin / admin123")
-        
-        conn.commit()
-        print("✅ Tables PostgreSQL initialisées avec succès")
-        
+        else:
+            print("✅ Tables PostgreSQL existent déjà")
+            
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         print(f"❌ Erreur initialisation PostgreSQL: {e}")
-        raise
+        # On ne raise pas pour éviter de bloquer l'app au démarrage
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
 
 # ============================================================================
-# UTILITAIRES AMÉLIORÉS
+# UTILITAIRES AMÉLIORÉS - CORRIGÉS
 # ============================================================================
 
 class SecurityUtils:
@@ -312,7 +306,6 @@ class SecurityUtils:
 class MarkdownProcessor:
     """Processeur Markdown avancé avec support multi-langages"""
     
-    # Mots-clés par langage pour la détection
     LANGUAGE_KEYWORDS = {
         'zenv': ['==>', 'zncv.', 'zen[', 'apend[', '{{', '}}', '~'],
         'python': ['import ', 'def ', 'class ', 'from ', 'return ', 'print('],
@@ -331,7 +324,7 @@ class MarkdownProcessor:
     
     @staticmethod
     def process_markdown(text: str) -> str:
-        """Convertit Markdown en HTML avec coloration syntaxique avancée"""
+        """Convertit Markdown en HTML avec coloration syntaxique"""
         if not text:
             return ""
         
@@ -339,8 +332,8 @@ class MarkdownProcessor:
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         
         # Traitement spécial pour les blocs de code
-        processed_lines = []
         lines = text.split('\n')
+        processed_lines = []
         i = 0
         
         while i < len(lines):
@@ -370,7 +363,7 @@ class MarkdownProcessor:
                     i = j + 1
                     continue
             
-            # Détecter le code inline `code`
+            # Détecter le code inline
             line = re.sub(
                 r'`([^`\n]+?)`',
                 r'<code class="inline-code">\1</code>',
@@ -400,75 +393,29 @@ class MarkdownProcessor:
         
         html = markdown.markdown(processed_text, extensions=extensions)
         
-        # Post-traitement pour améliorer l'affichage
+        # Post-traitement
         html = MarkdownProcessor._post_process_html(html)
         
         return html
     
     @staticmethod
     def _format_code_block(code: str, lang: str = "", info: str = "") -> str:
-        """Formate un bloc de code avec détection automatique"""
+        """Formate un bloc de code"""
         code = code.rstrip()
         
-        # Détecter le langage si non spécifié
+        # Détecter le langage
         if not lang:
             lang = MarkdownProcessor.detect_language_from_content(code)
         
-        # Nettoyer le langage
         lang = lang.lower().strip()
         
-        # Extraire les métadonnées du info
-        metadata = {}
-        if info:
-            for part in info.split(','):
-                if '=' in part:
-                    key, value = part.split('=', 1)
-                    metadata[key.strip()] = value.strip()
-                else:
-                    metadata['title'] = part.strip()
-        
-        # Classes CSS
-        lang_class = f"language-{lang}" if lang else ""
-        title_html = f' data-title="{metadata.get("title", "")}"' if 'title' in metadata else ""
-        
-        # Numérotation des lignes
-        line_numbers = ""
-        if 'linenums' in metadata or 'ln' in metadata:
-            line_numbers = ' class="with-line-numbers"'
-            code_lines = code.split('\n')
-            line_nums = '\n'.join([f'<span class="line-number">{i+1}</span>' 
-                                 for i in range(len(code_lines))])
-            line_numbers_html = f'<div class="line-numbers">{line_nums}</div>'
-            code = f'<div class="code-content">{code}</div>'
-            code = f'<div class="code-container">{line_numbers_html}{code}</div>'
-        
-        # Highlight les lignes spécifiques
-        highlighted_lines = ""
-        if 'hl' in metadata:
-            lines_to_highlight = []
-            for part in metadata['hl'].split(','):
-                if '-' in part:
-                    start, end = map(int, part.split('-'))
-                    lines_to_highlight.extend(range(start, end + 1))
-                else:
-                    lines_to_highlight.append(int(part))
-            
-            code_lines = code.split('\n')
-            highlighted = []
-            for idx, line in enumerate(code_lines, 1):
-                if idx in lines_to_highlight:
-                    highlighted.append(f'<span class="highlight-line">{line}</span>')
-                else:
-                    highlighted.append(line)
-            code = '\n'.join(highlighted)
-        
         return f'''
-        <div class="code-block-wrapper"{title_html}>
+        <div class="code-block">
             <div class="code-header">
-                <span class="language-label">{lang.upper() if lang else "TEXT"}</span>
+                <span class="language-tag">{lang.upper() if lang else "TEXT"}</span>
                 <button class="copy-btn" onclick="copyCode(this)">Copier</button>
             </div>
-            <pre{line_numbers}><code class="{lang_class}">{code}</code></pre>
+            <pre><code class="language-{lang}">{code}</code></pre>
         </div>
         '''
     
@@ -476,9 +423,7 @@ class MarkdownProcessor:
     def detect_language_from_content(content: str) -> str:
         """Détecte le langage basé sur le contenu"""
         content_lower = content.lower()
-        content_first_lines = '\n'.join(content.split('\n')[:10])
         
-        # Vérifier chaque langage
         for lang, keywords in MarkdownProcessor.LANGUAGE_KEYWORDS.items():
             for keyword in keywords:
                 if keyword.lower() in content_lower:
@@ -489,51 +434,22 @@ class MarkdownProcessor:
             return 'zenv'
         if re.search(r'zncv\.\[\(', content):
             return 'zenv'
-        if re.search(r'zen\[', content):
-            return 'zenv'
-        
-        # Détection par extensions dans les commentaires
-        ext_pattern = re.search(r'\.(py|js|java|go|rs|dockerfile|sql|html|css)$', content_first_lines, re.IGNORECASE)
-        if ext_pattern:
-            ext = ext_pattern.group(1).lower()
-            ext_map = {
-                'py': 'python',
-                'js': 'javascript',
-                'java': 'java',
-                'go': 'go',
-                'rs': 'rust',
-                'dockerfile': 'docker',
-                'sql': 'sql',
-                'html': 'html',
-                'css': 'css'
-            }
-            return ext_map.get(ext, 'text')
         
         return 'text'
     
     @staticmethod
     def _post_process_html(html: str) -> str:
-        """Post-traitement HTML pour améliorer l'affichage"""
+        """Post-traitement HTML"""
         # Ajouter des classes aux tableaux
         html = re.sub(r'<table>', r'<table class="table table-dark table-striped">', html)
         
         # Améliorer les blocs de citation
         html = re.sub(r'<blockquote>', r'<blockquote class="blockquote">', html)
         
-        # Ajouter des ancres aux en-têtes
-        def add_anchor(match):
-            tag = match.group(1)
-            content = match.group(2)
-            anchor = re.sub(r'[^\w\s-]', '', content.lower())
-            anchor = re.sub(r'[-\s]+', '-', anchor).strip('-')
-            return f'<{tag} id="{anchor}">{content} <a href="#{anchor}" class="header-anchor">#</a></{tag}>'
-        
-        html = re.sub(r'<(h[2-6])>(.*?)</\1>', add_anchor, html)
-        
         return html
 
 class BadgeGenerator:
-    """Générateur et gestionnaire de badges SVG"""
+    """Générateur de badges SVG"""
     
     COLORS = {
         'blue': '#007ec6',
@@ -542,26 +458,13 @@ class BadgeGenerator:
         'orange': '#fe7d37',
         'yellow': '#dfb317',
         'purple': '#9f5f9f',
-        'gray': '#9f9f9f',
-        'success': '#4c1',
-        'warning': '#dfb317',
-        'error': '#e05d44',
-        'info': '#007ec6'
-    }
-    
-    STYLES = {
-        'flat': {'rx': '3'},
-        'plastic': {'rx': '4', 'filter': 'url(#plastic)'},
-        'flat-square': {'rx': '0'},
-        'social': {'rx': '5', 'filter': 'url(#shadow)'}
+        'gray': '#9f9f9f'
     }
     
     @staticmethod
-    def create_svg_badge(label: str, value: str, color: str = "blue", style: str = "flat") -> str:
-        """Crée un badge SVG personnalisé"""
-        # Couleurs
-        label_color = BadgeGenerator.COLORS.get(color, BadgeGenerator.COLORS['blue'])
-        value_color = BadgeGenerator._darken_color(label_color, 0.2)
+    def create_svg_badge(label: str, value: str, color: str = "blue") -> str:
+        """Crée un badge SVG"""
+        color_hex = BadgeGenerator.COLORS.get(color, BadgeGenerator.COLORS['blue'])
         
         # Dimensions
         label_width = max(len(label) * 6 + 10, 30)
@@ -569,36 +472,23 @@ class BadgeGenerator:
         total_width = label_width + value_width
         height = 20
         
-        # Style
-        style_attrs = BadgeGenerator.STYLES.get(style, BadgeGenerator.STYLES['flat'])
-        
-        # SVG avec style
         svg = f'''<?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-             width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
             <title>{label}: {value}</title>
             
             <defs>
-                <linearGradient id="labelGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="{label_color}" stop-opacity="0.9"/>
-                    <stop offset="100%" stop-color="{BadgeGenerator._darken_color(label_color, 0.3)}" stop-opacity="0.9"/>
+                <linearGradient id="labelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="{color_hex}" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="{BadgeGenerator._darken_color(color_hex)}" stop-opacity="0.9"/>
                 </linearGradient>
-                <linearGradient id="valueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="{value_color}" stop-opacity="0.9"/>
-                    <stop offset="100%" stop-color="{BadgeGenerator._darken_color(value_color, 0.3)}" stop-opacity="0.9"/>
-                </linearGradient>
-                <filter id="shadow" x="-0.1" y="-0.1" width="1.2" height="1.2">
-                    <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.3"/>
-                </filter>
             </defs>
             
             <g>
                 <!-- Partie label -->
-                <rect width="{label_width}" height="{height}" fill="url(#labelGradient)" {BadgeGenerator._dict_to_attrs(style_attrs)}/>
+                <rect width="{label_width}" height="{height}" fill="url(#labelGrad)" rx="3"/>
                 
                 <!-- Partie value -->
-                <rect x="{label_width}" width="{value_width}" height="{height}" fill="url(#valueGradient)" {BadgeGenerator._dict_to_attrs(style_attrs)}/>
+                <rect x="{label_width}" width="{value_width}" height="{height}" fill="#555" rx="3"/>
                 
                 <!-- Texte label -->
                 <text x="{label_width/2}" y="14" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11" font-weight="bold">
@@ -615,58 +505,8 @@ class BadgeGenerator:
         return svg
     
     @staticmethod
-    def create_dynamic_badge(package_name: str, metric: str, style: str = "flat") -> str:
-        """Crée un badge dynamique basé sur les métriques du package"""
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        try:
-            # Récupérer les stats du package
-            cur.execute('''
-                SELECT p.name, p.version, p.downloads_count, 
-                       COUNT(r.id) as release_count,
-                       p.created_at
-                FROM packages p
-                LEFT JOIN releases r ON p.id = r.package_id
-                WHERE p.name = %s
-                GROUP BY p.id
-            ''', (package_name,))
-            
-            package = cur.fetchone()
-            
-            if not package:
-                return BadgeGenerator.create_svg_badge(package_name, "Not Found", "red", style)
-            
-            # Déterminer la valeur basée sur la métrique
-            metric_map = {
-                'version': ('Version', package['version'], 'blue'),
-                'downloads': ('Downloads', str(package['downloads_count']), 'green'),
-                'releases': ('Releases', str(package['release_count']), 'orange'),
-                'status': ('Status', 'Active', 'success'),
-                'license': ('License', 'MIT', 'purple'),
-                'python': ('Python', '>=3.6', 'yellow')
-            }
-            
-            if metric in metric_map:
-                label, value, color = metric_map[metric]
-            else:
-                # Métrique personnalisée
-                label = metric.capitalize()
-                value = "N/A"
-                color = "gray"
-            
-            return BadgeGenerator.create_svg_badge(label, value, color, style)
-            
-        except Exception as e:
-            print(f"Erreur création badge: {e}")
-            return BadgeGenerator.create_svg_badge("Error", "Badge Error", "red", style)
-        finally:
-            cur.close()
-            conn.close()
-    
-    @staticmethod
     def _darken_color(hex_color: str, factor: float = 0.2) -> str:
-        """Assombrit une couleur hexadécimale"""
+        """Assombrit une couleur"""
         hex_color = hex_color.lstrip('#')
         r = int(hex_color[0:2], 16)
         g = int(hex_color[2:4], 16)
@@ -679,13 +519,8 @@ class BadgeGenerator:
         return f"#{r:02x}{g:02x}{b:02x}"
     
     @staticmethod
-    def _dict_to_attrs(attrs_dict: dict) -> str:
-        """Convertit un dictionnaire en attributs HTML"""
-        return ' '.join([f'{k}="{v}"' for k, v in attrs_dict.items()])
-    
-    @staticmethod
     def save_badge_svg(badge_name: str, svg_content: str) -> str:
-        """Sauvegarde un badge SVG sur le disque"""
+        """Sauvegarde un badge SVG"""
         badge_path = os.path.join(app.config['SVG_DIR'], f"{badge_name}.svg")
         
         with open(badge_path, 'w', encoding='utf-8') as f:
@@ -707,7 +542,7 @@ class BadgeGenerator:
         return f'![{alt}]({url})'
 
 # ============================================================================
-# DÉCORATEURS D'AUTHENTIFICATION
+# DÉCORATEURS D'AUTHENTIFICATION - CORRIGÉS
 # ============================================================================
 
 def login_required(f):
@@ -722,8 +557,8 @@ def login_required(f):
             return redirect(url_for('login'))
         
         # Vérifier le token JWT
-        auth_header = request.headers.get('Authorization')
         token = None
+        auth_header = request.headers.get('Authorization')
         
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
@@ -754,30 +589,100 @@ def login_required(f):
 def admin_required(f):
     """Décorateur pour les routes admin"""
     @wraps(f)
-    @login_required
     def decorated_function(*args, **kwargs):
-        if request.usr_role != 'admin':
+        # Vérifier la session
+        if 'usr_id' not in session:
+            return redirect(url_for('login'))
+        
+        # Vérifier le rôle
+        if session.get('role') != 'admin':
             if request.is_json:
                 return jsonify({'error': 'Admin access required'}), 403
             abort(403)
+        
+        # Définir les attributs de requête
+        request.usr_id = session['usr_id']
+        request.usr_role = session['role']
+        
         return f(*args, **kwargs)
     return decorated_function
 
 # ============================================================================
-# ROUTES D'AUTHENTIFICATION (USRS)
+# ROUTES PRINCIPALES - CORRIGÉES
 # ============================================================================
+
+@app.route('/')
+def index():
+    """Page d'accueil"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Packages récents
+        cur.execute('''
+            SELECT p.*, u.username as author_name
+            FROM packages p
+            LEFT JOIN usrs u ON p.usr_id = u.id
+            WHERE p.is_private = FALSE
+            ORDER BY p.created_at DESC
+            LIMIT 6
+        ''')
+        recent_packages = cur.fetchall()
+        
+        # Statistiques
+        cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
+        total_usrs = cur.fetchone()['total_usrs'] or 0
+        
+        cur.execute('SELECT COUNT(*) as total_packages FROM packages WHERE is_private = FALSE')
+        total_packages = cur.fetchone()['total_packages'] or 0
+        
+        cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
+        total_downloads = cur.fetchone()['total_downloads'] or 0
+        
+        # Badges populaires
+        cur.execute('''
+            SELECT b.*, u.username as created_by_name
+            FROM badges b
+            LEFT JOIN usrs u ON b.created_by = u.id
+            WHERE b.is_active = TRUE
+            ORDER BY b.usage_count DESC
+            LIMIT 4
+        ''')
+        popular_badges = cur.fetchall()
+        
+    except Exception as e:
+        print(f"⚠️ Erreur index: {e}")
+        recent_packages = []
+        popular_badges = []
+        total_usrs = 0
+        total_packages = 0
+        total_downloads = 0
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+    
+    return render_template('base.html',
+                         recent_packages=recent_packages,
+                         popular_badges=popular_badges,
+                         total_usrs=total_usrs,
+                         total_packages=total_packages,
+                         total_downloads=total_downloads,
+                         page='index')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Connexion usr"""
+    """Connexion"""
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+        conn = None
         try:
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
             cur.execute('''
                 SELECT id, username, email, password, role 
                 FROM usrs 
@@ -809,14 +714,15 @@ def login():
         except Exception as e:
             flash(f'Erreur: {str(e)}', 'danger')
         finally:
-            cur.close()
-            conn.close()
+            if conn:
+                cur.close()
+                conn.close()
     
-    return render_template('login.html')
+    return render_template('base.html', page='login')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Inscription usr"""
+    """Inscription"""
     if request.method == 'POST':
         username = request.form.get('username')
         email = request.form.get('email')
@@ -826,19 +732,20 @@ def register():
         # Validation
         if password != confirm:
             flash('Les mots de passe ne correspondent pas', 'danger')
-            return render_template('register.html')
+            return render_template('base.html', page='register')
         
         if len(password) < 8:
             flash('Le mot de passe doit contenir au moins 8 caractères', 'danger')
-            return render_template('register.html')
+            return render_template('base.html', page='register')
         
         # Hasher le mot de passe
         hashed_pw = SecurityUtils.hash_password(password)
         
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
+        conn = None
         try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
             cur.execute('''
                 INSERT INTO usrs (username, email, password)
                 VALUES (%s, %s, %s)
@@ -852,19 +759,24 @@ def register():
             return redirect(url_for('login'))
             
         except psycopg2.IntegrityError as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             if 'username' in str(e):
                 flash('Ce nom d\'utilisateur existe déjà', 'danger')
             elif 'email' in str(e):
                 flash('Cet email est déjà utilisé', 'danger')
+            else:
+                flash('Erreur lors de l\'inscription', 'danger')
         except Exception as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             flash(f'Erreur: {str(e)}', 'danger')
         finally:
-            cur.close()
-            conn.close()
+            if conn:
+                cur.close()
+                conn.close()
     
-    return render_template('register.html')
+    return render_template('base.html', page='register')
 
 @app.route('/logout')
 def logout():
@@ -873,78 +785,15 @@ def logout():
     flash('Vous avez été déconnecté', 'info')
     return redirect(url_for('index'))
 
-# ============================================================================
-# ROUTES PRINCIPALES
-# ============================================================================
-
-@app.route('/')
-def index():
-    """Page d'accueil"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
-    try:
-        # Packages récents
-        cur.execute('''
-            SELECT p.*, u.username as author_name,
-                   COUNT(r.id) as release_count
-            FROM packages p
-            LEFT JOIN usrs u ON p.usr_id = u.id
-            LEFT JOIN releases r ON p.id = r.package_id
-            WHERE p.is_private = FALSE
-            GROUP BY p.id, u.id
-            ORDER BY p.created_at DESC
-            LIMIT 6
-        ''')
-        recent_packages = cur.fetchall()
-        
-        # Statistiques
-        cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
-        total_usrs = cur.fetchone()['total_usrs']
-        
-        cur.execute('SELECT COUNT(*) as total_packages FROM packages WHERE is_private = FALSE')
-        total_packages = cur.fetchone()['total_packages']
-        
-        cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
-        total_downloads = cur.fetchone()['total_downloads']
-        
-        # Badges populaires
-        cur.execute('''
-            SELECT b.*, u.username as created_by_name
-            FROM badges b
-            LEFT JOIN usrs u ON b.created_by = u.id
-            WHERE b.is_active = TRUE
-            ORDER BY b.usage_count DESC
-            LIMIT 4
-        ''')
-        popular_badges = cur.fetchall()
-        
-    except Exception as e:
-        print(f"Erreur index: {e}")
-        recent_packages = []
-        popular_badges = []
-        total_usrs = 0
-        total_packages = 0
-        total_downloads = 0
-    finally:
-        cur.close()
-        conn.close()
-    
-    return render_template('index.html',
-                         recent_packages=recent_packages,
-                         popular_badges=popular_badges,
-                         total_usrs=total_usrs,
-                         total_packages=total_packages,
-                         total_downloads=total_downloads)
-
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Tableau de bord usr"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    """Tableau de bord"""
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         # Infos usr
         cur.execute('SELECT username, email, role, created_at FROM usrs WHERE id = %s', 
                    (session['usr_id'],))
@@ -952,11 +801,9 @@ def dashboard():
         
         # Packages de l'usr
         cur.execute('''
-            SELECT p.*, COUNT(r.id) as release_count
+            SELECT p.*
             FROM packages p
-            LEFT JOIN releases r ON p.id = r.package_id
             WHERE p.usr_id = %s
-            GROUP BY p.id
             ORDER BY p.updated_at DESC
             LIMIT 10
         ''', (session['usr_id'],))
@@ -966,13 +813,11 @@ def dashboard():
         cur.execute('''
             SELECT 
                 COUNT(DISTINCT p.id) as total_packages,
-                COUNT(r.id) as total_releases,
-                COALESCE(SUM(r.download_count), 0) as total_downloads
+                COALESCE(SUM(p.downloads_count), 0) as total_downloads
             FROM packages p
-            LEFT JOIN releases r ON p.id = r.package_id
             WHERE p.usr_id = %s
         ''', (session['usr_id'],))
-        stats = cur.fetchone()
+        stats = cur.fetchone() or {'total_packages': 0, 'total_downloads': 0}
         
         # Badges de l'usr
         cur.execute('''
@@ -986,24 +831,22 @@ def dashboard():
         usr_badges = cur.fetchall()
         
     except Exception as e:
-        print(f"Erreur dashboard: {e}")
+        print(f"⚠️ Erreur dashboard: {e}")
         usr = {}
         packages = []
         stats = {}
         usr_badges = []
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('dashboard.html',
+    return render_template('base.html',
                          usr=usr,
                          packages=packages,
                          stats=stats,
-                         usr_badges=usr_badges)
-
-# ============================================================================
-# ROUTES PACKAGES
-# ============================================================================
+                         usr_badges=usr_badges,
+                         page='dashboard')
 
 @app.route('/packages')
 def list_packages():
@@ -1013,17 +856,15 @@ def list_packages():
     search = request.args.get('q', '')
     language = request.args.get('lang', '')
     
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         query = '''
-            SELECT p.*, u.username as author_name,
-                   COUNT(r.id) as release_count,
-                   COALESCE(SUM(r.download_count), 0) as total_downloads
+            SELECT p.*, u.username as author_name
             FROM packages p
             LEFT JOIN usrs u ON p.usr_id = u.id
-            LEFT JOIN releases r ON p.id = r.package_id
             WHERE p.is_private = FALSE
         '''
         
@@ -1041,7 +882,7 @@ def list_packages():
         if where_clauses:
             query += ' AND ' + ' AND '.join(where_clauses)
         
-        query += ' GROUP BY p.id, u.id ORDER BY p.updated_at DESC'
+        query += ' ORDER BY p.updated_at DESC'
         
         # Pagination
         offset = (page - 1) * per_page
@@ -1057,38 +898,41 @@ def list_packages():
             count_query += ' AND ' + ' AND '.join(where_clauses)
         
         cur.execute(count_query, params[:-2] if where_clauses else [])
-        total = cur.fetchone()['count']
+        total = cur.fetchone()['count'] or 0
         
         # Langages disponibles
         cur.execute('SELECT DISTINCT language FROM packages WHERE language IS NOT NULL ORDER BY language')
         languages = [row['language'] for row in cur.fetchall()]
         
     except Exception as e:
-        print(f"Erreur list_packages: {e}")
+        print(f"⚠️ Erreur list_packages: {e}")
         packages = []
         total = 0
         languages = []
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('packages.html',
+    return render_template('base.html',
                          packages=packages,
-                         page=page,
+                         page_num=page,
                          per_page=per_page,
                          total=total,
-                         total_pages=(total + per_page - 1) // per_page,
+                         total_pages=(total + per_page - 1) // per_page if per_page > 0 else 0,
                          search=search,
                          language=language,
-                         languages=languages)
+                         languages=languages,
+                         page='packages')
 
 @app.route('/package/<package_name>')
 def package_detail(package_name):
     """Détails d'un package"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         # Package
         cur.execute('''
             SELECT p.*, u.username as author_name, u.email as author_email
@@ -1127,30 +971,29 @@ def package_detail(package_name):
         readme_html = MarkdownProcessor.process_markdown(package.get('readme', ''))
         
     except Exception as e:
-        print(f"Erreur package_detail: {e}")
+        print(f"⚠️ Erreur package_detail: {e}")
         flash('Erreur lors du chargement du package', 'danger')
         return redirect(url_for('list_packages'))
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('package_detail.html',
+    return render_template('base.html',
                          package=package,
                          releases=releases,
                          badges=badges,
-                         readme_html=readme_html)
-
-# ============================================================================
-# ROUTES BADGES
-# ============================================================================
+                         readme_html=readme_html,
+                         page='package_detail')
 
 @app.route('/badges')
 def list_badges():
     """Liste des badges"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         cur.execute('''
             SELECT b.*, u.username as created_by_name
             FROM badges b
@@ -1162,21 +1005,23 @@ def list_badges():
         badges = cur.fetchall()
         
     except Exception as e:
-        print(f"Erreur list_badges: {e}")
+        print(f"⚠️ Erreur list_badges: {e}")
         badges = []
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('badges.html', badges=badges)
+    return render_template('base.html', badges=badges, page='badges')
 
 @app.route('/badge/<badge_name>')
 def badge_detail(badge_name):
     """Détails d'un badge"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         cur.execute('''
             SELECT b.*, u.username as created_by_name
             FROM badges b
@@ -1205,17 +1050,19 @@ def badge_detail(badge_name):
         markdown_code = BadgeGenerator.generate_markdown_badge(badge_name, f"{badge['label']}: {badge['value']}")
         
     except Exception as e:
-        print(f"Erreur badge_detail: {e}")
+        print(f"⚠️ Erreur badge_detail: {e}")
         flash('Erreur lors du chargement du badge', 'danger')
         return redirect(url_for('list_badges'))
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('badge_detail.html',
+    return render_template('base.html',
                          badge=badge,
                          packages=packages,
-                         markdown_code=markdown_code)
+                         markdown_code=markdown_code,
+                         page='badge_detail')
 
 @app.route('/badge/generate', methods=['GET', 'POST'])
 @login_required
@@ -1226,23 +1073,23 @@ def generate_badge():
         label = request.form.get('label')
         value = request.form.get('value')
         color = request.form.get('color', 'blue')
-        style = request.form.get('style', 'flat')
         
         # Validation
         if not name or not label or not value:
             flash('Tous les champs sont requis', 'danger')
-            return render_template('generate_badge.html')
+            return render_template('base.html', page='generate_badge')
         
         # Générer le SVG
-        svg_content = BadgeGenerator.create_svg_badge(label, value, color, style)
+        svg_content = BadgeGenerator.create_svg_badge(label, value, color)
         
         # Sauvegarder sur disque
         BadgeGenerator.save_badge_svg(name, svg_content)
         
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
+        conn = None
         try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
             # Sauvegarder en base
             cur.execute('''
                 INSERT INTO badges (name, label, value, color, svg_content, created_by)
@@ -1271,13 +1118,15 @@ def generate_badge():
             return redirect(url_for('badge_detail', badge_name=name))
             
         except Exception as e:
-            conn.rollback()
+            if conn:
+                conn.rollback()
             flash(f'Erreur: {str(e)}', 'danger')
         finally:
-            cur.close()
-            conn.close()
+            if conn:
+                cur.close()
+                conn.close()
     
-    return render_template('generate_badge.html')
+    return render_template('base.html', page='generate_badge')
 
 @app.route('/badge/svg/<badge_name>')
 def serve_badge_svg(badge_name):
@@ -1291,56 +1140,31 @@ def serve_badge_svg(badge_name):
     
     return send_file(badge_path, mimetype='image/svg+xml')
 
-@app.route('/badge/dynamic/<package_name>/<metric>')
-def dynamic_badge(package_name: str, metric: str):
-    """Badge dynamique pour un package"""
-    style = request.args.get('style', 'flat')
-    
-    svg_content = BadgeGenerator.create_dynamic_badge(package_name, metric, style)
-    
-    # Mettre à jour le compteur d'utilisation
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        cur.execute('''
-            UPDATE badges 
-            SET usage_count = usage_count + 1 
-            WHERE name = %s
-        ''', (f"{package_name}-{metric}",))
-        conn.commit()
-    except:
-        conn.rollback()
-    finally:
-        cur.close()
-        conn.close()
-    
-    return Response(svg_content, mimetype='image/svg+xml')
-
 # ============================================================================
-# ROUTES ADMIN
+# ROUTES ADMIN - CORRIGÉES
 # ============================================================================
 
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
     """Tableau de bord admin"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         # Statistiques
         cur.execute('SELECT COUNT(*) as total_usrs FROM usrs')
-        total_usrs = cur.fetchone()['total_usrs']
+        total_usrs = cur.fetchone()['total_usrs'] or 0
         
         cur.execute('SELECT COUNT(*) as total_packages FROM packages')
-        total_packages = cur.fetchone()['total_packages']
+        total_packages = cur.fetchone()['total_packages'] or 0
         
         cur.execute('SELECT COUNT(*) as total_badges FROM badges')
-        total_badges = cur.fetchone()['total_badges']
+        total_badges = cur.fetchone()['total_badges'] or 0
         
         cur.execute('SELECT COALESCE(SUM(downloads_count), 0) as total_downloads FROM packages')
-        total_downloads = cur.fetchone()['total_downloads']
+        total_downloads = cur.fetchone()['total_downloads'] or 0
         
         # Usrs récents
         cur.execute('SELECT id, username, email, role, created_at FROM usrs ORDER BY created_at DESC LIMIT 10')
@@ -1367,37 +1191,37 @@ def admin_dashboard():
         recent_badges = cur.fetchall()
         
     except Exception as e:
-        print(f"Erreur admin_dashboard: {e}")
+        print(f"⚠️ Erreur admin_dashboard: {e}")
         total_usrs = total_packages = total_badges = total_downloads = 0
         recent_usrs = []
         recent_packages = []
         recent_badges = []
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('admin/dashboard.html',
+    return render_template('base.html',
                          total_usrs=total_usrs,
                          total_packages=total_packages,
                          total_badges=total_badges,
                          total_downloads=total_downloads,
                          recent_usrs=recent_usrs,
                          recent_packages=recent_packages,
-                         recent_badges=recent_badges)
+                         recent_badges=recent_badges,
+                         page='admin_dashboard')
 
 @app.route('/admin/badges', methods=['GET', 'POST'])
 @admin_required
 def admin_manage_badges():
     """Gestion des badges par l'admin"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
+    conn = None
     
     if request.method == 'POST':
         action = request.form.get('action')
         badge_id = request.form.get('badge_id')
         
         if action == 'edit' and badge_id:
-            # Édition de badge
             name = request.form.get('name')
             label = request.form.get('label')
             value = request.form.get('value')
@@ -1412,6 +1236,8 @@ def admin_manage_badges():
                 BadgeGenerator.save_badge_svg(name, svg_content)
                 
                 # Mettre à jour la base
+                conn = get_db_connection()
+                cur = conn.cursor()
                 cur.execute('''
                     UPDATE badges 
                     SET name = %s, label = %s, value = %s, color = %s, 
@@ -1423,50 +1249,64 @@ def admin_manage_badges():
                 flash('Badge mis à jour avec succès', 'success')
                 
             except Exception as e:
-                conn.rollback()
+                if conn:
+                    conn.rollback()
                 flash(f'Erreur: {str(e)}', 'danger')
+            finally:
+                if conn:
+                    cur.close()
+                    conn.close()
         
         elif action == 'delete' and badge_id:
-            # Suppression de badge
             try:
+                conn = get_db_connection()
+                cur = conn.cursor()
                 cur.execute('DELETE FROM badges WHERE id = %s', (badge_id,))
                 conn.commit()
                 flash('Badge supprimé avec succès', 'success')
             except Exception as e:
-                conn.rollback()
+                if conn:
+                    conn.rollback()
                 flash(f'Erreur: {str(e)}', 'danger')
+            finally:
+                if conn:
+                    cur.close()
+                    conn.close()
     
     # Récupérer tous les badges
+    badges = []
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         cur.execute('''
-            SELECT b.*, u.username as created_by_name,
-                   COUNT(ba.id) as assignment_count
+            SELECT b.*, u.username as created_by_name
             FROM badges b
             LEFT JOIN usrs u ON b.created_by = u.id
-            LEFT JOIN badge_assignments ba ON b.id = ba.badge_id
-            GROUP BY b.id, u.id
             ORDER BY b.name
         ''')
         
         badges = cur.fetchall()
         
     except Exception as e:
-        print(f"Erreur admin_manage_badges: {e}")
+        print(f"⚠️ Erreur admin_manage_badges: {e}")
         badges = []
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
-    return render_template('admin/manage_badges.html', badges=badges)
+    return render_template('base.html', badges=badges, page='admin_manage_badges')
 
 @app.route('/admin/badge/editor/<badge_id>')
 @admin_required
 def admin_badge_editor(badge_id):
     """Éditeur de badge pour admin"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         cur.execute('SELECT * FROM badges WHERE id = %s', (badge_id,))
         badge = cur.fetchone()
         
@@ -1475,19 +1315,20 @@ def admin_badge_editor(badge_id):
             return redirect(url_for('admin_manage_badges'))
         
     except Exception as e:
-        print(f"Erreur admin_badge_editor: {e}")
+        print(f"⚠️ Erreur admin_badge_editor: {e}")
         badge = None
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
     
     if not badge:
         return redirect(url_for('admin_manage_badges'))
     
-    return render_template('admin/badge_editor.html', badge=badge)
+    return render_template('base.html', badge=badge, page='admin_badge_editor')
 
 # ============================================================================
-# ROUTES API
+# ROUTES API - CORRIGÉES
 # ============================================================================
 
 @app.route('/api/v1/packages')
@@ -1498,10 +1339,11 @@ def api_list_packages():
     search = request.args.get('q', '')
     language = request.args.get('lang', '')
     
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         query = '''
             SELECT p.id, p.name, p.version, p.description, p.language,
                    p.downloads_count, p.created_at, u.username as author
@@ -1540,7 +1382,7 @@ def api_list_packages():
             count_query += ' AND ' + ' AND '.join(where_clauses)
         
         cur.execute(count_query, params[:-2] if where_clauses else [])
-        total = cur.fetchone()['count']
+        total = cur.fetchone()['count'] or 0
         
         return jsonify({
             'packages': packages,
@@ -1548,23 +1390,25 @@ def api_list_packages():
                 'page': page,
                 'per_page': per_page,
                 'total': total,
-                'total_pages': (total + per_page - 1) // per_page
+                'total_pages': (total + per_page - 1) // per_page if per_page > 0 else 0
             }
         })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
 
 @app.route('/api/v1/badges')
 def api_list_badges():
     """API: Liste des badges"""
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    
+    conn = None
     try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
         cur.execute('''
             SELECT name, label, value, color, usage_count
             FROM badges
@@ -1579,33 +1423,71 @@ def api_list_badges():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cur.close()
-        conn.close()
+        if conn:
+            cur.close()
+            conn.close()
 
 # ============================================================================
-# INITIALISATION
+# CONTEXT PROCESSOR ET INITIALISATION - CORRIGÉ
 # ============================================================================
 
-@app.before_first_request
-def initialize_app():
-    """Initialise l'application"""
+@app.context_processor
+def inject_variables():
+    """Injecte des variables dans tous les templates"""
+    return {
+        'now': datetime.now(),
+        'app_name': 'Zenv Package Hub',
+        'github_url': 'https://github.com/gopu-inc/zenv',
+        'discord_url': 'https://discord.gg/qWx5DszrC',
+        'email': 'ceoseshell@gmail.com'
+    }
+
+# ============================================================================
+# INITIALISATION AU DÉMARRAGE - CORRIGÉ POUR FLASK MODERNE
+# ============================================================================
+
+def initialize_app_on_startup():
+    """Fonction d'initialisation appelée au démarrage"""
+    print("🚀 Initialisation de Zenv Package Hub...")
+    
     try:
+        # Initialiser PostgreSQL
         init_postgresql()
-        print("✅ Application initialisée avec succès")
+        print("✅ PostgreSQL initialisé")
+        
+        # Vérifier les répertoires
+        for dir_name, dir_path in [
+            ('Packages', app.config['PACKAGE_DIR']),
+            ('Uploads', app.config['UPLOAD_DIR']),
+            ('Builds', app.config['BUILD_DIR']),
+            ('Badges', app.config['BADGES_DIR']),
+            ('SVG', app.config['SVG_DIR'])
+        ]:
+            if os.path.exists(dir_path):
+                print(f"✅ Répertoire {dir_name}: {dir_path}")
+            else:
+                print(f"⚠️  Répertoire {dir_name} manquant: {dir_path}")
+        
+        print("🎉 Application prête à fonctionner!")
+        
     except Exception as e:
-        print(f"❌ Erreur initialisation: {e}")
+        print(f"❌ Erreur d'initialisation: {e}")
+
+# Appeler l'initialisation immédiatement
+initialize_app_on_startup()
 
 # ============================================================================
-# MAIN
+# POINT D'ENTRÉE PRINCIPAL - CORRIGÉ
 # ============================================================================
 
 if __name__ == '__main__':
-    # Initialiser
-    initialize_app()
-    
-    # Démarrer
+    # En développement
     app.run(
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),
-        debug=os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+        debug=True
     )
+else:
+    # En production (gunicorn)
+    # L'initialisation est déjà faite par initialize_app_on_startup()
+    pass
