@@ -137,6 +137,17 @@
       "usage_count": 23,
       "svg_url": "/badge/svg/ZENV",
       "markdown": "![version: 2.1.0](/badge/svg/ZENV?logo=python)"
+    },
+    {
+      "name": "badge_1767065043985",
+      "label": "Zenv",
+      "value": "Package",
+      "color": "yellow",
+      "logo": "python",
+      "created_by": "admin",
+      "created_at": "2025-12-30T03:24:05.840963",
+      "updated_at": "2025-12-30T03:24:05.840973",
+      "usage_count": 0
     }
   ],
   "stats": {
