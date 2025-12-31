@@ -2,7 +2,7 @@
   "users": [
     {
       "id": "1",
-      "username": "admin",
+      "username": "gopu-inc",
       "email": "admin@zenvhub.com",
       "password": "$2b$12$ECpaVtkaSxCWsAuz84yen.7sZETi1GK9ibf686aQLjuAepjh5hHwG",
       "role": "admin",
