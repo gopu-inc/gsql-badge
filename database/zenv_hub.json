@@ -156,12 +156,12 @@
     {
       "name": "user",
       "scope": "user",
-      "version": "68.5.3",
+      "version": "68.6.3",
       "description": "Librairie math\u00e9matique pour SwiftVelox",
       "author": "admin",
       "license": "MIT",
-      "secure_signature": "1b46cb412cb9a7e6fdc0eea1b4c97d5e24b78282aba7c0e416e1555714a59dc0",
-      "updated_at": "2026-01-16T05:15:50.465668",
+      "secure_signature": "a982f9fd0d8878a25bc4680e4c16b0a711491c3c6b6fd91ff2d4655db0203d95",
+      "updated_at": "2026-01-16T05:16:50.489174",
       "downloads": 0,
       "created_at": "2026-01-16T05:15:50.465678"
     }
