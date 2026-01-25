@@ -166,71 +166,7 @@
       "created_at": "2026-01-16T05:15:50.465678"
     }
   ],
-  "badges": [
-    {
-      "name": "version",
-      "label": "zenv",
-      "value": "1.0.0",
-      "color": "blue",
-      "created_by": "admin",
-      "created_at": "2025-12-27T12:27:54.242122",
-      "updated_at": "2025-12-27T12:27:54.242131",
-      "usage_count": 51,
-      "svg_url": "/badge/svg/version",
-      "markdown": "![zenv: 1.0.0](/badge/svg/version)"
-    },
-    {
-      "name": "status",
-      "label": "Build",
-      "value": "passing",
-      "color": "green",
-      "created_by": "admin",
-      "created_at": "2025-12-27T15:41:08.397921",
-      "updated_at": "2025-12-27T15:41:08.397932",
-      "usage_count": 27,
-      "svg_url": "/badge/svg/status",
-      "markdown": "![Build: passing](/badge/svg/status)"
-    },
-    {
-      "name": "ZENV",
-      "label": "version",
-      "value": "2.1.0",
-      "color": "blue",
-      "logo": "python",
-      "created_by": "admin",
-      "created_at": "2025-12-28T23:14:42.689124",
-      "updated_at": "2025-12-28T23:15:13.533669",
-      "usage_count": 24,
-      "svg_url": "/badge/svg/ZENV",
-      "markdown": "![version: 2.1.0](/badge/svg/ZENV?logo=python)"
-    },
-    {
-      "name": "badge_1767065043985",
-      "label": "Zenv",
-      "value": "Package",
-      "color": "yellow",
-      "logo": "python",
-      "created_by": "admin",
-      "created_at": "2025-12-30T03:24:05.840963",
-      "updated_at": "2025-12-30T03:24:05.840973",
-      "usage_count": 1,
-      "svg_url": "/badge/svg/badge_1767065043985",
-      "markdown": "![Zenv: Package](/badge/svg/badge_1767065043985?logo=python)"
-    },
-    {
-      "name": "badge_1767065046511",
-      "label": "Zenv",
-      "value": "Package",
-      "color": "yellow",
-      "logo": "python",
-      "created_by": "admin",
-      "created_at": "2025-12-30T03:24:07.914547",
-      "updated_at": "2025-12-30T03:24:07.914556",
-      "usage_count": 1,
-      "svg_url": "/badge/svg/badge_1767065046511",
-      "markdown": "![Zenv: Package](/badge/svg/badge_1767065046511?logo=python)"
-    }
-  ],
+  "badges": [],
   "stats": {
     "total_packages": 0,
     "total_downloads": 0,
