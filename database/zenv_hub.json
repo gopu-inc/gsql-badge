@@ -39,7 +39,32 @@
       "personal_code": "2e5312ee"
     }
   ],
-  "packages": [],
+  "packages": [
+    {
+      "name": "mon-super-module",
+      "scope": "user",
+      "version": "1.0.0",
+      "description": "A SwiftFlow package",
+      "author": "admin",
+      "license": "MIT",
+      "sha256": "9fa1ee8b1a1710b0e33e4fd758040f49463b1f00e34a13f22886774483c26e1b",
+      "filename": "mon-super-module-1.0.0.tar.gz",
+      "size": 455,
+      "created_at": "2026-01-25T14:57:59.325874",
+      "updated_at": "2026-01-25T14:57:59.325882",
+      "downloads": 0,
+      "manifest": {
+        "name": "mon-super-module",
+        "version": "1.0.0",
+        "description": "A SwiftFlow package",
+        "main": "src/main.swf",
+        "author": "",
+        "license": "MIT",
+        "scope": "user",
+        "build": "all"
+      }
+    }
+  ],
   "badges": [],
   "stats": {
     "total_packages": 0,
