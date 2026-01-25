@@ -1,0 +1,15 @@
+{
+  "users": [
+    {
+      "id": "c1d3d49e-0b2c-467e-9ba1-b2a44baf733a",
+      "username": "admin",
+      "email": "",
+      "password": "$2b$12$senyAICjYvR9loyYO80U7e7sxJYt82PDKkrT3Jf/uVKUweh60DLS.",
+      "personal_code": "BD21002C84F3",
+      "created_at": "2026-01-25T14:57:24.948050",
+      "updated_at": "2026-01-25T14:57:24.948062",
+      "role": "user",
+      "active": true
+    }
+  ]
+}
