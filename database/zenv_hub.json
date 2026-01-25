@@ -4,7 +4,7 @@
       "id": "1",
       "username": "admin",
       "email": "admin@zenvhub.com",
-      "password": "$2b$12$ECpaVtkaSxCWsAuz84yen.7sZETi1GK9ibf686aQLjuAepjh5hHwG",
+      "password": "$2b$12$lKMXR5wCmKOz8QtjSwDY/esP2rUpeb0wBwzMQWUm7mKtobSSMYQvC",
       "role": "admin",
       "created_at": "2024-12-27T12:00:00",
       "is_verified": true,
