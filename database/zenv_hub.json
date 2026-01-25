@@ -63,6 +63,17 @@
         "scope": "user",
         "build": "all"
       }
+    },
+    {
+      "name": "community",
+      "scope": "global",
+      "version": "1.0.0",
+      "description": "The Standard Framework for SwiftFlow (HTTP, Net, Web, SSL)",
+      "author": "admin",
+      "sha256": "539fbf9d9445d85601d49d30ea42f998b8847277adbd57dd1a45c9a4b9e24d31",
+      "size": 1910,
+      "updated_at": "2026-01-25T16:08:49.835895",
+      "downloads": 0
     }
   ],
   "badges": [],
