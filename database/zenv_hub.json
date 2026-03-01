@@ -107,6 +107,16 @@
       "size": 23133583,
       "updated_at": "2026-01-29T23:21:47.730533",
       "downloads": 2
+    },
+    {
+      "name": "apkm",
+      "scope": "public",
+      "version": "2.0.0",
+      "author": "mauricio",
+      "sha256": "36eac862281472551fb622f54a105038d4e6fe9db631918b548a4ae4fbde7e36",
+      "size": 95406,
+      "updated_at": "2026-03-01T21:19:38.009133",
+      "downloads": 0
     }
   ],
   "badges": [],
