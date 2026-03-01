@@ -10,6 +10,13 @@
       "updated_at": "2026-01-25T14:57:24.948062",
       "role": "admin",
       "active": true
+    },
+    {
+      "id": "ce6da7bd-3e18-47d5-89f4-a5ee78ce54a3",
+      "username": "mauricio",
+      "password": "$2b$12$tlRNBPWXGBl4aM6uN99iS.F1719TmUgmyfPtNCfMohqEuWisQb1p.",
+      "role": "user",
+      "created_at": "2026-03-01T21:19:26.454588"
     }
   ]
 }
