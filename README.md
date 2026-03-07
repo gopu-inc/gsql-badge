@@ -368,18 +368,18 @@ Deployment Render / Docker -
 ```
 
 **📈 Current Stats**
-
+```mairmed
 https://img.shields.io/badge/Packages-50+-8B5CF6?style=flat-square
 https://img.shields.io/badge/Downloads-1.2k+-10B981?style=flat-square
 https://img.shields.io/badge/Contributors-5-3B82F6?style=flat-square
-
+```
 ---
 
 ### 🤝 Community
 
 **🌟 Join Our Discord!**
 
-![discord](https://discordapp.com/api/guilds/123456789/widget.png?style=banner2)
+[discord](https://discordapp.com/api/guilds/123456789/widget.png?style=banner2)
 
 <div align="center">
   <a href="https://discord.gg/W2xN49q9h">
@@ -395,9 +395,9 @@ https://img.shields.io/badge/Contributors-5-3B82F6?style=flat-square
 
 ### 📢 Stay Updated
 
-· Discord: Join our server for real-time updates
-· GitHub: Watch the repo for releases
-· Twitter: @zarchhub for announcements
+**· Discord: Join our server for real-time updates**
+**· GitHub: Watch the repo for releases**
+**· Twitter: @zarchhub for announcements**
 
 ---
 
@@ -406,7 +406,7 @@ https://img.shields.io/badge/Contributors-5-3B82F6?style=flat-square
 <div align="center">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=open-source-initiative&logoColor=white" alt="MIT License"/>
 </div>
-```
+
 MIT License
 
 Copyright (c) 2026 Gopu.inc
@@ -421,13 +421,7 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+**get [LICENSE]
 ```
 ```
 ---
