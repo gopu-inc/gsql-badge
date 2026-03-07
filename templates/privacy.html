@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block og_title %}Privacy Policy - Zarch Hub{% endblock %}
+{% block og_description %}Privacy policy for Zarch Hub - How we handle your data{% endblock %}
+
+{% block title %}Privacy Policy - Zarch Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8">
+    <!-- Header -->
+    <div class="text-center mb-12" data-aos="fade-up">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl mb-6 shadow-lg">
+            <i class="fas fa-shield-alt text-white text-3xl"></i>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Privacy Policy
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400 text-lg">
+            Last updated: March 7, 2026
+        </p>
+    </div>
+
+    <!-- Content -->
+    <div class="glass-card rounded-3xl p-8 md:p-12 space-y-8" data-aos="fade-up">
+        
+        <!-- Introduction -->
+        <section class="space-y-4">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-hand-peace text-purple-600 mr-3"></i>
+                Our Commitment to Privacy
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                At Zarch Hub, we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, 
+                and safeguard your information when you use our service. Please read this privacy policy carefully. 
+                <strong>If you do not agree with the terms of this privacy policy, please do not access the service.</strong>
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                We reserve the right to make changes to this privacy policy at any time and for any reason. We will alert 
+                you about any changes by updating the "Last updated" date of this privacy policy. You are encouraged to 
+                periodically review this privacy policy to stay informed of updates.
+            </p>
+        </section>
+
+        <!-- Information We Collect -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-database text-blue-600 mr-3"></i>
+                Information We Collect
+            </h2>
+            
+            <h3 class="text-xl font-semibold mt-4">Personal Data</h3>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                While using our Service, we may ask you to provide us with certain personally identifiable information 
+                that can be used to contact or identify you. Personally identifiable information may include, but is not 
+                limited to:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li>Email address</li>
+                <li>Username</li>
+                <li>GitHub username (when authenticating)</li>
+                <li>API tokens (encrypted)</li>
+            </ul>
+
+            <h3 class="text-xl font-semibold mt-4">Usage Data</h3>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                We may also collect information that your browser sends whenever you visit our Service. This Usage Data may 
+                include information such as:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li>Your computer's Internet Protocol address (e.g., IP address)</li>
+                <li>Browser type and version</li>
+                <li>The pages of our Service that you visit</li>
+                <li>The time and date of your visit</li>
+                <li>The time spent on those pages</li>
+                <li>Unique device identifiers</li>
+            </ul>
+        </section>
+
+        <!-- How We Use Your Information -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-cogs text-green-600 mr-3"></i>
+                How We Use Your Information
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                Zarch Hub uses the collected data for various purposes:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li>To provide and maintain our Service</li>
+                <li>To notify you about changes to our Service</li>
+                <li>To allow you to participate in interactive features of our Service</li>
+                <li>To provide customer support</li>
+                <li>To gather analysis or valuable information so that we can improve our Service</li>
+                <li>To monitor the usage of our Service</li>
+                <li>To detect, prevent and address technical issues</li>
+                <li>To authenticate your identity and secure your account</li>
+            </ul>
+        </section>
+
+        <!-- Security of Your Information -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-lock text-purple-600 mr-3"></i>
+                Security of Your Information
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                We use administrative, technical, and physical security measures to help protect your personal information. 
+                While we have taken reasonable steps to secure the personal information you provide to us, please be aware 
+                that despite our efforts, no security measures are perfect or impenetrable, and no method of data transmission 
+                can be guaranteed against any interception or other type of misuse.
+            </p>
+            
+            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-6 mt-4">
+                <h4 class="font-semibold flex items-center text-purple-600 mb-3">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Security Measures Implemented
+                </h4>
+                <ul class="space-y-2 text-gray-700 dark:text-gray-300">
+                    <li class="flex items-start">
+                        <i class="fas fa-shield-alt text-purple-600 mr-2 mt-1"></i>
+                        <span><strong>Encryption:</strong> All passwords are hashed with bcrypt</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-shield-alt text-purple-600 mr-2 mt-1"></i>
+                        <span><strong>Tokens:</strong> JWT tokens with 7-day expiry</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-shield-alt text-purple-600 mr-2 mt-1"></i>
+                        <span><strong>Cookies:</strong> HTTPOnly, Secure, SameSite flags</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-shield-alt text-purple-600 mr-2 mt-1"></i>
+                        <span><strong>Headers:</strong> CSP, HSTS, X-Frame-Options</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-shield-alt text-purple-600 mr-2 mt-1"></i>
+                        <span><strong>Encryption:</strong> Fernet (AES-128) for sensitive data</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Data Storage -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-cloud-upload-alt text-blue-600 mr-3"></i>
+                Data Storage
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                All data is stored on GitHub repositories. This means:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li>Your packages are stored in GitHub's infrastructure</li>
+                <li>No local database is used</li>
+                <li>Data is transparent and auditable</li>
+                <li>You can request deletion of your data at any time</li>
+            </ul>
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 mt-4">
+                <p class="text-yellow-700 dark:text-yellow-300 text-sm">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <strong>Note:</strong> GitHub's privacy policy applies to the stored data. Please review 
+                    <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank" class="underline hover:no-underline">GitHub's Privacy Statement</a>.
+                </p>
+            </div>
+        </section>
+
+        <!-- Cookies -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-cookie-bite text-yellow-600 mr-3"></i>
+                Cookies
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                We use cookies and similar tracking technologies to track activity on our Service and hold certain information. 
+                Cookies are files with small amount of data which may include an anonymous unique identifier.
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you 
+                do not accept cookies, you may not be able to use some portions of our Service.
+            </p>
+            
+            <h3 class="text-xl font-semibold mt-4">Cookies We Use</h3>
+            <div class="overflow-x-auto mt-4">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-purple-50 dark:bg-purple-900/20">
+                            <th class="p-3 text-left">Cookie</th>
+                            <th class="p-3 text-left">Duration</th>
+                            <th class="p-3 text-left">Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr>
+                            <td class="p-3 font-mono">zarch_session</td>
+                            <td class="p-3">1 hour</td>
+                            <td class="p-3">Maintains your login session</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-mono">zarch_token</td>
+                            <td class="p-3">7 days</td>
+                            <td class="p-3">Authentication token (encrypted)</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-mono">_ga</td>
+                            <td class="p-3">2 years</td>
+                            <td class="p-3">Google Analytics (optional)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Third-Party Services -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-handshake text-indigo-600 mr-3"></i>
+                Third-Party Services
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                We may employ third-party companies and individuals due to the following reasons:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li><strong>GitHub:</strong> To store packages and user data</li>
+                <li><strong>Render:</strong> To host the application</li>
+                <li><strong>Discord:</strong> For community support and communication</li>
+                <li><strong>Google Analytics:</strong> To analyze usage patterns (optional)</li>
+            </ul>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed mt-4">
+                These third parties have access to your Personal Information only to perform these tasks on our behalf and 
+                are obligated not to disclose or use it for any other purpose.
+            </p>
+        </section>
+
+        <!-- Your Rights -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-user-check text-green-600 mr-3"></i>
+                Your Rights
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                You have the right to:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li><strong>Access</strong> – Request copies of your personal data</li>
+                <li><strong>Rectification</strong> – Request correction of inaccurate data</li>
+                <li><strong>Erasure</strong> – Request deletion of your data</li>
+                <li><strong>Restrict processing</strong> – Object to how we use your data</li>
+                <li><strong>Data portability</strong> – Request transfer of your data</li>
+            </ul>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed mt-4">
+                To exercise these rights, please contact us at <a href="mailto:ceoseshell@gmail.com" class="text-purple-600 hover:text-purple-700">ceoseshell@gmail.com</a>.
+            </p>
+        </section>
+
+        <!-- Children's Privacy -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-child text-yellow-600 mr-3"></i>
+                Children's Privacy
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                Our Service does not address anyone under the age of 13 ("Children"). We do not knowingly collect personally 
+                identifiable information from anyone under the age of 13. If you are a parent or guardian and you are aware 
+                that your child has provided us with Personal Data, please contact us.
+            </p>
+        </section>
+
+        <!-- Changes to This Privacy Policy -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-sync-alt text-green-600 mr-3"></i>
+                Changes to This Privacy Policy
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new 
+                Privacy Policy on this page and updating the "Last updated" date.
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy 
+                are effective when they are posted on this page.
+            </p>
+        </section>
+
+        <!-- Contact Us -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-envelope text-purple-600 mr-3"></i>
+                Contact Us
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                If you have any questions about this Privacy Policy, please contact us:
+            </p>
+            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-6 mt-4">
+                <ul class="space-y-3">
+                    <li class="flex items-center">
+                        <i class="fas fa-envelope text-purple-600 w-8"></i>
+                        <a href="mailto:ceoseshell@gmail.com" class="text-purple-600 hover:text-purple-700">ceoseshell@gmail.com</a>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fab fa-discord text-indigo-600 w-8"></i>
+                        <a href="https://discord.gg/W2xN49q9h" target="_blank" class="text-indigo-600 hover:text-indigo-700">Join our Discord</a>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fab fa-github text-gray-900 dark:text-white w-8"></i>
+                        <a href="https://github.com/gopu-inc/gsql-badge" target="_blank" class="text-gray-900 dark:text-white hover:text-purple-600">GitHub Repository</a>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- GDPR Compliance (for EU users) -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-euro-sign text-blue-600 mr-3"></i>
+                GDPR Compliance
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                If you are a resident of the European Economic Area (EEA), you have certain data protection rights. Zarch Hub 
+                aims to take reasonable steps to allow you to correct, amend, delete, or limit the use of your Personal Data.
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                Your rights under GDPR include:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li>The right to access – You have the right to request copies of your personal data</li>
+                <li>The right to rectification – You have the right to request correction of inaccurate data</li>
+                <li>The right to erasure – You have the right to request deletion of your data</li>
+                <li>The right to restrict processing – You have the right to object to processing</li>
+                <li>The right to data portability – You have the right to request transfer of your data</li>
+            </ul>
+        </section>
+
+        <!-- CCPA Compliance (for California users) -->
+        <section class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h2 class="text-2xl font-bold flex items-center">
+                <i class="fas fa-flag-usa text-red-600 mr-3"></i>
+                CCPA Compliance
+            </h2>
+            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+                If you are a California resident, you have the right to:
+            </p>
+            <ul class="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                <li>Request disclosure of collected data</li>
+                <li>Request deletion of your data</li>
+                <li>Opt-out of the sale of your data (we don't sell data)</li>
+                <li>Non-discrimination for exercising your rights</li>
+            </ul>
+        </section>
+
+        <!-- Acceptance -->
+        <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white text-center mt-8">
+            <i class="fas fa-shield-alt text-4xl mb-3"></i>
+            <p class="text-lg font-semibold">Your privacy is important to us</p>
+            <p class="text-sm opacity-90 mt-2">By using Zarch Hub, you consent to our Privacy Policy</p>
+            <p class="text-xs opacity-75 mt-4">Last updated: March 7, 2026</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
