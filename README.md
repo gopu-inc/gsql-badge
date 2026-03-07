@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png" alt="Zarch Hub Logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png" alt="Zarch Hub Logo" width="200"/>
 
   # 🚀 Zarch Hub
   
