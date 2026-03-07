@@ -73,7 +73,7 @@ class SecurityConfig:
     COOKIE_SECRET = os.environ.get('COOKIE_SECRET', secrets.token_hex(32))
     
     # GitHub (inchangé)
-    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
+    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "")
     GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/gsql-badge")
     GITHUB_USERNAME = os.environ.get('GITHUB_USERNAME', "gopu-inc")
     GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package-data")
