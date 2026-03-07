@@ -427,8 +427,9 @@ copies or substantial portions of the Software.
 ---
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png" alt="Zarch Hub" width="100"/>Built 
-> with ❤️ for the APKM community
+  <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png" alt="Zarch Hub" width="100"/>
+  
+> Built with ❤️ for the APKM community
 
 Website • Documentation • GitHub • Discord
 
