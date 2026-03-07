@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-surface border-b border-gray-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-3xl font-bold text-white">
+                        {% if scope != 'user' %}<span class="text-gray-500">@{{ scope }}/</span>{% endif %}{{ name }}
+                    </h1>
+                    <span class="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm font-mono font-bold">{{ package.latest_version }}</span>
+                </div>
+                <p class="text-gray-400 text-lg max-w-2xl">{{ package.description }}</p>
+                
+                <div class="flex items-center gap-6 mt-6 text-sm text-gray-400">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user"></i> {{ package.author }}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced"></i> {{ package.license }}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-calendar"></i> {{ package.updated_at[:10] }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Install Box -->
+            <div class="w-full md:w-auto bg-darker p-4 rounded-xl border border-gray-700 shadow-xl">
+                <p class="text-xs text-gray-500 mb-2 uppercase font-bold tracking-wider">Installation</p>
+                <div class="flex items-center gap-3 bg-black/50 p-3 rounded-lg border border-gray-700 group cursor-pointer" onclick="copyInstall()">
+                    <span class="text-primary font-mono select-all">$ zarch install {% if scope != 'user' %}@{{scope}}/{% endif %}{{name}}</span>
+                    <i class="fa-regular fa-copy text-gray-500 group-hover:text-white transition ml-auto"></i>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-surface rounded-lg p-2">
+                        <div class="text-lg font-bold text-white">{{ package.downloads }}</div>
+                        <div class="text-xs text-gray-500">Downloads</div>
+                    </div>
+                    <div class="bg-surface rounded-lg p-2">
+                        <div class="text-lg font-bold text-white">{{ (package.size / 1024)|round(1) }} KB</div>
+                        <div class="text-xs text-gray-500">Taille</div>
+                    </div>
+                </div>
+                <a href="{{ package.download_url }}" class="mt-4 block w-full text-center bg-primary hover:bg-cyan-600 text-white font-bold py-2 rounded-lg transition">
+                    <i class="fa-solid fa-file-arrow-down mr-2"></i> Télécharger .tar.gz
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <div>
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3">Versions</h3>
+                <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    {% for v in package.all_versions %}
+                    <a href="#" class="block p-2 rounded hover:bg-surface text-sm {% if v == package.latest_version %}text-primary font-bold border-l-2 border-primary bg-surface{% else %}text-gray-400{% endif %}">
+                        v{{ v }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-3">SHA-256</h3>
+                <div class="p-2 bg-darker rounded border border-gray-800 text-[10px] font-mono text-gray-500 break-all">
+                    {{ package.sha256 }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Readme -->
+        <div class="lg:col-span-3">
+            <div class="bg-surface rounded-xl border border-gray-700 p-8 min-h-[400px]">
+                <article class="prose prose-invert prose-cyan max-w-none" id="readme-content">
+                    <!-- JS will render markdown here -->
+                </article>
+                <div id="raw-readme" class="hidden">{{ package.readme }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Marked JS for Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const raw = document.getElementById('raw-readme').innerText;
+        document.getElementById('readme-content').innerHTML = marked.parse(raw);
+    });
+
+    function copyInstall() {
+        const text = "zarch install {% if scope != 'user' %}@{{scope}}/{% endif %}{{name}}";
+        navigator.clipboard.writeText(text);
+        alert("Commande copiée !");
+    }
+</script>
+{% endblock %}

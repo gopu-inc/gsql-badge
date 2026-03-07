@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- En-tête admin -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-danger bg-opacity-10 border-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-2">
+                            <i class="bi bi-shield-lock me-2"></i>Tableau de bord Administrateur
+                        </h1>
+                        <p class="mb-0 text-muted">
+                            <i class="bi bi-person-badge me-1"></i>Connecté en tant qu'administrateur
+                        </p>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-danger dropdown-toggle" 
+                                type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-1"></i>Actions Admin
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('admin_manage_badges') }}">
+                                    <i class="bi bi-award me-2"></i>Gérer les badges
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-people me-2"></i>Gérer les utilisateurs
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-box me-2"></i>Gérer les packages
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-graph-up me-2"></i>Statistiques avancées
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="bi bi-server me-2"></i>Configuration système
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques admin -->
+<div class="row mb-4">
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="display-6 fw-bold mb-0">{{ total_usrs|default(0) }}</h2>
+                        <p class="text-muted mb-0">Utilisateurs</p>
+                    </div>
+                    <i class="bi bi-people display-6 text-primary opacity-50"></i>
+                </div>
+                <div class="mt-2">
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 5 nouveaux cette semaine
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="display-6 fw-bold mb-0">{{ total_packages|default(0) }}</h2>
+                        <p class="text-muted mb-0">Packages</p>
+                    </div>
+                    <i class="bi bi-box display-6 text-success opacity-50"></i>
+                </div>
+                <div class="mt-2">
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 12 nouveaux ce mois
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="display-6 fw-bold mb-0">{{ total_badges|default(0) }}</h2>
+                        <p class="text-muted mb-0">Badges</p>
+                    </div>
+                    <i class="bi bi-award display-6 text-warning opacity-50"></i>
+                </div>
+                <div class="mt-2">
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 8 nouveaux créés
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-6 mb-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="display-6 fw-bold mb-0">{{ total_downloads|default(0) }}</h2>
+                        <p class="text-muted mb-0">Téléchargements</p>
+                    </div>
+                    <i class="bi bi-download display-6 text-info opacity-50"></i>
+                </div>
+                <div class="mt-2">
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 1.2k aujourd'hui
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Utilisateurs récents -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2"></i>Utilisateurs récents
+                </h5>
+                <a href="#" class="btn btn-sm btn-outline-primary">
+                    Voir tous <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark admin-table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Utilisateur</th>
+                                <th>Email</th>
+                                <th>Rôle</th>
+                                <th>Inscrit le</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usr in recent_usrs %}
+                            <tr>
+                                <td>
+                                    <strong>{{ usr.username }}</strong>
+                                    {% if usr.is_verified %}
+                                    <i class="bi bi-check-circle-fill text-success ms-1" title="Vérifié"></i>
+                                    {% endif %}
+                                </td>
+                                <td>{{ usr.email }}</td>
+                                <td>
+                                    {% if usr.role == 'admin' %}
+                                    <span class="badge bg-danger">{{ usr.role }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ usr.role }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ usr.created_at|datetimeformat('%d/%m/%Y') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    Aucun utilisateur
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Packages récents -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-box me-2"></i>Packages récents
+                </h5>
+                <a href="{{ url_for('list_packages') }}" class="btn btn-sm btn-outline-primary">
+                    Voir tous <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark admin-table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Package</th>
+                                <th>Version</th>
+                                <th>Auteur</th>
+                                <th>Téléchargements</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for package in recent_packages %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('package_detail', package_name=package.name) }}" 
+                                       class="text-decoration-none">
+                                        {{ package.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ package.version }}</span>
+                                </td>
+                                <td>{{ package.author_name }}</td>
+                                <td>{{ package.downloads_count|default(0) }}</td>
+                                <td>
+                                    {% if package.is_private %}
+                                    <span class="badge bg-warning">Privé</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Public</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    Aucun package
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Badges récents -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-award me-2"></i>Badges récents
+                </h5>
+                <a href="{{ url_for('admin_manage_badges') }}" class="btn btn-sm btn-outline-primary">
+                    Gérer <i class="bi bi-gear ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_badges %}
+                <div class="row">
+                    {% for badge in recent_badges %}
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <img src="{{ url_for('serve_badge_svg', badge_name=badge.name) }}" 
+                                     alt="{{ badge.label }}: {{ badge.value }}"
+                                     style="height: 20px; margin-bottom: 10px;">
+                                <h6 class="card-title mb-1">{{ badge.label }}</h6>
+                                <p class="card-text text-muted small mb-2">{{ badge.value }}</p>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <span class="badge bg-secondary">{{ badge.usage_count|default(0) }}</span>
+                                    <span class="badge" 
+                                          style="background-color: {{ badge.color }}; color: white;">
+                                        {{ badge.color }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        {{ badge.created_by_name }}
+                                    </small>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('admin_badge_editor', badge_id=badge.id) }}" 
+                                           class="btn btn-outline-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger"
+                                                onclick="return confirmDelete('Supprimer ce badge ?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-award display-1 text-muted mb-3"></i>
+                    <p class="text-muted">Aucun badge récent</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Système et logs -->
+<div class="row mt-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-server me-2"></i>État du système
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between">
+                            <span>Base de données PostgreSQL</span>
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Connecté
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between">
+                            <span>API GitHub</span>
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Connecté
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between">
+                            <span>Stockage des packages</span>
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Disponible
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between">
+                            <span>Génération de badges SVG</span>
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle me-1"></i>Fonctionnel
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex justify-content-between">
+                            <span>Performance API</span>
+                            <span class="badge bg-warning">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Moyenne
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clipboard-data me-2"></i>Logs récents
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-info-circle text-info"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <small class="text-muted">Il y a 5 minutes</small>
+                                <p class="mb-0">Nouvel utilisateur inscrit: "john_doe"</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-check-circle text-success"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <small class="text-muted">Il y a 15 minutes</small>
+                                <p class="mb-0">Package "zenv-utils" publié avec succès</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-exclamation-triangle text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <small class="text-muted">Il y a 1 heure</small>
+                                <p class="mb-0">Tentative de connexion échouée pour "admin"</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="list-group-item border-0 px-0">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="bi bi-bug text-danger"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <small class="text-muted">Il y a 2 heures</small>
+                                <p class="mb-0">Erreur lors du téléchargement du package "test-pkg"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

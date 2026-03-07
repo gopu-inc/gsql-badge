@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+
+# SQLite
+*.db
+*.db-journal
+
+# Uploads
+uploads/
+builds/
+
+# Packages temporaires
+packages/temp/
+
+# VS Code
+.vscode/

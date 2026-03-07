@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: gsql-badge-service
+    env: docker
+    plan: free
+    region: oregon
+
+    dockerfilePath: ./Dockerfile
+
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # 🔐 définie manuellement dans Render
+
+      - key: PORT
+        value: 10000
+
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+    healthCheckPath: /health

@@ -1,0 +1,89 @@
+# Framework Web
+Flask
+Flask-Cors
+Werkzeug
+Jinja2
+click
+blinker
+itsdangerous
+
+# Base de données
+SQLAlchemy
+psycopg2-binary
+alembic
+
+# Client HTTP
+requests
+urllib3
+certifi
+idna
+chardet
+
+# Sécurité et Cryptographie
+cryptography
+bcrypt
+PyJWT
+python-dotenv
+pyOpenSSL
+paramiko
+cffi
+pycparser
+asn1crypto
+pyasn1
+ndg-httpsclient
+
+# Validation et Nettoyage
+pydantic
+pydantic-core
+pydantic-settings
+typing-extensions
+email-validator
+dnspython
+bleach
+markupsafe
+
+# Markdown et Templates
+Markdown
+Pygments
+python-dateutil
+pytz
+tzdata
+six
+
+# Logging
+python-json-logger
+
+# Cache et Files
+redis
+celery
+vine
+billiard
+kombu
+amqp
+eventlet
+greenlet
+gevent
+
+# Images et Fichiers
+Pillow
+python-magic
+watchdog
+
+# Scraping et Parsing
+beautifulsoup4
+lxml
+html5lib
+webencodings
+cssselect
+tinycss2
+selenium
+
+# YAML
+PyYAML
+
+# Server
+gunicorn
+
+# Outils divers
+click
+python-dateutil

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}Zarch Hub - APKM Package Registry{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}The official package registry for APKM - Alpine Package Manager{% endblock %}">
+    <meta property="og:image" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
+    <meta property="og:image:secure_url" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Zarch Hub - APKM Package Registry">
+    <meta property="og:site_name" content="Zarch Hub">
+    <meta property="og:locale" content="fr_FR">
+    
+    <!-- Additional OpenGraph Images -->
+    <meta property="og:image:2" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png">
+    <meta property="og:image:3" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@zarchhub">
+    <meta name="twitter:creator" content="@zarchhub">
+    <meta name="twitter:title" content="Zarch Hub">
+    <meta name="twitter:description" content="APKM Package Registry">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
+    
+    <!-- Discord Rich Presence -->
+    <meta name="theme-color" content="#8B5CF6">
+    <meta name="discord:guild_id" content="W2xN49q9h">
+    <meta name="discord:invite_url" content="https://discord.gg/W2xN49q9h">
+    
+    <!-- Mobile Web App Capabilities -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zarch Hub">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Zarch Hub">
+    <meta name="format-detection" content="telephone=no">
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png">
+    
+    <!-- Android Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png">
+    
+    <!-- Google Fonts - Android/iOS Kit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        
+        body {
+            font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: #f0f0f0;
+            }
+            
+            .glass-nav {
+                background: rgba(17, 24, 39, 0.95) !important;
+            }
+            
+            .glass-card {
+                background: rgba(30, 41, 59, 0.95) !important;
+                border-color: rgba(255, 255, 255, 0.1) !important;
+                color: #f0f0f0;
+            }
+            
+            .footer-text {
+                color: #9CA3AF !important;
+            }
+        }
+        
+        /* iOS safe areas */
+        .safe-top {
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+        
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Glassmorphism */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            color: white;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.5);
+        }
+        
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-primary:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #8B5CF6;
+            color: #8B5CF6;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-secondary:hover {
+            background: #8B5CF6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.5);
+        }
+        
+        /* Links */
+        a {
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        /* Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .animate-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        
+        .animate-blob {
+            animation: blob 7s infinite;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid rgba(139, 92, 246, 0.1);
+            border-top-color: #8B5CF6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem !important;
+            }
+        }
+        
+        /* iOS momentum scrolling */
+        .scrollable {
+            -webkit-overflow-scrolling: touch;
+            overflow-y: auto;
+        }
+        
+        /* Disable pull-to-refresh on some elements */
+        .no-pull {
+            overscroll-behavior-y: contain;
+        }
+        
+        /* Touch feedback */
+        .touch-feedback {
+            transition: transform 0.2s;
+        }
+        
+        .touch-feedback:active {
+            transform: scale(0.98);
+        }
+        
+        /* Prevent text selection on mobile */
+        .no-select {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Animation delays */
+        .animation-delay-1000 {
+            animation-delay: 1s;
+        }
+        
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        
+        .animation-delay-3000 {
+            animation-delay: 3s;
+        }
+        
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+    </style>
+    
+    <!-- JSON-LD Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Zarch Hub",
+        "url": "{{ request.url_root }}",
+        "description": "Package Registry for APKM - Alpine Package Manager",
+        "email": "ceoseshell@gmail.com",
+        "sameAs": [
+            "https://discord.gg/W2xN49q9h",
+            "https://github.com/gopu-inc",
+            "https://twitter.com/zarchhub"
+        ],
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "{{ request.url_root }}packages?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+    
+    <title>{% block title %}Zarch Hub - APKM Package Registry{% endblock %}</title>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="antialiased min-h-screen safe-top safe-bottom no-pull">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="glass-nav sticky top-0 z-50 safe-top">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-3 group">
+                    <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png" 
+                         alt="Zarch Hub" 
+                         class="h-10 w-auto rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300">
+                    <span class="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        Zarch<span class="text-gray-900 dark:text-white">Hub</span>
+                    </span>
+                </a>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="/" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                    <a href="/packages" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-box mr-2"></i>Packages
+                    </a>
+                    <a href="/docs" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-book mr-2"></i>Docs
+                    </a>
+                    <a href="https://discord.gg/W2xN49q9h" target="_blank" class="px-3 py-2 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fab fa-discord mr-2"></i>Discord
+                    </a>
+                    
+                    <div class="nav-divider w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                    
+                    {% if session.user %}
+                    <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg">
+                        <i class="fas fa-upload mr-2"></i>Upload
+                    </a>
+                    <a href="/dashboard" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="/logout" class="px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
+                    {% else %}
+                    <a href="/login" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </a>
+                    <a href="/register" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg">
+                        <i class="fas fa-user-plus mr-2"></i>Register
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" id="mobileMenuBtn">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div class="md:hidden hidden" id="mobileMenu">
+            <div class="px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                <a href="/" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
+                    <i class="fas fa-home w-6"></i>
+                    <span>Home</span>
+                </a>
+                <a href="/packages" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
+                    <i class="fas fa-box w-6"></i>
+                    <span>Packages</span>
+                </a>
+                <a href="/docs" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
+                    <i class="fas fa-book w-6"></i>
+                    <span>Docs</span>
+                </a>
+                <a href="https://discord.gg/W2xN49q9h" target="_blank" class="flex items-center px-4 py-3 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800">
+                    <i class="fab fa-discord w-6"></i>
+                    <span>Discord</span>
+                </a>
+                
+                <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                
+                {% if session.user %}
+                <a href="/upload" class="flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
+                    <i class="fas fa-upload w-6"></i>
+                    <span>Upload</span>
+                </a>
+                <a href="/dashboard" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
+                    <i class="fas fa-tachometer-alt w-6"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/logout" class="flex items-center px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800">
+                    <i class="fas fa-sign-out-alt w-6"></i>
+                    <span>Logout</span>
+                </a>
+                {% else %}
+                <a href="/login" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
+                    <i class="fas fa-sign-in-alt w-6"></i>
+                    <span>Login</span>
+                </a>
+                <a href="/register" class="flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
+                    <i class="fas fa-user-plus w-6"></i>
+                    <span>Register</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 mt-12 safe-bottom">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Brand -->
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3">
+                        <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png" 
+                             alt="Zarch Hub" 
+                             class="h-8 w-auto rounded-lg">
+                        <span class="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            Zarch Hub
+                        </span>
+                    </div>
+                    <p class="footer-text text-gray-600 dark:text-gray-400 text-sm">
+                        The official package registry for APKM - Alpine Package Manager
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="https://discord.gg/W2xN49q9h" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors">
+                            <i class="fab fa-discord text-xl"></i>
+                        </a>
+                        <a href="https://github.com/gopu-inc" target="_blank" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                        <a href="mailto:ceoseshell@gmail.com" class="text-gray-400 hover:text-purple-600 transition-colors">
+                            <i class="fas fa-envelope text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="/packages" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Packages</a></li>
+                        <li><a href="/docs" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Documentation</a></li>
+                        <li><a href="/upload" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Upload</a></li>
+                        <li><a href="/stats" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Statistics</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Resources -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Resources</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://github.com/gopu-inc/apkm-gest" target="_blank" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">GitHub</a></li>
+                        <li><a href="/api/docs" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">API</a></li>
+                        <li><a href="/status" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Status</a></li>
+                        <li><a href="/cookies" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Cookies</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Contact</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center space-x-2 footer-text text-gray-600 dark:text-gray-400">
+                            <i class="fas fa-envelope w-5"></i>
+                            <a href="mailto:ceoseshell@gmail.com" class="hover:text-purple-600">ceoseshell@gmail.com</a>
+                        </li>
+                        <li class="flex items-center space-x-2 footer-text text-gray-600 dark:text-gray-400">
+                            <i class="fas fa-globe w-5"></i>
+                            <a href="https://zarch.io" class="hover:text-purple-600">zarch.io</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8 text-center text-sm footer-text text-gray-600 dark:text-gray-400">
+                <p>&copy; 2026 Zarch Hub. Crafted with <i class="fas fa-heart text-red-500"></i> for the APKM community</p>
+                <p class="mt-2 space-x-4">
+                    <a href="/privacy" class="hover:text-purple-600">Privacy</a>
+                    <span>•</span>
+                    <a href="/terms" class="hover:text-purple-600">Terms</a>
+                    <span>•</span>
+                    <a href="/cookies" class="hover:text-purple-600">Cookies</a>
+                    <span>•</span>
+                    <a href="https://discord.gg/W2xN49q9h" target="_blank" class="hover:text-purple-600">Join Discord</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100,
+            disable: 'mobile'
+        });
+        
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+                const icon = mobileMenuBtn.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-bars');
+                    icon.classList.toggle('fa-times');
+                }
+            });
+        }
+        
+        // Close mobile menu on window resize (desktop)
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 768 && mobileMenu) {
+                mobileMenu.classList.add('hidden');
+                const icon = mobileMenuBtn?.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        });
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+        
+        // Add active class to current nav link
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    </script>
+    
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="fixed top-20 right-4 z-50 space-y-2 max-w-md">
+                {% for category, message in messages %}
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-l-4 animate-slide-in 
+                                {% if category == 'success' %}border-green-500{% elif category == 'error' %}border-red-500{% else %}border-blue-500{% endif %}">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-{% if category == 'success' %}check-circle text-green-500{% elif category == 'error' %}exclamation-circle text-red-500{% else %}info-circle text-blue-500{% endif %}"></i>
+                            <p class="text-sm text-gray-700 dark:text-gray-300">{{ message }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

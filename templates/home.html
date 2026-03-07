@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block og_title %}Zarch Hub - Home{% endblock %}
+{% block og_description %}The ultimate package registry for APKM - Alpine Package Manager{% endblock %}
+
+{% block title %}Home - Zarch Hub{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section" data-aos="fade-up">
+    <div class="hero-content">
+        <span class="hero-badge">🚀 Now in Beta</span>
+        <h1>
+            <i class="fas fa-cubes"></i>
+            Zarch <span class="gradient-text">Hub</span>
+        </h1>
+        <p class="hero-description">
+            The ultimate package registry for APKM - Alpine Package Manager
+        </p>
+        
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ stats.packages or 0 }}</span>
+                <span class="hero-stat-label">Packages</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ stats.downloads or 0 }}</span>
+                <span class="hero-stat-label">Downloads</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ stats.users or 0 }}</span>
+                <span class="hero-stat-label">Users</span>
+            </div>
+        </div>
+        
+        <div class="hero-cta">
+            <a href="/packages" class="btn-primary btn-large">
+                <i class="fas fa-box"></i> Browse Packages
+            </a>
+            <a href="/docs" class="btn-secondary btn-large">
+                <i class="fas fa-book"></i> Read Docs
+            </a>
+            <a href="https://discord.gg/W2xN49q9h" target="_blank" class="btn-discord btn-large">
+                <i class="fab fa-discord"></i> Join Discord
+            </a>
+        </div>
+    </div>
+    
+    <div class="hero-illustration">
+        <div class="floating-cubes">
+            <i class="fas fa-cube cube-1"></i>
+            <i class="fas fa-cube cube-2"></i>
+            <i class="fas fa-cube cube-3"></i>
+            <i class="fas fa-cube cube-4"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="features-section" data-aos="fade-up">
+    <h2 class="section-title">Why Choose <span class="gradient-text">Zarch Hub</span>?</h2>
+    
+    <div class="features-grid">
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+            <div class="feature-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h3>Lightning Fast</h3>
+            <p>Optimized delivery with global CDN and smart caching</p>
+        </div>
+        
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+            <div class="feature-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3>Secure by Design</h3>
+            <p>SHA256 verification and secure token authentication</p>
+        </div>
+        
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+            <div class="feature-icon">
+                <i class="fas fa-code-branch"></i>
+            </div>
+            <h3>Easy Publishing</h3>
+            <p>Publish with a single command using APSM</p>
+        </div>
+        
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+            <div class="feature-icon">
+                <i class="fas fa-history"></i>
+            </div>
+            <h3>Version Control</h3>
+            <p>Full version history and easy rollback</p>
+        </div>
+        
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+            <div class="feature-icon">
+                <i class="fas fa-heart"></i>
+            </div>
+            <h3>Community Driven</h3>
+            <p>Active Discord community and open source</p>
+        </div>
+        
+        <div class="feature-card" data-aos="fade-up" data-aos-delay="600">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3>Detailed Analytics</h3>
+            <p>Track downloads and usage statistics</p>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works -->
+<div class="how-it-works" data-aos="fade-up">
+    <h2 class="section-title">How It <span class="gradient-text">Works</span></h2>
+    
+    <div class="steps">
+        <div class="step" data-aos="fade-right" data-aos-delay="100">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h3>Create an Account</h3>
+                <p>Sign up for free and get your API token</p>
+                <div class="step-demo">
+                    <code>apsm auth your_token</code>
+                </div>
+            </div>
+        </div>
+        
+        <div class="step" data-aos="fade-right" data-aos-delay="200">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h3>Build Your Package</h3>
+                <p>Create an APKMBUILD file and build with BOOL</p>
+                <div class="step-demo">
+                    <code>bool --build</code>
+                </div>
+            </div>
+        </div>
+        
+        <div class="step" data-aos="fade-right" data-aos-delay="300">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h3>Publish to Zarch Hub</h3>
+                <p>Share your package with the community</p>
+                <div class="step-demo">
+                    <code>apsm push package.tar.bool</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="cta-section" data-aos="fade-up">
+    <div class="cta-content">
+        <h2>Ready to Get Started?</h2>
+        <p>Join thousands of developers using Zarch Hub</p>
+        <div class="cta-buttons">
+            <a href="/register" class="btn-primary btn-large">
+                <i class="fas fa-user-plus"></i> Create Account
+            </a>
+            <a href="/packages" class="btn-secondary btn-large">
+                <i class="fas fa-box"></i> Browse Packages
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Home page specific styles */
+.hero-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    padding: 4rem 0;
+    min-height: calc(100vh - 200px);
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--primary);
+    border-radius: 100px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+}
+
+.hero-content h1 {
+    font-size: 4rem;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+}
+
+.gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-description {
+    font-size: 1.25rem;
+    color: var(--gray);
+    margin-bottom: 2rem;
+    max-width: 500px;
+}
+
+.hero-stats {
+    display: flex;
+    gap: 3rem;
+    margin-bottom: 2rem;
+}
+
+.hero-stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--dark);
+    display: block;
+    line-height: 1;
+}
+
+.hero-stat-label {
+    color: var(--gray);
+    font-size: 0.875rem;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.hero-illustration {
+    position: relative;
+    height: 500px;
+}
+
+.floating-cubes {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.floating-cubes i {
+    position: absolute;
+    color: var(--primary);
+    opacity: 0.1;
+    animation: float 6s ease-in-out infinite;
+}
+
+.cube-1 {
+    top: 20%;
+    left: 10%;
+    font-size: 4rem;
+    animation-delay: 0s;
+}
+
+.cube-2 {
+    top: 50%;
+    right: 10%;
+    font-size: 5rem;
+    animation-delay: 1s;
+}
+
+.cube-3 {
+    bottom: 20%;
+    left: 30%;
+    font-size: 3rem;
+    animation-delay: 2s;
+}
+
+.cube-4 {
+    top: 30%;
+    right: 30%;
+    font-size: 6rem;
+    animation-delay: 3s;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 3rem;
+    margin-bottom: 3rem;
+}
+
+.how-it-works {
+    padding: 4rem 0;
+}
+
+.steps {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.step {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: var(--blur);
+    border-radius: var(--radius-2xl);
+    transition: var(--transition);
+}
+
+.step:hover {
+    transform: translateX(10px);
+    box-shadow: var(--shadow-lg);
+}
+
+.step-number {
+    width: 60px;
+    height: 60px;
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.step-content h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.step-demo {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--dark);
+    color: white;
+    border-radius: var(--radius-lg);
+    font-family: monospace;
+}
+
+.cta-section {
+    background: var(--gradient-primary);
+    border-radius: var(--radius-2xl);
+    padding: 4rem;
+    text-align: center;
+    color: white;
+    margin: 4rem 0;
+}
+
+.cta-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.cta-content p {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.cta-content .btn-secondary {
+    background: white;
+    color: var(--primary) !important;
+    border: none;
+}
+
+.cta-content .btn-secondary:hover {
+    background: var(--light);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .hero-section {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 2rem;
+    }
+    
+    .hero-description {
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .hero-stats {
+        justify-content: center;
+    }
+    
+    .hero-cta {
+        justify-content: center;
+    }
+    
+    .hero-illustration {
+        display: none;
+    }
+    
+    .section-title {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-content h1 {
+        font-size: 3rem;
+    }
+    
+    .step {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .cta-section {
+        padding: 2rem;
+    }
+    
+    .cta-content h2 {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}
