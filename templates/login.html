@@ -35,6 +35,9 @@
 
         <!-- Login Form -->
         <form id="loginForm" class="space-y-6">
+            <!-- CSRF Token (si vous utilisez) -->
+            <input type="hidden" name="csrf_token" id="csrfToken" value="">
+
             <!-- Username Field -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -78,7 +81,7 @@
                     <input type="checkbox" name="remember" id="remember" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
                     <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
                 </label>
-                <a href="#" class="text-sm text-purple-600 hover:text-purple-700 transition">
+                <a href="#" class="text-sm text-purple-600 hover:text-purple-700 transition" onclick="showForgotPassword(); return false;">
                     Forgot password?
                 </a>
             </div>
@@ -127,8 +130,8 @@
 
         <!-- Demo Credentials -->
         <div class="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                <i class="fas fa-info-circle mr-1"></i>Demo credentials:
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center">
+                <i class="fas fa-info-circle mr-1 text-purple-600"></i>Demo credentials:
             </p>
             <div class="flex items-center justify-between text-sm">
                 <span class="text-purple-600 dark:text-purple-400 font-mono">mauricio</span>
@@ -206,6 +209,17 @@
     gap: 0.5rem;
 }
 
+.error-message.hidden,
+.success-message.hidden {
+    display: none;
+}
+
+.error-message:not(.hidden),
+.success-message:not(.hidden) {
+    display: flex;
+    animation: slideIn 0.3s ease-out;
+}
+
 /* Social buttons */
 .social-btn {
     display: flex;
@@ -265,6 +279,16 @@
     cursor: pointer;
 }
 
+/* Loading spinner */
+.btn-loader {
+    display: inline-block;
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 /* Animations */
 @keyframes slideIn {
     from {
@@ -277,14 +301,13 @@
     }
 }
 
-.error-message:not(.hidden),
-.success-message:not(.hidden) {
-    animation: slideIn 0.3s ease-out;
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
-/* Loading spinner */
-.btn-loader {
-    display: inline-block;
+.animate-float {
+    animation: float 3s ease-in-out infinite;
 }
 
 /* Responsive */
@@ -300,12 +323,41 @@
 const togglePassword = document.getElementById('togglePassword');
 const passwordInput = document.getElementById('password');
 
-togglePassword.addEventListener('click', function() {
-    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-    passwordInput.setAttribute('type', type);
-    this.classList.toggle('fa-eye');
-    this.classList.toggle('fa-eye-slash');
-});
+if (togglePassword) {
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+}
+
+// Helper function to show messages
+function showMessage(element, message, type) {
+    const msgDiv = document.getElementById(element);
+    if (!msgDiv) return;
+    
+    msgDiv.classList.remove('hidden', 'text-green-600', 'text-red-600', 'text-purple-600');
+    msgDiv.textContent = message;
+    
+    if (type === 'success') {
+        msgDiv.classList.add('text-green-600');
+        msgDiv.querySelector('i')?.classList.add('fa-check-circle');
+    } else if (type === 'error') {
+        msgDiv.classList.add('text-red-600');
+        msgDiv.querySelector('i')?.classList.add('fa-exclamation-circle');
+    } else if (type === 'info') {
+        msgDiv.classList.add('text-purple-600');
+        msgDiv.querySelector('i')?.classList.add('fa-info-circle');
+    }
+    
+    msgDiv.classList.remove('hidden');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        msgDiv.classList.add('hidden');
+    }, 5000);
+}
 
 // Form submission
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -330,25 +382,37 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+    const remember = document.getElementById('remember')?.checked || false;
+    
+    console.log('Attempting login for:', username);
     
     try {
         const response = await fetch('/v5.2/auth/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ 
+                username: username, 
+                password: password,
+                remember: remember 
+            })
         });
         
         const data = await response.json();
+        console.log('Login response:', data);
         
         if (data.success) {
-            // Store token
+            // Store token and user data
             localStorage.setItem('zarch_token', data.token);
             localStorage.setItem('zarch_user', JSON.stringify(data.user));
             
+            // Set cookie manually if needed
+            document.cookie = `zarch_token=${data.token}; path=/; max-age=${remember ? 604800 : 3600}; SameSite=Lax; ${window.location.protocol === 'https:' ? 'Secure;' : ''}`;
+            
             // Show success message
-            successText.textContent = 'Login successful! Redirecting...';
+            successText.textContent = 'Login successful! Redirecting to dashboard...';
             successMsg.classList.remove('hidden');
             
             // Redirect to dashboard
@@ -357,7 +421,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             }, 1500);
         } else {
             // Show error message
-            errorText.textContent = data.error || 'Invalid credentials';
+            errorText.textContent = data.error || 'Invalid username or password';
             errorMsg.classList.remove('hidden');
             
             // Reset button
@@ -369,7 +433,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         console.error('Login error:', error);
         
         // Show error message
-        errorText.textContent = 'Network error. Please try again.';
+        errorText.textContent = 'Network error. Please check your connection and try again.';
         errorMsg.classList.remove('hidden');
         
         // Reset button
@@ -384,7 +448,20 @@ function socialLogin(provider) {
     const errorMsg = document.getElementById('errorMessage');
     const errorText = document.getElementById('errorText');
     
-    errorText.textContent = `${provider} login coming soon!`;
+    errorText.textContent = `${provider} login is coming soon! Please use username/password for now.`;
+    errorMsg.classList.remove('hidden');
+    
+    setTimeout(() => {
+        errorMsg.classList.add('hidden');
+    }, 3000);
+}
+
+// Forgot password
+function showForgotPassword() {
+    const errorMsg = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    
+    errorText.textContent = 'Password reset feature coming soon! Please contact support.';
     errorMsg.classList.remove('hidden');
     
     setTimeout(() => {
@@ -395,9 +472,26 @@ function socialLogin(provider) {
 // Check if already logged in
 (function() {
     const token = localStorage.getItem('zarch_token');
-    if (token) {
+    const userStr = localStorage.getItem('zarch_user');
+    
+    if (token && userStr) {
+        console.log('User already logged in, redirecting to dashboard');
         window.location.href = '/dashboard';
     }
+    
+    // Add CSRF token if needed
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+        document.getElementById('csrfToken').value = csrfToken;
+    }
 })();
+
+// Handle Enter key
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+        e.preventDefault();
+        document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+    }
+});
 </script>
 {% endblock %}
