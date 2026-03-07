@@ -379,7 +379,7 @@ https://img.shields.io/badge/Contributors-5-3B82F6?style=flat-square
 
 **🌟 Join Our Discord!**
 
-https://discordapp.com/api/guilds/123456789/widget.png?style=banner2
+![discord](https://discordapp.com/api/guilds/123456789/widget.png?style=banner2)
 
 <div align="center">
   <a href="https://discord.gg/W2xN49q9h">
