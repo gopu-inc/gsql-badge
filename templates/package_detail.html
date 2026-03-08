@@ -1,38 +1,411 @@
 {% extends "base.html" %}
 
+{% block og_title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
+{% block og_description %}Package {{ package.name }} version {{ package.version }} by {{ package.author }}{% endblock %}
+{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png{% endblock %}
+
+{% block title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto px-6 py-12">
-    <div class="flex flex-col md:flex-row gap-12">
-        
-        <aside class="w-full md:w-1/4 space-y-6">
-            <div class="bg-zinc-900 p-6 rounded border border-zinc-800">
-                <h1 class="text-2xl font-bold text-white break-words">{{ package.name }}</h1>
-                <p class="text-green-500 text-sm mt-1">v{{ package.version }}</p>
-                
-                <div class="mt-6">
-                    <label class="text-xs text-zinc-500 uppercase">Install</label>
-                    <div class="flex mt-1 bg-black border border-zinc-700 rounded overflow-hidden">
-                        <code class="p-2 text-xs text-green-400 flex-grow">zarch i {{ package.name }}</code>
-                        <button class="px-3 bg-zinc-800 hover:bg-zinc-700 text-white"><i data-lucide="copy" class="w-4 h-4"></i></button>
-                    </div>
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Package Header -->
+    <div class="glass-card rounded-2xl p-8 mb-8" data-aos="fade-up">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-cubes text-white text-3xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        {{ package.name }}
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">by <span class="font-semibold">{{ package.author }}</span></p>
                 </div>
             </div>
-
-            <div class="text-sm text-zinc-400 space-y-2">
-                <div class="flex justify-between"><span>Author</span> <span class="text-white">{{ package.author }}</span></div>
-                <div class="flex justify-between"><span>License</span> <span class="text-white">MIT</span></div>
-                <div class="flex justify-between"><span>Size</span> <span class="text-white">{{ package.size }} bytes</span></div>
+            <div class="flex gap-3">
+                <span class="px-4 py-2 bg-{{ 'green' if package.scope == 'public' else 'gray' }}-100 text-{{ 'green' if package.scope == 'public' else 'gray' }}-600 rounded-full text-sm font-medium">
+                    <i class="fas fa-{{ 'globe' if package.scope == 'public' else 'lock' }} mr-2"></i>
+                    {{ package.scope }}
+                </span>
+                <span class="px-4 py-2 bg-purple-100 text-purple-600 rounded-full text-sm font-medium">
+                    <i class="fas fa-tag mr-2"></i>
+                    {{ package.version }}
+                </span>
             </div>
-        </aside>
+        </div>
 
-        <div class="w-full md:w-3/4">
-            <div class="bg-[#0e0e0e] border border-zinc-800 p-8 rounded min-h-[500px]">
-                <h3 class="text-xl font-bold mb-6 border-b border-zinc-800 pb-4">Documentation</h3>
-                <div class="prose prose-invert max-w-none">
-                    {{ readme_content | safe }}
+        <!-- Quick Info Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <i class="fas fa-code-branch text-purple-600 mb-2"></i>
+                <div class="text-sm text-gray-500">Release</div>
+                <div class="font-semibold">{{ package.release }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <i class="fas fa-microchip text-purple-600 mb-2"></i>
+                <div class="text-sm text-gray-500">Architecture</div>
+                <div class="font-semibold">{{ package.arch }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <i class="fas fa-download text-purple-600 mb-2"></i>
+                <div class="text-sm text-gray-500">Downloads</div>
+                <div class="font-semibold">{{ package.downloads }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <i class="fas fa-calendar text-purple-600 mb-2"></i>
+                <div class="text-sm text-gray-500">Published</div>
+                <div class="font-semibold">{{ package.created_at[:10] }}</div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if package.description %}
+        <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+            <p class="text-gray-700 dark:text-gray-300">{{ package.description }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4">
+            <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}" 
+               class="flex-1 md:flex-none btn-primary px-6 py-3 rounded-xl text-white font-semibold text-center">
+                <i class="fas fa-download mr-2"></i>
+                Download Package
+            </a>
+            <button onclick="copyInstallCommand('apkm install {{ package.name }}')" 
+                    class="flex-1 md:flex-none btn-secondary px-6 py-3 rounded-xl font-semibold text-center">
+                <i class="fas fa-copy mr-2"></i>
+                Copy Install Command
+            </button>
+            <button onclick="copyAPIToken()" 
+                    class="flex-1 md:flex-none bg-gray-200 dark:bg-gray-700 px-6 py-3 rounded-xl font-semibold text-center hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                <i class="fas fa-key mr-2"></i>
+                Copy Token
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="border-b border-gray-200 dark:border-gray-700 mb-6" data-aos="fade-up">
+        <nav class="flex space-x-8" aria-label="Tabs">
+            <button onclick="showTab('readme')" class="tab-button active py-4 px-1 border-b-2 border-purple-600 text-purple-600 font-medium text-sm" id="tab-readme-btn">
+                <i class="fas fa-book mr-2"></i>
+                README
+            </button>
+            <button onclick="showTab('files')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm" id="tab-files-btn">
+                <i class="fas fa-folder mr-2"></i>
+                Files
+            </button>
+            <button onclick="showTab('dependencies')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm" id="tab-deps-btn">
+                <i class="fas fa-link mr-2"></i>
+                Dependencies
+            </button>
+            <button onclick="showTab('versions')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm" id="tab-versions-btn">
+                <i class="fas fa-history mr-2"></i>
+                Versions
+            </button>
+        </nav>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="glass-card rounded-2xl p-8" data-aos="fade-up">
+        <!-- README Tab -->
+        <div id="tab-readme" class="tab-content active">
+            {% if readme_html %}
+                <div class="markdown-body">
+                    {{ readme_html|safe }}
+                </div>
+            {% else %}
+                <div class="text-center py-16">
+                    <i class="fas fa-file-alt text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No README Available</h3>
+                    <p class="text-gray-500 dark:text-gray-400">This package doesn't have a README file.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Files Tab -->
+        <div id="tab-files" class="tab-content hidden">
+            <h3 class="text-xl font-semibold mb-4">Package Contents</h3>
+            <div class="bg-gray-900 rounded-xl p-4">
+                <pre class="text-green-400 font-mono text-sm overflow-x-auto"><code>tar -tzf {{ package.name }}-{{ package.version }}-{{ package.release }}-{{ package.arch }}.tar.bool</code></pre>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                <i class="fas fa-info-circle mr-2"></i>
+                Extract with: <code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">tar -xzf {{ package.name }}-{{ package.version }}-{{ package.release }}-{{ package.arch }}.tar.bool</code>
+            </p>
+        </div>
+
+        <!-- Dependencies Tab -->
+        <div id="tab-dependencies" class="tab-content hidden">
+            <h3 class="text-xl font-semibold mb-4">Dependencies</h3>
+            <div class="space-y-3">
+                <!-- Ici vous pouvez lister les vraies dépendances du package -->
+                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <i class="fas fa-cube text-purple-600 mr-3"></i>
+                    <span class="flex-1">libc</span>
+                    <span class="text-sm text-gray-500">>= 2.30</span>
+                </div>
+                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <i class="fas fa-cube text-purple-600 mr-3"></i>
+                    <span class="flex-1">gcc</span>
+                    <span class="text-sm text-gray-500">>= 10.0</span>
+                </div>
+                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <i class="fas fa-cube text-purple-600 mr-3"></i>
+                    <span class="flex-1">make</span>
+                    <span class="text-sm text-gray-500">>= 4.3</span>
                 </div>
             </div>
         </div>
+
+        <!-- Versions Tab -->
+        <div id="tab-versions" class="tab-content hidden">
+            <h3 class="text-xl font-semibold mb-4">Available Versions</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Release</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arch</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Downloads</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                            <td class="px-6 py-4 whitespace-nowrap font-medium">{{ package.version }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ package.release }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ package.arch }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ package.created_at[:10] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">{{ package.downloads }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="/package/{{ package.name }}?version={{ package.version }}" class="text-purple-600 hover:text-purple-700">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Package Metadata Card -->
+    <div class="mt-8 glass-card rounded-2xl p-6" data-aos="fade-up">
+        <h3 class="text-lg font-semibold mb-4">Package Metadata</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <div class="text-sm text-gray-500">SHA256</div>
+                <div class="font-mono text-xs truncate" title="{{ package.sha256 }}">{{ package.sha256[:16] }}...</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-500">Size</div>
+                <div class="font-semibold">{{ (package.size / 1024)|round(1) }} KB</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-500">Author</div>
+                <div class="font-semibold">{{ package.author }}</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-500">Last Updated</div>
+                <div class="font-semibold">{{ package.updated_at[:10] if package.updated_at else package.created_at[:10] }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Packages -->
+    <div class="mt-8" data-aos="fade-up">
+        <h3 class="text-xl font-semibold mb-4">Related Packages</h3>
+        <div class="grid md:grid-cols-3 gap-4">
+            <!-- Ces packages seraient chargés dynamiquement depuis l'API -->
+            <a href="#" class="glass-card p-4 rounded-xl hover:shadow-lg transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cubes text-purple-600"></i>
+                    <div>
+                        <div class="font-medium">related-pkg-1</div>
+                        <div class="text-sm text-gray-500">by author</div>
+                    </div>
+                </div>
+            </a>
+            <a href="#" class="glass-card p-4 rounded-xl hover:shadow-lg transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cubes text-purple-600"></i>
+                    <div>
+                        <div class="font-medium">related-pkg-2</div>
+                        <div class="text-sm text-gray-500">by author</div>
+                    </div>
+                </div>
+            </a>
+            <a href="#" class="glass-card p-4 rounded-xl hover:shadow-lg transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cubes text-purple-600"></i>
+                    <div>
+                        <div class="font-medium">related-pkg-3</div>
+                        <div class="text-sm text-gray-500">by author</div>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 </div>
+
+<style>
+.tab-content {
+    transition: opacity 0.3s ease;
+}
+.tab-content.hidden {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+
+/* Markdown Styles */
+.markdown-body {
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.markdown-body h1 {
+    padding-bottom: 0.3em;
+    font-size: 2em;
+    border-bottom: 1px solid #eaecef;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.markdown-body h2 {
+    padding-bottom: 0.3em;
+    font-size: 1.5em;
+    border-bottom: 1px solid #eaecef;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.markdown-body h3 {
+    font-size: 1.25em;
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.markdown-body p {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.markdown-body code {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: rgba(27,31,35,0.05);
+    border-radius: 3px;
+    font-family: "SF Mono",Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+}
+
+.markdown-body pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f6f8fa;
+    border-radius: 3px;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .markdown-body {
+        color: #c9d1d9;
+    }
+    .markdown-body h1,
+    .markdown-body h2 {
+        border-bottom-color: #30363d;
+    }
+    .markdown-body code {
+        background-color: rgba(110,118,129,0.4);
+    }
+    .markdown-body pre {
+        background-color: #161b22;
+    }
+}
+</style>
+
+<script>
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active', 'border-purple-600', 'text-purple-600');
+        btn.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(`tab-${tabName}`);
+    if (selectedTab) {
+        selectedTab.classList.remove('hidden');
+        selectedTab.classList.add('active');
+    }
+    
+    // Activate button
+    const selectedBtn = document.getElementById(`tab-${tabName}-btn`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active', 'border-purple-600', 'text-purple-600');
+        selectedBtn.classList.remove('border-transparent', 'text-gray-500');
+    }
+}
+
+function copyInstallCommand(cmd) {
+    navigator.clipboard.writeText(cmd).then(() => {
+        showNotification('Command copied to clipboard!', 'success');
+    }).catch(() => {
+        showNotification('Failed to copy command', 'error');
+    });
+}
+
+function copyAPIToken() {
+    const token = localStorage.getItem('zarch_token');
+    if (token) {
+        navigator.clipboard.writeText(token).then(() => {
+            showNotification('API token copied to clipboard!', 'success');
+        });
+    } else {
+        showNotification('No API token found. Please login first.', 'error');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg animate-slide-in ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Auto-show first tab on load
+document.addEventListener('DOMContentLoaded', () => {
+    showTab('readme');
+});
+</script>
 {% endblock %}
