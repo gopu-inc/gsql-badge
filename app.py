@@ -1120,6 +1120,69 @@ def cookies_page():
 def base_page():
     """Page d'information sur les base"""
     return render_template('base.html')
+
+# ============================================================================
+# ROUTES COMMUNAUTÉ
+# ============================================================================
+
+@app.route('/edit/community')
+def edit_community_page():
+    """Page d'édition de la communauté (admin seulement)"""
+    user = session.get('user')
+    
+    # Vérifier si l'utilisateur est admin
+    is_admin = user and (user.get('username') in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100'] or user.get('role') == 'admin')
+    
+    if not is_admin:
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect('/')
+    
+    try:
+        # Récupérer tous les packages
+        db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        if not isinstance(db, dict):
+            db = {'packages': []}
+        
+        packages = db.get('packages', [])
+        
+        # Récupérer tous les utilisateurs
+        users_db = GitHubManager.read_from_github('database/users.json', {'users': []})
+        if not isinstance(users_db, dict):
+            users_db = {'users': []}
+        
+        users = users_db.get('users', [])
+        
+        # Statistiques
+        total_packages = len(packages)
+        total_users = len(users)
+        total_downloads = sum(p.get('downloads', 0) for p in packages)
+        
+        # Packages par auteur
+        authors = {}
+        for pkg in packages:
+            author = pkg.get('author', 'unknown')
+            if author not in authors:
+                authors[author] = {'count': 0, 'downloads': 0}
+            authors[author]['count'] += 1
+            authors[author]['downloads'] += pkg.get('downloads', 0)
+        
+        # Trier les auteurs par nombre de packages
+        top_authors = sorted(authors.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
+        
+        return render_template('edit_community.html',
+                             user=user,
+                             packages=packages,
+                             users=users,
+                             total_packages=total_packages,
+                             total_users=total_users,
+                             total_downloads=total_downloads,
+                             top_authors=top_authors,
+                             now=datetime.now())
+    
+    except Exception as e:
+        app.logger.error(f"Edit community error: {e}")
+        flash('Error loading community data', 'error')
+        return redirect('/dashboard')
 # ============================================================================
 # GESTION DES ERREURS
 # ============================================================================
