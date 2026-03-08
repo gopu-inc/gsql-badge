@@ -2,6 +2,7 @@
 
 {% block og_title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
 {% block og_description %}Package {{ package.name }} version {{ package.version }} by {{ package.author }}{% endblock %}
+{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png{% endblock %}
 
 {% block title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
 
@@ -18,9 +19,7 @@
                     <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         {{ package.name }}
                     </h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">
-                        by <span class="font-semibold author-name" data-author="{{ package.author }}">{{ package.author }}</span>
-                    </p>
+                    <p class="text-gray-600 dark:text-gray-400 mt-1">by <span class="font-semibold">{{ package.author }}</span></p>
                 </div>
             </div>
             <div class="flex gap-3">
@@ -141,6 +140,7 @@
         <div id="tab-dependencies" class="tab-content hidden">
             <h3 class="text-xl font-semibold mb-4">Dependencies</h3>
             <div class="space-y-3">
+                <!-- Ici vous pouvez lister les vraies dépendances du package -->
                 <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <i class="fas fa-cube text-purple-600 mr-3"></i>
                     <span class="flex-1">libc</span>
@@ -207,12 +207,47 @@
             </div>
             <div>
                 <div class="text-sm text-gray-500">Author</div>
-                <div class="font-semibold author-name" data-author="{{ package.author }}">{{ package.author }}</div>
+                <div class="font-semibold">{{ package.author }}</div>
             </div>
             <div>
                 <div class="text-sm text-gray-500">Last Updated</div>
                 <div class="font-semibold">{{ package.updated_at[:10] if package.updated_at else package.created_at[:10] }}</div>
             </div>
+        </div>
+    </div>
+
+    <!-- Related Packages -->
+    <div class="mt-8" data-aos="fade-up">
+        <h3 class="text-xl font-semibold mb-4">Related Packages</h3>
+        <div class="grid md:grid-cols-3 gap-4">
+            <!-- Ces packages seraient chargés dynamiquement depuis l'API -->
+            <a href="#" class="glass-card p-4 rounded-xl hover:shadow-lg transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cubes text-purple-600"></i>
+                    <div>
+                        <div class="font-medium">related-pkg-1</div>
+                        <div class="text-sm text-gray-500">by author</div>
+                    </div>
+                </div>
+            </a>
+            <a href="#" class="glass-card p-4 rounded-xl hover:shadow-lg transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cubes text-purple-600"></i>
+                    <div>
+                        <div class="font-medium">related-pkg-2</div>
+                        <div class="text-sm text-gray-500">by author</div>
+                    </div>
+                </div>
+            </a>
+            <a href="#" class="glass-card p-4 rounded-xl hover:shadow-lg transition">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cubes text-purple-600"></i>
+                    <div>
+                        <div class="font-medium">related-pkg-3</div>
+                        <div class="text-sm text-gray-500">by author</div>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 </div>
