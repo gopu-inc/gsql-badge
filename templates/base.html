@@ -258,6 +258,16 @@
             animation: blob 7s infinite;
         }
         
+        @keyframes pop {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .animate-pop {
+            animation: pop 0.3s ease;
+        }
+        
         /* Loading spinner */
         .spinner {
             border: 3px solid rgba(139, 92, 246, 0.1);
@@ -270,6 +280,18 @@
         
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        
+        /* Admin badge */
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 0.5rem;
+            padding: 0.125rem 0.375rem;
+            background-color: #3b82f6;
+            border-radius: 9999px;
+            animation: pop 0.3s ease;
+            vertical-align: middle;
         }
         
         /* Mobile optimizations */
@@ -614,6 +636,85 @@
                 link.classList.add('active');
             }
         });
+
+        // ============================================================
+        // ADMIN BADGE SYSTEM
+        // ============================================================
+        
+        // Liste des administrateurs (à synchroniser avec le serveur)
+        const ADMIN_LIST = ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100'];
+        
+        // Vérifier si un utilisateur est admin
+        function isAdmin(username) {
+            return ADMIN_LIST.includes(username);
+        }
+        
+        // Vérifier si l'utilisateur courant est admin
+        function isCurrentUserAdmin() {
+            const userStr = localStorage.getItem('zarch_user');
+            if (!userStr) return false;
+            try {
+                const user = JSON.parse(userStr);
+                return isAdmin(user.username);
+            } catch {
+                return false;
+            }
+        }
+        
+        // Générer le badge admin HTML
+        function getAdminBadge() {
+            return '<span class="admin-badge" title="Verified Administrator"><i class="fas fa-check-circle text-white text-xs"></i></span>';
+        }
+        
+        // Appliquer les badges sur tous les noms d'utilisateur
+        function applyAdminBadges() {
+            // Badge pour l'utilisateur courant dans la navigation
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            if (usernameDisplay && isCurrentUserAdmin()) {
+                const username = usernameDisplay.textContent.trim();
+                if (!usernameDisplay.querySelector('.admin-badge')) {
+                    usernameDisplay.innerHTML = username + getAdminBadge();
+                }
+            }
+            
+            // Badges sur tous les éléments avec la classe 'author-name'
+            document.querySelectorAll('.author-name').forEach(el => {
+                const username = el.textContent.trim() || el.dataset.author;
+                if (isAdmin(username) && !el.querySelector('.admin-badge')) {
+                    el.innerHTML = username + getAdminBadge();
+                }
+            });
+            
+            // Badges sur les éléments avec l'attribut data-author
+            document.querySelectorAll('[data-author]').forEach(el => {
+                const username = el.dataset.author;
+                if (isAdmin(username) && !el.querySelector('.admin-badge')) {
+                    // Ne pas dupliquer si déjà traité
+                    if (!el.querySelector('.admin-badge')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'admin-badge';
+                        badge.innerHTML = '<i class="fas fa-check-circle text-white text-xs"></i>';
+                        badge.title = 'Verified Administrator';
+                        el.appendChild(badge);
+                    }
+                }
+            });
+        }
+        
+        // Observer pour les éléments chargés dynamiquement
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    applyAdminBadges();
+                }
+            });
+        });
+        
+        // Démarrer l'observation
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Appliquer au chargement initial
+        document.addEventListener('DOMContentLoaded', applyAdminBadges);
     </script>
     
     <!-- Flash messages -->
