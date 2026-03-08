@@ -373,9 +373,8 @@ class GitHubManager:
         except Exception as e:
             app.logger.error(f"Save Exception {path}: {e}")
             return False
-
 # ============================================================================
-# SÉCURITÉ & AUTH AVANCÉE
+# SÉCURITÉ & AUTH AVANCÉE (VERSION CORRIGÉE AVEC PyJWT)
 # ============================================================================
 
 class SecurityUtils:
@@ -392,14 +391,14 @@ class SecurityUtils:
     
     @staticmethod
     def generate_token(username, role="user"):
-        """Génère un token JWT signé"""
+        """Génère un token JWT signé avec PyJWT"""
         payload = {
             'username': username,
             'role': role,
-            'iat': datetime.now(),
-            'exp': datetime.now() + timedelta(seconds=SecurityConfig.TOKEN_EXPIRY)
+            'iat': datetime.utcnow(),
+            'exp': datetime.utcnow() + timedelta(seconds=SecurityConfig.TOKEN_EXPIRY)
         }
-        token = token_serializer.dumps(payload).decode('utf-8')
+        token = jwt.encode(payload, SecurityConfig.JWT_SECRET, algorithm='HS256')
         
         # Sauvegarde dans GitHub
         tokens_db = GitHubManager.read_from_github('tokens/tokens.json', {'tokens': []})
@@ -418,9 +417,9 @@ class SecurityUtils:
     
     @staticmethod
     def validate_token(token):
-        """Valide un token JWT"""
+        """Valide un token JWT avec PyJWT"""
         try:
-            payload = token_serializer.loads(token)
+            payload = jwt.decode(token, SecurityConfig.JWT_SECRET, algorithms=['HS256'])
             username = payload.get('username')
             
             # Vérification supplémentaire dans GitHub
@@ -434,7 +433,11 @@ class SecurityUtils:
                             'token': token
                         }
             return None
-        except:
+        except jwt.ExpiredSignatureError:
+            app.logger.warning("Token expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            app.logger.warning(f"Invalid token: {e}")
             return None
     
     @staticmethod
