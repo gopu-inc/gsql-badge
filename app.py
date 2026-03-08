@@ -1120,6 +1120,49 @@ def cookies_page():
 def base_page():
     """Page d'information sur les base"""
     return render_template('base.html')
+
+@app.route('/package/<name>')
+def package_detail_page(name):
+    """Page de détail d'un package avec README"""
+    version = request.args.get('version')
+    
+    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+    if not isinstance(db, dict):
+        db = {'packages': []}
+    
+    packages = db.get('packages', [])
+    package = None
+    
+    for p in packages:
+        if p['name'] == name:
+            if version is None or p['version'] == version:
+                package = p
+                break
+    
+    if not package:
+        abort(404, description="Package not found")
+    
+    # Chercher le README
+    readme_html = None
+    filename = f"{name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
+    pkg_path = f"packages/{package['scope']}/{name}/{filename}"
+    
+    content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
+    if content:
+        temp_dir = tempfile.mkdtemp()
+        temp_path = os.path.join(temp_dir, filename)
+        with open(temp_path, 'wb') as f:
+            f.write(content)
+        
+        readme_text = MarkdownRenderer.extract_from_tar(temp_path)
+        if readme_text:
+            readme_html = MarkdownRenderer.render(readme_text)
+        
+        shutil.rmtree(temp_dir)
+    
+    return render_template('package_detail.html',
+                         package=package,
+                         readme_html=readme_html)
 # ============================================================================
 # GESTION DES ERREURS
 # ============================================================================
