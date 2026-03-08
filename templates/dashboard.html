@@ -1,764 +1,408 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    
-    <!-- Open Graph / SEO -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://gsql-badge.onrender.com/dashboard">
-    <meta property="og:title" content="Dashboard - Zarch Hub">
-    <meta property="og:description" content="Manage your packages and account settings">
-    <meta property="og:image" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    <meta property="og:image:secure_url" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Zarch Hub Dashboard">
-    <meta name="twitter:description" content="Your personal package management dashboard">
-    
-    <!-- Discord Rich Presence -->
-    <meta name="theme-color" content="#8B5CF6">
-    <meta name="discord:guild_id" content="W2xN49q9h">
-    <meta name="discord:invite_url" content="https://discord.gg/W2xN49q9h">
-    
-    <!-- Mobile Web App Capabilities -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Zarch Hub">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Zarch Hub">
-    
-    <!-- iOS Icons -->
-    <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #1a1a1a;
-        }
-        
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            }
-            
-            .glass-card {
-                background: rgba(30, 41, 59, 0.95) !important;
-                border-color: rgba(255, 255, 255, 0.1) !important;
-                color: #f0f0f0;
-            }
-            
-            .stat-card {
-                background: rgba(30, 41, 59, 0.8) !important;
-            }
-            
-            .package-item {
-                background: rgba(30, 41, 59, 0.8) !important;
-                border-color: rgba(255, 255, 255, 0.1) !important;
-            }
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-        
-        /* Glassmorphism */
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
-        }
-        
-        .package-item {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-        
-        .package-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 5px 15px -5px rgba(139, 92, 246, 0.3);
-        }
-        
-        /* Tabs */
-        .tab-button {
-            padding: 0.75rem 1.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border-radius: 0.5rem;
-            cursor: pointer;
-        }
-        
-        .tab-button.active {
-            background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-            color: white;
-        }
-        
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* Danger zone */
-        .danger-zone {
-            border: 2px solid #EF4444;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .btn-danger {
-            background: #EF4444;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-danger:hover {
-            background: #DC2626;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px -5px #EF4444;
-        }
-        
-        /* Animations */
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .animate-float {
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Token display */
-        .token-display {
-            background: #1F2937;
-            color: #10B981;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            font-family: monospace;
-            font-size: 0.9rem;
-            word-break: break-all;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr !important;
-            }
-            
-            .package-actions {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .tabs {
-                flex-wrap: wrap;
-            }
-            
-            .tab-button {
-                flex: 1 1 auto;
-                text-align: center;
-                padding: 0.5rem;
-            }
-        }
-    </style>
-</head>
-<body class="antialiased">
-    <!-- Navigation -->
-    <nav class="glass-nav sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <a href="/" class="flex items-center space-x-3 group">
-                    <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png" 
-                         alt="Zarch Hub" 
-                         class="h-10 w-auto rounded-xl shadow-lg group-hover:scale-105 transition-transform">
-                    <span class="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        Zarch Hub
-                    </span>
-                </a>
-                
-                <div class="flex items-center space-x-4">
-                    <a href="/" class="text-gray-600 hover:text-purple-600 transition">
-                        <i class="fas fa-home mr-1"></i>Home
-                    </a>
-                    <a href="/packages" class="text-gray-600 hover:text-purple-600 transition">
-                        <i class="fas fa-box mr-1"></i>Packages
-                    </a>
-                    <a href="/docs" class="text-gray-600 hover:text-purple-600 transition">
-                        <i class="fas fa-book mr-1"></i>Docs
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition">
-                        <i class="fas fa-sign-out-alt mr-1"></i>Logout
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Welcome Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8" data-aos="fade-up">
-            <div>
-                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
-                    <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
-                </h1>
-                <p class="text-white/80">
-                    Welcome back, <span class="font-semibold text-white">{{ user.username }}</span>!
-                </p>
-            </div>
-            <div class="mt-4 md:mt-0 flex space-x-3">
-                <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg">
-                    <i class="fas fa-upload mr-2"></i>Upload Package
-                </a>
-                <button onclick="copyAPIToken()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all hover:scale-105">
-                    <i class="fas fa-key mr-2"></i>Copy Token
-                </button>
-            </div>
+{% block og_title %}Dashboard - Zarch Hub{% endblock %}
+{% block og_description %}Manage your packages and account settings{% endblock %}
+
+{% block title %}Dashboard - Zarch Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Welcome Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8" data-aos="fade-up">
+        <div class="flex items-center gap-4">
+            <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
+            </h1>
+            {% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
+            <span class="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-sm rounded-full animate-pop">
+                <i class="fas fa-check-circle mr-1"></i> Verified Admin
+            </span>
+            {% endif %}
+        </div>
+        <div class="mt-4 md:mt-0 flex space-x-3">
+            <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg">
+                <i class="fas fa-upload mr-2"></i>Upload Package
+            </a>
+            <button onclick="copyAPIToken()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all hover:scale-105">
+                <i class="fas fa-key mr-2"></i>Copy Token
+            </button>
+        </div>
+    </div>
+
+    <!-- Welcome Message -->
+    <div class="glass-card rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="50">
+        <p class="text-lg">
+            Welcome back, <span class="font-semibold author-name" data-author="{{ user.username }}">{{ user.username }}</span>!
+            {% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
+            <span class="inline-flex items-center ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                <i class="fas fa-check-circle mr-1"></i> Admin
+            </span>
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 stats-grid" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card glass-card p-6 text-center">
+            <i class="fas fa-box text-3xl text-purple-600 mb-3"></i>
+            <div class="text-3xl font-bold">{{ stats.packages }}</div>
+            <div class="text-sm text-gray-500">Your Packages</div>
+        </div>
+        <div class="stat-card glass-card p-6 text-center">
+            <i class="fas fa-download text-3xl text-green-600 mb-3"></i>
+            <div class="text-3xl font-bold">{{ stats.downloads }}</div>
+            <div class="text-sm text-gray-500">Downloads</div>
+        </div>
+        <div class="stat-card glass-card p-6 text-center">
+            <i class="fas fa-star text-3xl text-yellow-600 mb-3"></i>
+            <div class="text-3xl font-bold">0</div>
+            <div class="text-sm text-gray-500">Stars</div>
+        </div>
+        <div class="stat-card glass-card p-6 text-center">
+            <i class="fas fa-calendar text-3xl text-pink-600 mb-3"></i>
+            <div class="text-3xl font-bold">{{ stats.member_since }}</div>
+            <div class="text-sm text-gray-500">Member Since</div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="glass-card rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="tabs flex space-x-2 mb-6 overflow-x-auto pb-2">
+            <button class="tab-button active px-4 py-2 bg-purple-600 text-white rounded-lg" onclick="showTab('packages')">
+                <i class="fas fa-box mr-2"></i>My Packages
+            </button>
+            <button class="tab-button px-4 py-2 hover:bg-purple-50 rounded-lg transition" onclick="showTab('analytics')">
+                <i class="fas fa-chart-line mr-2"></i>Analytics
+            </button>
+            <button class="tab-button px-4 py-2 hover:bg-purple-50 rounded-lg transition" onclick="showTab('settings')">
+                <i class="fas fa-cog mr-2"></i>Settings
+            </button>
+            <button class="tab-button px-4 py-2 hover:bg-purple-50 rounded-lg transition" onclick="showTab('api')">
+                <i class="fas fa-code mr-2"></i>API Access
+            </button>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 stats-grid" data-aos="fade-up" data-aos-delay="100">
-            <div class="stat-card">
-                <i class="fas fa-box text-3xl text-purple-600 mb-3"></i>
-                <div class="text-3xl font-bold">{{ stats.packages }}</div>
-                <div class="text-sm text-gray-500">Your Packages</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-download text-3xl text-green-600 mb-3"></i>
-                <div class="text-3xl font-bold">{{ stats.downloads }}</div>
-                <div class="text-sm text-gray-500">Downloads</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-star text-3xl text-yellow-600 mb-3"></i>
-                <div class="text-3xl font-bold">0</div>
-                <div class="text-sm text-gray-500">Stars</div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-calendar text-3xl text-pink-600 mb-3"></i>
-                <div class="text-3xl font-bold">{{ stats.member_since }}</div>
-                <div class="text-sm text-gray-500">Member Since</div>
-            </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="glass-card rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
-            <div class="tabs flex space-x-2 mb-6 overflow-x-auto pb-2">
-                <button class="tab-button active" onclick="showTab('packages')">
-                    <i class="fas fa-box mr-2"></i>My Packages
-                </button>
-                <button class="tab-button" onclick="showTab('analytics')">
-                    <i class="fas fa-chart-line mr-2"></i>Analytics
-                </button>
-                <button class="tab-button" onclick="showTab('settings')">
-                    <i class="fas fa-cog mr-2"></i>Settings
-                </button>
-                <button class="tab-button" onclick="showTab('api')">
-                    <i class="fas fa-code mr-2"></i>API Access
-                </button>
-            </div>
-
-            <!-- Packages Tab -->
-            <div id="packages-tab" class="tab-content active">
-                {% if user_packages %}
-                <div class="space-y-4">
-                    {% for pkg in user_packages %}
-                    <div class="package-item">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                            <div class="flex items-start space-x-4">
-                                <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-cubes text-xl text-purple-600"></i>
-                                </div>
-                                <div>
-                                    <h3 class="font-bold text-lg">{{ pkg.name }}</h3>
-                                    <div class="flex items-center space-x-3 text-sm text-gray-500">
-                                        <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
-                                        <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
-                                        <span class="px-2 py-0.5 bg-{{ 'green' if pkg.scope == 'public' else 'gray' }}-100 rounded-full text-xs">
-                                            {{ pkg.scope }}
-                                        </span>
-                                    </div>
+        <!-- Packages Tab -->
+        <div id="packages-tab" class="tab-content active">
+            {% if user_packages %}
+            <div class="space-y-4">
+                {% for pkg in user_packages %}
+                <div class="package-item bg-gray-50 dark:bg-gray-800 rounded-xl p-4 hover:shadow-lg transition">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-cubes text-xl text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg">{{ pkg.name }}</h3>
+                                <div class="flex items-center space-x-3 text-sm text-gray-500">
+                                    <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
+                                    <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
+                                    <span class="px-2 py-0.5 bg-{{ 'green' if pkg.scope == 'public' else 'gray' }}-100 rounded-full text-xs">
+                                        {{ pkg.scope }}
+                                    </span>
                                 </div>
                             </div>
-                            <div class="flex space-x-2 mt-3 md:mt-0">
-                                <a href="/package/{{ pkg.name }}" class="px-3 py-1.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <button onclick="editPackage('{{ pkg.name }}')" class="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deletePackage('{{ pkg.name }}')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                <button onclick="copyInstallCommand('apkm install {{ pkg.name }}')" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
                         </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="text-center py-12">
-                    <i class="fas fa-box-open text-5xl text-gray-400 mb-4"></i>
-                    <h3 class="text-xl font-bold text-gray-600 mb-2">No packages yet</h3>
-                    <p class="text-gray-500 mb-6">Upload your first package to get started!</p>
-                    <a href="/upload" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105">
-                        <i class="fas fa-upload mr-2"></i>Upload Package
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Analytics Tab -->
-            <div id="analytics-tab" class="tab-content">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white/50 rounded-xl p-4">
-                        <h3 class="font-semibold mb-4">Downloads Over Time</h3>
-                        <canvas id="downloadsChart" height="200"></canvas>
-                    </div>
-                    <div class="bg-white/50 rounded-xl p-4">
-                        <h3 class="font-semibold mb-4">Popular Packages</h3>
-                        <canvas id="popularChart" height="200"></canvas>
-                    </div>
-                </div>
-                
-                <div class="mt-6 grid grid-cols-2 gap-4">
-                    <div class="bg-white/50 rounded-xl p-4 text-center">
-                        <div class="text-2xl font-bold text-purple-600">{{ stats.downloads }}</div>
-                        <div class="text-sm text-gray-500">Total Downloads</div>
-                    </div>
-                    <div class="bg-white/50 rounded-xl p-4 text-center">
-                        <div class="text-2xl font-bold text-green-600">{{ stats.packages }}</div>
-                        <div class="text-sm text-gray-500">Active Packages</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Tab -->
-            <div id="settings-tab" class="tab-content">
-                <form id="settingsForm" class="space-y-6 max-w-2xl">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-user mr-2 text-purple-600"></i>Display Name
-                        </label>
-                        <input type="text" id="displayName" value="{{ user.username }}" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-envelope mr-2 text-purple-600"></i>Email
-                        </label>
-                        <input type="email" id="email" value="{{ user.email or '' }}" 
-                               placeholder="your@email.com"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-align-left mr-2 text-purple-600"></i>Bio
-                        </label>
-                        <textarea id="bio" rows="3" 
-                                  placeholder="Tell us about yourself"
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">{{ user.bio or '' }}</textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-bell mr-2 text-purple-600"></i>Notifications
-                        </label>
-                        <div class="space-y-2">
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" checked class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                                <span class="text-sm text-gray-600">Email me when my packages are downloaded</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
-                                <input type="checkbox" checked class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                                <span class="text-sm text-gray-600">Newsletter and updates</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all">
-                        Save Changes
-                    </button>
-                </form>
-                
-                <div class="danger-zone">
-                    <h3 class="text-lg font-bold text-red-600 mb-4 flex items-center">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
-                    </h3>
-                    <div class="flex flex-wrap gap-3">
-                        <button onclick="changePassword()" class="btn-danger">
-                            <i class="fas fa-key mr-2"></i>Change Password
-                        </button>
-                        <button onclick="regenerateToken()" class="btn-danger">
-                            <i class="fas fa-sync mr-2"></i>Regenerate Token
-                        </button>
-                        <button onclick="deleteAccount()" class="btn-danger">
-                            <i class="fas fa-trash mr-2"></i>Delete Account
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- API Tab -->
-            <div id="api-tab" class="tab-content">
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="font-semibold mb-3">Your API Token</h3>
-                        <div class="flex items-center space-x-2">
-                            <div class="token-display flex-1" id="apiToken">zarch_••••••••••••••••••••••••••••••••</div>
-                            <button onclick="copyToken()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+                        <div class="flex space-x-2 mt-3 md:mt-0">
+                            <a href="/package/{{ pkg.name }}" class="px-3 py-1.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button onclick="editPackage('{{ pkg.name }}')" class="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deletePackage('{{ pkg.name }}')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button onclick="copyInstallCommand('apkm install {{ pkg.name }}')" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
-                        <p class="text-sm text-gray-500 mt-2">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            This token gives full access to your account. Keep it secret!
-                        </p>
                     </div>
-                    
-                    <div>
-                        <h3 class="font-semibold mb-3">API Usage</h3>
-                        <div class="grid grid-cols-3 gap-4">
-                            <div class="text-center p-4 bg-purple-50 rounded-lg">
-                                <div class="text-2xl font-bold text-purple-600">150</div>
-                                <div class="text-xs text-gray-500">Requests Today</div>
-                            </div>
-                            <div class="text-center p-4 bg-green-50 rounded-lg">
-                                <div class="text-2xl font-bold text-green-600">2.5k</div>
-                                <div class="text-xs text-gray-500">This Month</div>
-                            </div>
-                            <div class="text-center p-4 bg-pink-50 rounded-lg">
-                                <div class="text-2xl font-bold text-pink-600">1000</div>
-                                <div class="text-xs text-gray-500">Rate Limit</div>
-                            </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-box-open text-5xl text-gray-400 mb-4"></i>
+                <h3 class="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">No packages yet</h3>
+                <p class="text-gray-500 mb-6">Upload your first package to get started!</p>
+                <a href="/upload" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105">
+                    <i class="fas fa-upload mr-2"></i>Upload Package
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white/50 rounded-xl p-4">
+                    <h3 class="font-semibold mb-4">Downloads Over Time</h3>
+                    <canvas id="downloadsChart" height="200"></canvas>
+                </div>
+                <div class="bg-white/50 rounded-xl p-4">
+                    <h3 class="font-semibold mb-4">Popular Packages</h3>
+                    <canvas id="popularChart" height="200"></canvas>
+                </div>
+            </div>
+            
+            <div class="mt-6 grid grid-cols-2 gap-4">
+                <div class="bg-white/50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ stats.downloads }}</div>
+                    <div class="text-sm text-gray-500">Total Downloads</div>
+                </div>
+                <div class="bg-white/50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ stats.packages }}</div>
+                    <div class="text-sm text-gray-500">Active Packages</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content hidden">
+            <form id="settingsForm" class="space-y-6 max-w-2xl">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-user mr-2 text-purple-600"></i>Display Name
+                    </label>
+                    <input type="text" id="displayName" value="{{ user.username }}" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-envelope mr-2 text-purple-600"></i>Email
+                    </label>
+                    <input type="email" id="email" value="{{ user.email or '' }}" 
+                           placeholder="your@email.com"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-align-left mr-2 text-purple-600"></i>Bio
+                    </label>
+                    <textarea id="bio" rows="3" 
+                              placeholder="Tell us about yourself"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">{{ user.bio or '' }}</textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-bell mr-2 text-purple-600"></i>Notifications
+                    </label>
+                    <div class="space-y-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" checked class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                            <span class="text-sm text-gray-600">Email me when my packages are downloaded</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" checked class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                            <span class="text-sm text-gray-600">Newsletter and updates</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all">
+                    Save Changes
+                </button>
+            </form>
+            
+            <div class="danger-zone border-2 border-red-500 rounded-xl p-6 mt-8">
+                <h3 class="text-lg font-bold text-red-600 mb-4 flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
+                </h3>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="changePassword()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                        <i class="fas fa-key mr-2"></i>Change Password
+                    </button>
+                    <button onclick="regenerateToken()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                        <i class="fas fa-sync mr-2"></i>Regenerate Token
+                    </button>
+                    <button onclick="deleteAccount()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                        <i class="fas fa-trash mr-2"></i>Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Tab -->
+        <div id="api-tab" class="tab-content hidden">
+            <div class="space-y-6">
+                <div>
+                    <h3 class="font-semibold mb-3">Your API Token</h3>
+                    <div class="flex items-center space-x-2">
+                        <div class="token-display bg-gray-900 text-green-400 flex-1 p-3 rounded-lg font-mono text-sm truncate" id="apiToken">
+                            {{ session.token or 'Not logged in' }}
+                        </div>
+                        <button onclick="copyToken()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        This token gives full access to your account. Keep it secret!
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">API Usage</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600">150</div>
+                            <div class="text-xs text-gray-500">Requests Today</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600">2.5k</div>
+                            <div class="text-xs text-gray-500">This Month</div>
+                        </div>
+                        <div class="text-center p-4 bg-pink-50 rounded-lg">
+                            <div class="text-2xl font-bold text-pink-600">1000</div>
+                            <div class="text-xs text-gray-500">Rate Limit</div>
                         </div>
                     </div>
-                    
-                    <div>
-                        <h3 class="font-semibold mb-3">Example Usage</h3>
-                        <div class="bg-gray-900 rounded-lg p-4 text-sm text-green-400 font-mono overflow-x-auto">
-                            <div># Publish a package</div>
-                            <div>curl -X POST https://gsql-badge.onrender.com/v5.2/package/upload/public/{{ user.username }}/mypackage \</div>
-                            <div>  -H "Authorization: Bearer YOUR_TOKEN" \</div>
-                            <div>  -F "file=@package.tar.bool" \</div>
-                            <div>  -F "version=1.0.0"</div>
-                            <br>
-                            <div># Search packages</div>
-                            <div>curl https://gsql-badge.onrender.com/v5.2/package/search?q=mypackage</div>
-                            <!-- Simple Auth Status (en bas du dashboard) -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-    <div class="bg-white/80 backdrop-blur-lg rounded-xl p-4 text-center text-sm">
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">Example Usage</h3>
+                    <div class="bg-gray-900 rounded-lg p-4 text-sm text-green-400 font-mono overflow-x-auto">
+                        <div># Publish a package</div>
+                        <div>curl -X POST https://gsql-badge.onrender.com/v5.2/package/upload/public/{{ user.username }}/mypackage \</div>
+                        <div>  -H "Authorization: Bearer YOUR_TOKEN" \</div>
+                        <div>  -F "file=@package.tar.bool" \</div>
+                        <div>  -F "version=1.0.0"</div>
+                        <br>
+                        <div># Search packages</div>
+                        <div>curl https://gsql-badge.onrender.com/v5.2/package/search?q=mypackage</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simple Auth Status -->
+    <div class="glass-card rounded-xl p-4 mt-8 text-center text-sm" data-aos="fade-up">
         <i class="fas fa-check-circle text-green-500 mr-2"></i>
-        Logged in as <span class="font-semibold">{{ user.username }}</span>
+        Logged in as <span class="font-semibold author-name" data-author="{{ user.username }}">{{ user.username }}</span>
+        {% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
+        <span class="inline-flex items-center ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+            <i class="fas fa-check-circle mr-1"></i> Admin
+        </span>
+        {% endif %}
         <span class="mx-2">•</span>
         <a href="/logout" class="text-red-600 hover:text-red-700">Logout</a>
         <span class="mx-2">•</span>
         <a href="/" class="text-purple-600 hover:text-purple-700">Home</a>
     </div>
 </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Footer -->
-    <footer class="glass-nav mt-12 py-4">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-            <p>© 2026 Zarch Hub. All rights reserved.</p>
-        </div>
-    </footer>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Tab switching
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active', 'bg-purple-600', 'text-white');
+        btn.classList.add('hover:bg-purple-50');
+    });
+    
+    document.getElementById(tabName + '-tab').classList.remove('hidden');
+    event.target.classList.add('active', 'bg-purple-600', 'text-white');
+    
+    if (tabName === 'analytics' && !window.chartsInitialized) {
+        initCharts();
+        window.chartsInitialized = true;
+    }
+}
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            once: true
-        });
-
-        // Tab switching
-        function showTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Show selected tab
-            document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
-            
-            // Initialize charts if showing analytics
-            if (tabName === 'analytics' && !window.chartsInitialized) {
-                initCharts();
-                window.chartsInitialized = true;
-            }
+// Initialize charts
+function initCharts() {
+    const downloadsCtx = document.getElementById('downloadsChart').getContext('2d');
+    new Chart(downloadsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [{
+                label: 'Downloads',
+                data: {{ chart_data|safe }},
+                borderColor: '#8B5CF6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
         }
-
-        // Initialize charts
-        function initCharts() {
-            // Downloads chart
-            const downloadsCtx = document.getElementById('downloadsChart').getContext('2d');
-            new Chart(downloadsCtx, {
-                type: 'line',
-                data: {
-                    labels: {{ chart_labels|safe }},
-                    datasets: [{
-                        label: 'Downloads',
-                        data: {{ chart_data|safe }},
-                        borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-            
-            // Popular packages chart
-            const popularCtx = document.getElementById('popularChart').getContext('2d');
-            new Chart(popularCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: {{ popular_labels|safe }},
-                    datasets: [{
-                        data: {{ popular_data|safe }},
-                        backgroundColor: [
-                            '#8B5CF6',
-                            '#10B981',
-                            '#F59E0B'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
+    });
+    
+    const popularCtx = document.getElementById('popularChart').getContext('2d');
+    new Chart(popularCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ popular_labels|safe }},
+            datasets: [{
+                data: {{ popular_data|safe }},
+                backgroundColor: ['#8B5CF6', '#10B981', '#F59E0B']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
         }
+    });
+}
 
-        // Copy API token
-        function copyAPIToken() {
-            const token = localStorage.getItem('zarch_token') || '{{ session.token }}';
-            navigator.clipboard.writeText(token);
-            showNotification('API token copied to clipboard!', 'success');
-        }
+// Copy functions
+function copyAPIToken() {
+    const token = localStorage.getItem('zarch_token') || '{{ session.token }}';
+    if (token) {
+        navigator.clipboard.writeText(token);
+        showNotification('API token copied!', 'success');
+    }
+}
+function copyToken() { copyAPIToken(); }
+function copyInstallCommand(cmd) {
+    navigator.clipboard.writeText(cmd);
+    showNotification('Command copied!', 'success');
+}
 
-        function copyToken() {
-            copyAPIToken();
-        }
+// Package actions
+function editPackage(name) { window.location.href = `/edit/${name}`; }
+function deletePackage(name) {
+    if (confirm(`Delete ${name}?`)) {
+        showNotification('Delete feature coming soon', 'info');
+    }
+}
 
-        // Copy install command
-        function copyInstallCommand(command) {
-            navigator.clipboard.writeText(command);
-            showNotification('Command copied to clipboard!', 'success');
-        }
+// Settings
+function changePassword() { showNotification('Password change coming soon', 'info'); }
+function regenerateToken() { showNotification('Token regeneration coming soon', 'info'); }
+function deleteAccount() { showNotification('Account deletion coming soon', 'info'); }
 
-        // Package actions
-        function editPackage(name) {
-            window.location.href = `/edit/${name}`;
-        }
+// Form submission
+document.getElementById('settingsForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    showNotification('Settings saved!', 'success');
+});
 
-        function deletePackage(name) {
-            if (confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) {
-                // API call to delete package
-                fetch(`/v5.2/package/${name}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('zarch_token')}`
-                    }
-                }).then(response => {
-                    if (response.ok) {
-                        showNotification(`Package ${name} deleted successfully`, 'success');
-                        setTimeout(() => window.location.reload(), 1500);
-                    } else {
-                        showNotification('Failed to delete package', 'error');
-                    }
-                });
-            }
-        }
-
-        // Settings
-        function changePassword() {
-            showNotification('Password change feature coming soon!', 'info');
-        }
-
-        function regenerateToken() {
-            if (confirm('Are you sure you want to regenerate your API token? This will invalidate your current token.')) {
-                // API call to regenerate token
-                fetch('/v5.2/auth/regenerate-token', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('zarch_token')}`
-                    }
-                }).then(response => response.json()).then(data => {
-                    if (data.token) {
-                        localStorage.setItem('zarch_token', data.token);
-                        showNotification('Token regenerated successfully!', 'success');
-                    }
-                });
-            }
-        }
-
-        function deleteAccount() {
-            if (confirm('Are you absolutely sure? This will permanently delete your account and all packages.')) {
-                showNotification('Account deletion coming soon!', 'info');
-            }
-        }
-
-        // Form submission
-        document.getElementById('settingsForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            showNotification('Settings saved successfully!', 'success');
-        });
-
-        // Notification system
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed bottom-4 right-4 z-50 bg-white rounded-lg shadow-lg p-4 max-w-md border-l-4 animate-slide-in 
-                                      ${type === 'success' ? 'border-green-500' : type === 'error' ? 'border-red-500' : 'border-blue-500'}`;
-            notification.innerHTML = `
-                <div class="flex items-center space-x-3">
-                    <i class="fas fa-${type === 'success' ? 'check-circle text-green-500' : type === 'error' ? 'exclamation-circle text-red-500' : 'info-circle text-blue-500'}"></i>
-                    <p class="text-sm text-gray-700">${message}</p>
-                </div>
-            `;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // Add animation delays
-        const style = document.createElement('style');
-        style.textContent = `
-            .animation-delay-1000 { animation-delay: 1s; }
-            .animation-delay-2000 { animation-delay: 2s; }
-            .animate-slide-in {
-                animation: slideIn 0.3s ease-out;
-            }
-            @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translateX(100%);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateX(0);
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    </script>
-</body>
-</html>
+// Notification system
+function showNotification(message, type = 'info') {
+    const notif = document.createElement('div');
+    notif.className = `fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg animate-slide-in ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notif.textContent = message;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 3000);
+}
+</script>
+{% endblock %}
