@@ -1,998 +1,132 @@
 {% extends "base.html" %}
 
-{% block og_title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
-{% block og_description %}Manage your packages, badges, reviews, and community interactions on Zarch Hub{% endblock %}
-{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/dashboard-ultimate.png{% endblock %}
-
-{% block twitter_title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
-{% block twitter_description %}Complete package management dashboard{% endblock %}
-
 {% block title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
 
-{% block extra_head %}
-<!-- Chart.js pour les graphiques -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<!-- Flatpickr pour les dates -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-<style>
-    /* Animations personnalisées */
-    @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-5px); }
-    }
-    
-    .animate-float {
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateX(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateX(0);
-        }
-    }
-    
-    .animate-slide-in {
-        animation: slideIn 0.3s ease-out;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    
-    .animate-pulse {
-        animation: pulse 2s ease-in-out infinite;
-    }
-    
-    /* Stats cards */
-    .stat-card {
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
-    }
-    
-    /* Package items */
-    .package-item {
-        transition: all 0.3s ease;
-    }
-    
-    .package-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.2);
-    }
-    
-    /* Badge preview */
-    .badge-preview {
-        transition: all 0.3s ease;
-    }
-    
-    .badge-preview:hover {
-        transform: scale(1.1);
-    }
-    
-    /* Scrollbar personnalisée */
-    .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-    }
-    
-    .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-    
-    /* Skeleton loading */
-    .skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: loading 1.5s infinite;
-    }
-    
-    @keyframes loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-    }
-    
-    .dark .skeleton {
-        background: linear-gradient(90deg, #2d2d2d 25%, #3d3d3d 50%, #2d2d2d 75%);
-    }
-    
-    /* Connection status */
-    #connectionStatus.online {
-        color: #10B981;
-    }
-    
-    #connectionStatus.offline {
-        color: #EF4444;
-    }
-    
-    /* Admin badge */
-    .admin-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        margin-left: 0.375rem;
-        padding: 0.125rem 0.375rem;
-        background: linear-gradient(135deg, #3B82F6, #2563EB);
-        border-radius: 9999px;
-        animation: pop 0.3s ease;
-        vertical-align: middle;
-    }
-    
-    .admin-badge i {
-        font-size: 0.7rem;
-        color: white;
-    }
-    
-    @keyframes pop {
-        0% { transform: scale(0); }
-        80% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+<div class="max-w-7xl mx-auto px-4 py-8">
     
     <!-- =========================================================================
-         EN-TÊTE DU DASHBOARD AVEC STATS EN DIRECT
+         EN-TÊTE SIMPLE
          ========================================================================= -->
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 lg:mb-8" data-aos="fade-up">
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <div class="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg animate-float">
-                    <i class="fas fa-tachometer-alt text-white text-xl lg:text-2xl"></i>
-                </div>
-                {% if is_admin %}
-                <div class="absolute -top-1 -right-1">
-                    <span class="flex h-4 w-4 lg:h-5 lg:w-5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-4 w-4 lg:h-5 lg:w-5 bg-purple-500 border-2 border-white dark:border-gray-800"></span>
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-            <div>
-                <h1 class="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    Dashboard
-                </h1>
-                <div class="flex items-center gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    <i class="fas fa-clock"></i>
-                    <span id="liveTimestamp">{{ now.strftime('%H:%M:%S') }}</span>
-                    <span class="mx-1">•</span>
-                    <i class="fas fa-wifi" id="connectionStatus" title="Connection Status"></i>
-                    <span class="mx-1">•</span>
-                    <span class="text-purple-600 font-medium" id="notificationCount">{% if notifications_count > 0 %}{{ notifications_count }} new{% endif %}</span>
-                </div>
-            </div>
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+                Dashboard
+            </h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">
+                Welcome back, <span class="font-semibold">{{ user.username }}</span>!
+            </p>
         </div>
         
-        <!-- Actions rapides -->
-        <div class="flex flex-wrap gap-2 w-full lg:w-auto">
+        <div class="flex gap-3">
             <a href="/upload" 
-               class="flex-1 lg:flex-none px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl text-sm font-medium hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-md text-center">
-                <i class="fas fa-upload mr-1"></i>
-                <span class="hidden xs:inline">Upload</span>
+               class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all">
+                <i class="fas fa-upload mr-2"></i>Upload
             </a>
-            
-            <a href="/settings/badges" 
-               class="flex-1 lg:flex-none px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition-all hover:scale-105 shadow-md text-center">
-                <i class="fas fa-award mr-1"></i>
-                <span class="hidden xs:inline">Badges</span>
-            </a>
-            
-            <a href="/community" 
-               class="flex-1 lg:flex-none px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-all hover:scale-105 shadow-md text-center">
-                <i class="fas fa-users mr-1"></i>
-                <span class="hidden xs:inline">Community</span>
-            </a>
-            
-            <a href="/settings" 
-               class="flex-1 lg:flex-none px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all text-center">
-                <i class="fas fa-cog mr-1"></i>
-                <span class="hidden xs:inline">Settings</span>
+            <a href="/logout" 
+               class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
             </a>
         </div>
     </div>
 
     <!-- =========================================================================
-         NOTIFICATIONS EN DIRECT
+         STATISTIQUES SIMPLES
          ========================================================================= -->
-    <div id="liveNotifications" class="mb-6 space-y-2">
-        {% for notification in notifications %}
-        <div class="glass-card p-3 rounded-lg flex items-center justify-between animate-slide-in border-l-4 border-{{ notification.color }}-500">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-{{ notification.icon }} text-{{ notification.color }}-500"></i>
-                <span class="text-sm">{{ notification.message|safe }}</span>
-            </div>
-            <span class="text-xs text-gray-500">{{ notification.time }}</span>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- =========================================================================
-         STATISTIQUES AVANCÉES
-         ========================================================================= -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-8 stats-grid" data-aos="fade-up">
-        <!-- Packages count -->
-        <div class="stat-card glass-card p-3 lg:p-4 text-center hover:shadow-xl transition-all group cursor-pointer"
-             onclick="showStatDetail('packages')">
-            <i class="fas fa-box text-xl lg:text-2xl text-purple-600 mb-1 lg:mb-2 group-hover:scale-110 transition-transform"></i>
-            <div class="stat-value text-xl lg:text-2xl font-bold text-gray-800 dark:text-white counter" data-target="{{ stats.packages }}">0</div>
-            <div class="text-xs lg:text-sm text-gray-500">Your Packages</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="text-3xl font-bold text-purple-600">{{ stats.packages|default(0) }}</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Your Packages</div>
         </div>
         
-        <!-- Downloads count -->
-        <div class="stat-card glass-card p-3 lg:p-4 text-center hover:shadow-xl transition-all group cursor-pointer"
-             onclick="showStatDetail('downloads')">
-            <i class="fas fa-download text-xl lg:text-2xl text-green-600 mb-1 lg:mb-2 group-hover:scale-110 transition-transform"></i>
-            <div class="stat-value text-xl lg:text-2xl font-bold text-gray-800 dark:text-white counter" data-target="{{ stats.downloads }}">0</div>
-            <div class="text-xs lg:text-sm text-gray-500">Downloads</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="text-3xl font-bold text-green-600">{{ stats.downloads|default(0) }}</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Total Downloads</div>
         </div>
         
-        <!-- Badges count -->
-        <div class="stat-card glass-card p-3 lg:p-4 text-center hover:shadow-xl transition-all group cursor-pointer"
-             onclick="window.location.href='/settings/badges'">
-            <i class="fas fa-award text-xl lg:text-2xl text-yellow-600 mb-1 lg:mb-2 group-hover:scale-110 transition-transform"></i>
-            <div class="stat-value text-xl lg:text-2xl font-bold text-gray-800 dark:text-white counter" data-target="{{ badges_count|default(0) }}">0</div>
-            <div class="text-xs lg:text-sm text-gray-500">Custom Badges</div>
-        </div>
-        
-        <!-- Reviews received -->
-        <div class="stat-card glass-card p-3 lg:p-4 text-center hover:shadow-xl transition-all group cursor-pointer"
-             onclick="showReviewsModal()">
-            <i class="fas fa-star text-xl lg:text-2xl text-blue-600 mb-1 lg:mb-2 group-hover:scale-110 transition-transform"></i>
-            <div class="stat-value text-xl lg:text-2xl font-bold text-gray-800 dark:text-white counter" data-target="{{ reviews_count|default(0) }}">0</div>
-            <div class="text-xs lg:text-sm text-gray-500">Reviews</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="text-3xl font-bold text-blue-600">{{ stats.member_since|default('2026') }}</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">Member Since</div>
         </div>
     </div>
 
     <!-- =========================================================================
-         GRAPHIQUES ET ANALYTICS
+         LISTE DES PACKAGES SIMPLE
          ========================================================================= -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8" data-aos="fade-up">
-        <!-- Graphique des téléchargements -->
-        <div class="lg:col-span-2 glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6">
-            <div class="flex justify-between items-center mb-3 lg:mb-4">
-                <h3 class="text-base lg:text-lg font-semibold flex items-center">
-                    <i class="fas fa-chart-line text-purple-600 mr-2"></i>
-                    Downloads Overview
-                </h3>
-                <select id="chartRange" class="text-xs lg:text-sm px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 border-0">
-                    <option value="week">Week</option>
-                    <option value="month" selected>Month</option>
-                    <option value="year">Year</option>
-                </select>
-            </div>
-            <div class="chart-container relative h-48 lg:h-64">
-                <canvas id="downloadsChart"></canvas>
-            </div>
-        </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Your Packages</h2>
         
-        <!-- Activité récente -->
-        <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6">
-            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 flex items-center">
-                <i class="fas fa-history text-purple-600 mr-2"></i>
-                Recent Activity
-            </h3>
-            <div class="space-y-2 lg:space-y-3 max-h-64 lg:max-h-80 overflow-y-auto pr-2 scrollbar-hide">
-                {% if recent_activity %}
-                    {% for activity in recent_activity %}
-                    <div class="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div class="w-6 h-6 rounded-full bg-{{ activity.color }}-100 flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-{{ activity.icon }} text-{{ activity.color }}-600 text-xs"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs font-medium">{{ activity.message|safe }}</p>
-                            <p class="text-xs text-gray-500">{{ activity.time }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-center text-gray-500 text-sm py-4">No recent activity</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================================================
-         MES PACKAGES AVEC FILTRES AVANCÉS
-         ========================================================================= -->
-    <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6 mb-6 lg:mb-8" data-aos="fade-up">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <h2 class="text-lg lg:text-xl font-semibold flex items-center gap-2">
-                <i class="fas fa-boxes text-purple-600"></i>
-                My Packages
-                <span class="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 px-2 py-1 rounded-full">
-                    {{ user_packages|length }}
-                </span>
-            </h2>
-            
-            <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                <!-- Barre de recherche -->
-                <div class="relative flex-1 sm:flex-none">
-                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" 
-                           id="packageSearch" 
-                           placeholder="Search packages..." 
-                           class="w-full sm:w-48 lg:w-64 pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500"
-                           onkeyup="filterPackages()">
-                </div>
-                
-                <!-- Filtres -->
-                <select id="scopeFilter" class="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg" onchange="filterPackages()">
-                    <option value="all">All scopes</option>
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                </select>
-                
-                <select id="sortFilter" class="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg" onchange="filterPackages()">
-                    <option value="name">Name</option>
-                    <option value="downloads">Downloads</option>
-                    <option value="date">Date</option>
-                    <option value="rating">Rating</option>
-                </select>
-            </div>
-        </div>
-
-        {% if user_packages %}
-        <div class="space-y-3" id="packagesList">
-            {% for pkg in user_packages %}
-            <div class="package-item bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 lg:p-4 hover:shadow-lg transition-all hover:scale-[1.01]"
-                 data-name="{{ pkg.name|lower }}"
-                 data-scope="{{ pkg.scope|lower }}"
-                 data-downloads="{{ pkg.downloads }}"
-                 data-rating="{{ pkg.rating|default(0) }}"
-                 data-date="{{ pkg.created_at }}"
-                 data-package-id="{{ pkg.id }}">
-                
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <!-- Info package -->
-                    <div class="flex items-start gap-3 flex-1 min-w-0">
-                        <div class="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-cubes text-purple-600 text-sm lg:text-base"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="font-semibold text-sm lg:text-base truncate">{{ pkg.name }}</h3>
-                                <span class="text-xs px-2 py-0.5 rounded-full 
-                                    {% if pkg.scope == 'public' %}
-                                        bg-green-100 text-green-700
-                                    {% else %}
-                                        bg-gray-100 text-gray-700
-                                    {% endif %}">
-                                    <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
-                                    {{ pkg.scope }}
-                                </span>
-                                {% if pkg.rating and pkg.rating > 0 %}
-                                <span class="text-xs text-yellow-600 flex items-center">
-                                    <i class="fas fa-star mr-1"></i>{{ "%.1f"|format(pkg.rating) }}
-                                </span>
-                                {% endif %}
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
-                                <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
-                                <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
-                                <span><i class="fas fa-calendar mr-1"></i>{{ pkg.created_at[:10] if pkg.created_at else 'N/A' }}</span>
-                                {% if pkg.size and pkg.size > 0 %}
-                                <span><i class="fas fa-weight-hanging mr-1"></i>{{ (pkg.size / 1024)|round(1) }} KB</span>
-                                {% endif %}
-                            </div>
-                            {% if pkg.description %}
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">{{ pkg.description }}</p>
+        {% if user_packages and user_packages|length > 0 %}
+            <div class="space-y-3">
+                {% for pkg in user_packages %}
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold">{{ pkg.name }}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                v{{ pkg.version }} · {{ pkg.downloads|default(0) }} downloads
+                            </p>
+                            {% if pkg.created_at %}
+                            <p class="text-xs text-gray-500 mt-1">Added: {{ pkg.created_at[:10] }}</p>
                             {% endif %}
                         </div>
+                        <span class="px-2 py-1 text-xs rounded-full 
+                            {% if pkg.scope == 'public' %}
+                                bg-green-100 text-green-800
+                            {% else %}
+                                bg-gray-100 text-gray-800
+                            {% endif %}">
+                            {{ pkg.scope }}
+                        </span>
                     </div>
-                    
-                    <!-- Actions -->
-                    <div class="flex items-center gap-1 ml-11 sm:ml-0">
+                    <div class="mt-2 flex gap-2">
                         <a href="/package/{{ pkg.name }}" 
-                           class="p-1.5 lg:p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-all hover:scale-110"
-                           title="View package">
-                            <i class="fas fa-eye text-sm lg:text-base"></i>
+                           class="text-sm text-purple-600 hover:text-purple-700">
+                            <i class="fas fa-eye mr-1"></i>View
                         </a>
-                        <a href="/package/{{ pkg.name }}/edit" 
-                           class="p-1.5 lg:p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-all hover:scale-110"
-                           title="Edit package">
-                            <i class="fas fa-edit text-sm lg:text-base"></i>
-                        </a>
-                        <a href="/settings/badges?package={{ pkg.name }}" 
-                           class="p-1.5 lg:p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-all hover:scale-110"
-                           title="Manage badges">
-                            <i class="fas fa-award text-sm lg:text-base"></i>
-                        </a>
-                        <a href="/package/{{ pkg.name }}/reviews" 
-                           class="p-1.5 lg:p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg transition-all hover:scale-110"
-                           title="View reviews">
-                            <i class="fas fa-star text-sm lg:text-base"></i>
-                        </a>
-                        <button onclick="copyInstallCommand('apkm install {{ pkg.name }}')" 
-                                class="p-1.5 lg:p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110"
-                                title="Copy install command">
-                            <i class="fas fa-copy text-sm lg:text-base"></i>
+                        <button onclick="copyCommand('apkm install {{ pkg.name }}')" 
+                                class="text-sm text-gray-600 hover:text-gray-700">
+                            <i class="fas fa-copy mr-1"></i>Copy
                         </button>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Pagination -->
-        <div class="mt-4 flex justify-between items-center" id="pagination">
-            <button onclick="changePage('prev')" 
-                    class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-                    id="prevPage"
-                    disabled>
-                <i class="fas fa-chevron-left mr-1"></i>Previous
-            </button>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
-                Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
-            </span>
-            <button onclick="changePage('next')" 
-                    class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-                    id="nextPage">
-                Next<i class="fas fa-chevron-right ml-1"></i>
-            </button>
-        </div>
-        {% else %}
-        <!-- État vide amélioré -->
-        <div class="text-center py-8 lg:py-12">
-            <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-box-open text-2xl lg:text-3xl text-gray-400"></i>
-            </div>
-            <h3 class="text-lg lg:text-xl font-semibold mb-2">No packages yet</h3>
-            <p class="text-sm lg:text-base text-gray-500 mb-4 max-w-sm mx-auto">
-                Start sharing your work with the community
-            </p>
-            <div class="flex flex-wrap gap-3 justify-center">
-                <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm font-medium hover:scale-105 transition-all">
-                    <i class="fas fa-upload mr-2"></i>Upload Package
-                </a>
-                <a href="/community" class="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all">
-                    <i class="fas fa-users mr-2"></i>Join Community
-                </a>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- =========================================================================
-         BADGES PERSONNALISÉS
-         ========================================================================= -->
-    {% if badges and badges|length > 0 %}
-    <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6 mb-6 lg:mb-8" data-aos="fade-up">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg lg:text-xl font-semibold flex items-center">
-                <i class="fas fa-award text-yellow-600 mr-2"></i>
-                Your Custom Badges
-            </h2>
-            <a href="/settings/badges" class="text-sm text-purple-600 hover:text-purple-700">
-                Manage <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-        
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {% for name, badge in badges.items() %}
-            <div class="text-center group cursor-pointer" onclick="window.location.href='/settings/badges/{{ name }}'">
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 hover:shadow-lg transition-all hover:-translate-y-1">
-                    <img src="/badge/custom/{{ user.username }}/{{ name }}" 
-                         alt="{{ badge.label }}"
-                         class="mx-auto mb-2"
-                         style="height: 20px;">
-                    <p class="text-xs font-medium truncate">{{ badge.label }}</p>
-                    <p class="text-xs text-gray-500">{{ badge.usage_count|default(0) }} uses</p>
-                </div>
-            </div>
-            {% endfor %}
-            
-            <div class="text-center">
-                <a href="/settings/meta/badge" 
-                   class="block bg-gray-50 dark:bg-gray-800 rounded-lg p-3 hover:shadow-lg transition-all hover:-translate-y-1 border-2 border-dashed border-gray-300 dark:border-gray-600">
-                    <i class="fas fa-plus-circle text-2xl text-gray-400 mb-1"></i>
-                    <p class="text-xs text-gray-500">Create New</p>
-                </a>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- =========================================================================
-         ACTIVITÉ COMMUNAUTAIRE
-         ========================================================================= -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8" data-aos="fade-up">
-        <!-- Reviews récentes sur mes packages -->
-        <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6">
-            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 flex items-center">
-                <i class="fas fa-star text-yellow-600 mr-2"></i>
-                Recent Reviews
-            </h3>
-            
-            <div class="space-y-3">
-                {% if recent_reviews and recent_reviews|length > 0 %}
-                    {% for review in recent_reviews %}
-                    <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <a href="/@{{ review.author }}" class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center">
-                                <span class="text-xs font-bold">{{ review.author[0]|upper }}</span>
-                            </div>
-                        </a>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between">
-                                <a href="/@{{ review.author }}" class="text-sm font-medium hover:text-purple-600">
-                                    {{ review.author }}
-                                </a>
-                                <div class="flex items-center">
-                                    {% for i in range(5) %}
-                                        {% if i < review.rating %}
-                                            <i class="fas fa-star text-yellow-400 text-xs"></i>
-                                        {% else %}
-                                            <i class="far fa-star text-yellow-400 text-xs"></i>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1">on <a href="/package/{{ review.package }}" class="hover:text-purple-600">{{ review.package }}</a></p>
-                            {% if review.comment %}
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{{ review.comment }}</p>
-                            {% endif %}
-                            <p class="text-xs text-gray-400 mt-1">{{ review.time }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-center text-gray-500 text-sm py-4">No reviews yet</p>
-                {% endif %}
-            </div>
-            
-            <a href="/community" class="mt-4 text-sm text-purple-600 hover:text-purple-700 flex items-center justify-center">
-                View all community activity <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-
-        <!-- Notifications communautaires -->
-        <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6">
-            <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 flex items-center">
-                <i class="fas fa-bell text-purple-600 mr-2"></i>
-                Community Updates
-            </h3>
-            
-            <div class="space-y-3">
-                {% if community_notifications and community_notifications|length > 0 %}
-                    {% for notif in community_notifications %}
-                    <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div class="w-8 h-8 bg-{{ notif.color }}-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-{{ notif.icon }} text-{{ notif.color }}-600 text-sm"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm">{{ notif.message|safe }}</p>
-                            <p class="text-xs text-gray-500 mt-1">{{ notif.time }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-center text-gray-500 text-sm py-4">No new updates</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================================================
-         COMMUNAUTÉ
-         ========================================================================= -->
-    <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6" data-aos="fade-up">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg lg:text-xl font-semibold flex items-center">
-                <i class="fas fa-users text-green-600 mr-2"></i>
-                Community Hub
-            </h2>
-            <a href="/community" class="text-sm text-purple-600 hover:text-purple-700">
-                Explore <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-        
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <!-- Membres en ligne -->
-            <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-green-600">{{ online_members|default(12) }}</div>
-                <div class="text-xs text-gray-500">Online</div>
-            </div>
-            
-            <!-- Nouveaux packages -->
-            <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-purple-600">{{ new_packages|default(5) }}</div>
-                <div class="text-xs text-gray-500">New today</div>
-            </div>
-            
-            <!-- Discussions actives -->
-            <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-blue-600">{{ active_discussions|default(8) }}</div>
-                <div class="text-xs text-gray-500">Discussions</div>
-            </div>
-            
-            <!-- Badges créés -->
-            <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-yellow-600">{{ new_badges|default(3) }}</div>
-                <div class="text-xs text-gray-500">New badges</div>
-            </div>
-        </div>
-        
-        <!-- Top contributeurs -->
-        {% if top_contributors and top_contributors|length > 0 %}
-        <div class="mt-4">
-            <h3 class="text-sm font-semibold mb-3">Top Contributors</h3>
-            <div class="flex flex-wrap gap-2">
-                {% for contributor in top_contributors[:5] %}
-                <a href="/@{{ contributor.username }}" 
-                   class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-full hover:bg-purple-50 transition-all">
-                    <div class="w-5 h-5 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
-                        <span class="text-xs font-bold">{{ contributor.username[0]|upper }}</span>
-                    </div>
-                    <span class="text-xs font-medium">{{ contributor.username }}</span>
-                    <span class="text-xs text-gray-500">{{ contributor.packages }} pkgs</span>
-                </a>
                 {% endfor %}
             </div>
-        </div>
+        {% else %}
+            <p class="text-gray-500 text-center py-8">No packages yet</p>
+            <div class="text-center">
+                <a href="/upload" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Upload Your First Package
+                </a>
+            </div>
         {% endif %}
     </div>
-</div>
 
-<!-- =========================================================================
-     MODALS
-     ========================================================================= -->
-
-<!-- Modal des reviews -->
-<div id="reviewsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="closeModal(event)">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation()">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">All Reviews</h3>
-            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div id="reviewsList" class="space-y-4">
-            <!-- Les reviews seront chargées dynamiquement -->
-        </div>
+    <!-- =========================================================================
+         LIENS RAPIDES
+         ========================================================================= -->
+    <div class="mt-6 flex flex-wrap gap-3 justify-center">
+        <a href="/community" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-users mr-1"></i>Community
+        </a>
+        <span class="text-gray-300">|</span>
+        <a href="/settings" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-cog mr-1"></i>Settings
+        </a>
+        <span class="text-gray-300">|</span>
+        <a href="/docs" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-book mr-1"></i>Documentation
+        </a>
     </div>
 </div>
 
 <script>
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-const CONFIG = {
-    apiUrl: '/api/v1',
-    refreshInterval: 30000,
-    charts: {},
-    currentPackagePage: 1,
-    packagesPerPage: 5,
-    filteredPackages: [],
-    originalPackages: {{ user_packages|tojson|safe }},
-    badges: {{ badges|tojson|safe }},
-    notifications: [],
-    connectionStatus: navigator.onLine ? 'online' : 'offline'
-};
-
-// ============================================================================
-// INITIALISATION
-// ============================================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    await initializeDashboard();
-    setupEventListeners();
-    startAutoRefresh();
-    checkConnection();
-    initializeCharts();
-    initializeCounters();
-    loadNotifications();
-});
-
-async function initializeDashboard() {
-    updateTimestamp();
-    filterPackages();
-    await loadReviews();
-    await loadCommunityData();
-}
-
-function updateTimestamp() {
-    const update = () => {
-        const el = document.getElementById('liveTimestamp');
-        if (el) {
-            const now = new Date();
-            el.textContent = now.toLocaleTimeString();
-        }
-    };
-    update();
-    setInterval(update, 1000);
-}
-
-// ============================================================================
-// CONNEXION
-// ============================================================================
-function checkConnection() {
-    const updateStatus = () => {
-        CONFIG.connectionStatus = navigator.onLine ? 'online' : 'offline';
-        const el = document.getElementById('connectionStatus');
-        if (el) {
-            el.className = `fas fa-${navigator.onLine ? 'wifi' : 'exclamation-triangle'} ${CONFIG.connectionStatus}`;
-        }
-    };
-    
-    window.addEventListener('online', updateStatus);
-    window.addEventListener('offline', updateStatus);
-    updateStatus();
-}
-
-function startAutoRefresh() {
-    setInterval(() => {
-        if (CONFIG.connectionStatus === 'online') {
-            refreshData();
-        }
-    }, CONFIG.refreshInterval);
-}
-
-async function refreshData() {
-    try {
-        const response = await fetch('/api/v1/dashboard/refresh', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('zarch_token')}`
-            }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            updateDashboardData(data);
-        }
-    } catch (error) {
-        console.error('Refresh error:', error);
-    }
-}
-
-// ============================================================================
-// COMPTEURS ANIMÉS
-// ============================================================================
-function initializeCounters() {
-    document.querySelectorAll('.counter').forEach(counter => {
-        const target = parseInt(counter.getAttribute('data-target'));
-        animateCounter(counter, 0, target, 1000);
-    });
-}
-
-function animateCounter(element, start, end, duration) {
-    const range = end - start;
-    const increment = range / (duration / 16);
-    let current = start;
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if (current >= end) {
-            element.textContent = end.toLocaleString();
-            clearInterval(timer);
-        } else {
-            element.textContent = Math.floor(current).toLocaleString();
-        }
-    }, 16);
-}
-
-// ============================================================================
-// GRAPHIQUES
-// ============================================================================
-function initializeCharts() {
-    const ctx = document.getElementById('downloadsChart')?.getContext('2d');
-    if (!ctx) return;
-    
-    CONFIG.charts.downloads = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ chart_labels|tojson|safe }},
-            datasets: [{
-                label: 'Downloads',
-                data: {{ chart_data|tojson|safe }},
-                borderColor: '#8B5CF6',
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
-    });
-    
-    document.getElementById('chartRange')?.addEventListener('change', function() {
-        updateChartRange(this.value);
-    });
-}
-
-function updateChartRange(range) {
-    showNotification(`Loading ${range} data...`, 'info');
-}
-
-// ============================================================================
-// FILTRAGE DES PACKAGES
-// ============================================================================
-function filterPackages() {
-    const searchTerm = document.getElementById('packageSearch')?.value.toLowerCase() || '';
-    const scopeFilter = document.getElementById('scopeFilter')?.value || 'all';
-    const sortFilter = document.getElementById('sortFilter')?.value || 'name';
-    
-    CONFIG.filteredPackages = CONFIG.originalPackages.filter(pkg => {
-        const matchesSearch = pkg.name.toLowerCase().includes(searchTerm);
-        const matchesScope = scopeFilter === 'all' || pkg.scope === scopeFilter;
-        return matchesSearch && matchesScope;
-    });
-    
-    // Tri
-    CONFIG.filteredPackages.sort((a, b) => {
-        switch(sortFilter) {
-            case 'name': return a.name.localeCompare(b.name);
-            case 'downloads': return (b.downloads || 0) - (a.downloads || 0);
-            case 'date': return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-            case 'rating': return (b.rating || 0) - (a.rating || 0);
-            default: return 0;
-        }
-    });
-    
-    CONFIG.currentPackagePage = 1;
-    updatePackagesDisplay();
-}
-
-function updatePackagesDisplay() {
-    const start = (CONFIG.currentPackagePage - 1) * CONFIG.packagesPerPage;
-    const end = start + CONFIG.packagesPerPage;
-    const pagePackages = CONFIG.filteredPackages.slice(start, end);
-    
-    const packages = document.querySelectorAll('.package-item');
-    packages.forEach((el, index) => {
-        el.style.display = index < pagePackages.length ? 'flex' : 'none';
-    });
-    
-    const totalPages = Math.ceil(CONFIG.filteredPackages.length / CONFIG.packagesPerPage);
-    document.getElementById('currentPage').textContent = CONFIG.currentPackagePage;
-    document.getElementById('totalPages').textContent = totalPages || 1;
-    document.getElementById('prevPage').disabled = CONFIG.currentPackagePage <= 1;
-    document.getElementById('nextPage').disabled = CONFIG.currentPackagePage >= totalPages;
-}
-
-function changePage(direction) {
-    if (direction === 'prev' && CONFIG.currentPackagePage > 1) {
-        CONFIG.currentPackagePage--;
-    } else if (direction === 'next') {
-        const totalPages = Math.ceil(CONFIG.filteredPackages.length / CONFIG.packagesPerPage);
-        if (CONFIG.currentPackagePage < totalPages) {
-            CONFIG.currentPackagePage++;
-        }
-    }
-    updatePackagesDisplay();
-}
-
-// ============================================================================
-// NOTIFICATIONS
-// ============================================================================
-function showNotification(message, type = 'info') {
-    const container = document.getElementById('liveNotifications');
-    if (!container) return;
-    
-    const notification = document.createElement('div');
-    notification.className = `glass-card p-3 rounded-lg flex items-center justify-between animate-slide-in mb-2`;
-    
-    const colors = {
-        success: 'border-l-4 border-green-500',
-        error: 'border-l-4 border-red-500',
-        info: 'border-l-4 border-blue-500'
-    };
-    
-    notification.className += ' ' + (colors[type] || colors.info);
-    
-    notification.innerHTML = `
-        <div class="flex items-center gap-2">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} text-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'}-500"></i>
-            <span class="text-sm">${message}</span>
-        </div>
-        <button onclick="this.parentElement.remove()" class="text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    container.appendChild(notification);
-    setTimeout(() => notification.remove(), 5000);
-}
-
-// ============================================================================
-// REVIEWS
-// ============================================================================
-async function loadReviews() {
-    // À implémenter avec API réelle
-}
-
-function showReviewsModal() {
-    const modal = document.getElementById('reviewsModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
-    
-    const list = document.getElementById('reviewsList');
-    list.innerHTML = '<p class="text-center text-gray-500">Loading reviews...</p>';
-    
-    setTimeout(() => {
-        list.innerHTML = '<p class="text-center text-gray-500">No reviews yet</p>';
-    }, 500);
-}
-
-async function loadCommunityData() {
-    // À implémenter avec API réelle
-}
-
-function showStatDetail(stat) {
-    switch(stat) {
-        case 'packages':
-            document.getElementById('packageSearch')?.focus();
-            showNotification('Showing all your packages', 'info');
-            break;
-        case 'downloads':
-            showNotification(`Total downloads: {{ stats.downloads }}`, 'info');
-            break;
-        case 'badges':
-            window.location.href = '/settings/badges';
-            break;
-        case 'reviews':
-            showReviewsModal();
-            break;
-    }
-}
-
-// ============================================================================
-// UTILITAIRES
-// ============================================================================
-function copyInstallCommand(cmd) {
+function copyCommand(cmd) {
     navigator.clipboard.writeText(cmd).then(() => {
-        showNotification('Command copied!', 'success');
+        alert('Command copied!');
     }).catch(() => {
-        showNotification('Failed to copy', 'error');
+        alert('Failed to copy');
     });
 }
-
-function closeModal(event) {
-    if (event && event.target !== event.currentTarget) return;
-    
-    document.getElementById('reviewsModal')?.classList.add('hidden');
-    document.getElementById('reviewsModal')?.classList.remove('flex');
-    document.body.style.overflow = '';
-}
-
-// ============================================================================
-// RACCOURCIS CLAVIER
-// ============================================================================
-document.addEventListener('keydown', (e) => {
-    // Ctrl+K pour focus recherche
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        document.getElementById('packageSearch')?.focus();
-    }
-    
-    // ? pour aide
-    if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        showNotification('Keyboard shortcuts: Ctrl+K (search), ? (help)', 'info');
-    }
-    
-    // Echap pour fermer modal
-    if (e.key === 'Escape') {
-        closeModal();
-    }
-});
-
-console.log('Dashboard v2.0 loaded');
 </script>
 {% endblock %}
