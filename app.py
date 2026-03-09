@@ -1404,7 +1404,7 @@ def debug_session():
         'token': session.get('token')
     })
 @app.route('/debug/cookies')
-def debug_session():
+def debug_coockies():
     """Route de debug pour vérifier la session"""
     if not app.debug:
         abort(404)
