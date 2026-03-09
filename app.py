@@ -907,58 +907,144 @@ def index():
 
 @app.route('/packages')
 def packages_page():
-    """Page de liste des packages"""
+    """Page de liste des packages avec recherche et filtres"""
     page = request.args.get('page', 1, type=int)
     per_page = 12
-    query = request.args.get('q', '').lower()
+    query = request.args.get('q', '').strip().lower()
     sort = request.args.get('sort', 'recent')
     scope_filter = request.args.get('scope', 'all')
     
+    try:
+        # Récupérer la base de données
+        db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        
+        if not isinstance(db, dict):
+            db = {'packages': []}
+        
+        packages = db.get('packages', [])
+        
+        # Statistiques globales
+        total_packages = len(packages)
+        total_downloads = sum(p.get('downloads', 0) for p in packages)
+        total_authors = len(set(p.get('author') for p in packages if p.get('author')))
+        
+        # Filtrer par scope
+        if scope_filter != 'all':
+            packages = [p for p in packages if p.get('scope') == scope_filter]
+        
+        # RECHERCHE PAR TEXTE (la partie importante !)
+        if query:
+            search_terms = query.split()
+            filtered_packages = []
+            
+            for pkg in packages:
+                name = pkg.get('name', '').lower()
+                description = pkg.get('description', '').lower()
+                author = pkg.get('author', '').lower()
+                
+                # Score de pertinence
+                score = 0
+                
+                for term in search_terms:
+                    if term in name:
+                        score += 10  # Nom = très pertinent
+                    if term in description:
+                        score += 3   # Description = pertinent
+                    if term in author:
+                        score += 5   # Auteur = pertinent
+                    if name.startswith(term):
+                        score += 5   # Commence par = pertinent
+                
+                if score > 0:
+                    pkg['_score'] = score
+                    filtered_packages.append(pkg)
+            
+            # Trier par score
+            packages = sorted(filtered_packages, key=lambda x: x.get('_score', 0), reverse=True)
+            
+            # Nettoyer le score
+            for pkg in packages:
+                if '_score' in pkg:
+                    del pkg['_score']
+        
+        # Appliquer le tri
+        if sort == 'downloads':
+            packages.sort(key=lambda x: x.get('downloads', 0), reverse=True)
+        elif sort == 'name':
+            packages.sort(key=lambda x: x.get('name', '').lower())
+        elif sort == 'name_desc':
+            packages.sort(key=lambda x: x.get('name', '').lower(), reverse=True)
+        else:  # recent par défaut
+            packages.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Pagination
+        total_results = len(packages)
+        total_pages = (total_results + per_page - 1) // per_page
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_packages = packages[start:end]
+        
+        return render_template('packages.html',
+                             packages=paginated_packages,
+                             total_packages=total_packages,
+                             total_downloads=total_downloads,
+                             total_authors=total_authors,
+                             total_results=total_results,
+                             total_pages=total_pages,
+                             page=page,
+                             per_page=per_page,
+                             query=query,
+                             sort=sort,
+                             scope=scope_filter,
+                             now=datetime.now())
+    
+    except Exception as e:
+        app.logger.error(f"Packages page error: {e}")
+        flash('Error loading packages', 'error')
+        return render_template('packages.html',
+                             packages=[],
+                             total_packages=0,
+                             total_downloads=0,
+                             total_authors=0,
+                             total_results=0,
+                             total_pages=1,
+                             page=1,
+                             per_page=12,
+                             query=query,
+                             sort=sort,
+                             scope=scope_filter,
+                             now=datetime.now())
+
+@app.route('/api/v1/packages/search')
+def api_packages_search():
+    """API endpoint pour la recherche en temps réel"""
+    query = request.args.get('q', '').strip().lower()
+    
+    if not query or len(query) < 2:
+        return jsonify({'results': []})
+    
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
     packages = db.get('packages', [])
     
-    if scope_filter != 'all':
-        packages = [p for p in packages if p.get('scope') == scope_filter]
+    results = []
+    for pkg in packages:
+        name = pkg.get('name', '').lower()
+        description = pkg.get('description', '').lower()
+        
+        if query in name or query in description:
+            results.append({
+                'name': pkg.get('name'),
+                'version': pkg.get('version'),
+                'author': pkg.get('author'),
+                'downloads': pkg.get('downloads', 0),
+                'scope': pkg.get('scope', 'public'),
+                'url': f"/package/{pkg.get('name')}"
+            })
+            
+            if len(results) >= 10:  # Limiter à 10 résultats
+                break
     
-    if query:
-        packages = [p for p in packages if query in p.get('name', '').lower() 
-                   or query in p.get('description', '').lower()]
-    
-    if sort == 'downloads':
-        packages.sort(key=lambda x: x.get('downloads', 0), reverse=True)
-    elif sort == 'name':
-        packages.sort(key=lambda x: x.get('name', '').lower())
-    elif sort == 'name_desc':
-        packages.sort(key=lambda x: x.get('name', '').lower(), reverse=True)
-    else:
-        packages.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    
-    total_packages = len(packages)
-    total_pages = (total_packages + per_page - 1) // per_page
-    start = (page - 1) * per_page
-    end = start + per_page
-    paginated_packages = packages[start:end]
-    
-    total_downloads = sum(p.get('downloads', 0) for p in packages)
-    total_authors = len(set(p.get('author') for p in packages if p.get('author')))
-    
-    return render_template('packages.html',
-                         packages=paginated_packages,
-                         total_packages=total_packages,
-                         total_downloads=total_downloads,
-                         total_authors=total_authors,
-                         total_pages=total_pages,
-                         page=page,
-                         per_page=per_page,
-                         query=query,
-                         sort=sort,
-                         scope=scope_filter,
-                         now=datetime.now())
-
+    return jsonify({'results': results})
 @app.route('/package/<name>')
 def package_detail_page(name):
     """Page de détail d'un package avec README"""
