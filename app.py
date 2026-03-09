@@ -204,35 +204,53 @@ class PackageUpload(BaseModel):
         if not v:
             raise ValueError('Version is required')
         return v
-
 # ============================================================================
-# GESTION DES COOKIES SÉCURISÉS
+# GESTION DES COOKIES SÉCURISÉS (VERSION CORRIGÉE)
 # ============================================================================
 
 class CookieManager:
     @staticmethod
     def set_secure_cookie(response, name, value, max_age=3600):
         """Définit un cookie sécurisé avec chiffrement"""
-        encrypted = fernet.encrypt(value.encode()).decode()
-        response.set_cookie(
-            name,
-            encrypted,
-            max_age=max_age,
-            secure=SecurityConfig.COOKIE_SECURE,
-            httponly=True,
-            samesite=SecurityConfig.COOKIE_SAMESITE,
-            path='/'
-        )
-        return response
+        try:
+            # S'assurer que la valeur est une chaîne
+            if not isinstance(value, str):
+                value = str(value)
+            
+            # Chiffrer la valeur
+            encrypted = fernet.encrypt(value.encode()).decode()
+            
+            # Définir le cookie avec les bons paramètres
+            response.set_cookie(
+                name,
+                encrypted,
+                max_age=max_age,
+                secure=SecurityConfig.COOKIE_SECURE,
+                httponly=True,
+                samesite=SecurityConfig.COOKIE_SAMESITE,
+                path='/'
+            )
+            app.logger.info(f"Cookie {name} set successfully")
+            return response
+        except Exception as e:
+            app.logger.error(f"Failed to set cookie {name}: {e}")
+            return response
     
     @staticmethod
     def get_secure_cookie(request, name):
         """Récupère et déchiffre un cookie"""
         encrypted = request.cookies.get(name)
         if not encrypted:
+            app.logger.debug(f"Cookie {name} not found")
             return None
+        
         try:
+            # Nettoyer la valeur (enlever les espaces éventuels)
+            encrypted = encrypted.strip()
+            
+            # Déchiffrer
             decrypted = fernet.decrypt(encrypted.encode()).decode()
+            app.logger.debug(f"Cookie {name} decrypted successfully")
             return decrypted
         except Exception as e:
             app.logger.warning(f"Failed to decrypt cookie {name}: {e}")
@@ -242,6 +260,7 @@ class CookieManager:
     def delete_secure_cookie(response, name):
         """Supprime un cookie"""
         response.set_cookie(name, '', expires=0, path='/')
+        app.logger.info(f"Cookie {name} deleted")
         return response
 
 # ============================================================================
@@ -1000,44 +1019,86 @@ def upload_page():
 @app.route('/dashboard')
 def dashboard_page():
     """Dashboard utilisateur avec statistiques réelles"""
+    # Vérifier la session d'abord
     user = session.get('user')
+    
+    # Si pas dans la session, essayer le cookie
+    if not user:
+        token = CookieManager.get_secure_cookie(request, 'zarch_token')
+        if token:
+            # Valider le token
+            user_data = SecurityUtils.validate_token(token)
+            if user_data:
+                session['user'] = user_data
+                user = user_data
+                app.logger.info(f"User {user_data.get('username')} restored from cookie")
+    
     if not user:
         flash('Please login to access the dashboard', 'info')
         return redirect('/login')
     
     try:
+        username = user.get('username')
+        app.logger.info(f"Loading dashboard for user: {username}")
+        
         # Récupérer la base de données des packages
         db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        
         if not isinstance(db, dict):
             db = {'packages': []}
+            app.logger.warning("Invalid database format, using empty dict")
         
         # Filtrer les packages de l'utilisateur
-        username = user.get('username')
         user_packages = [p for p in db.get('packages', []) if p.get('author') == username]
+        app.logger.info(f"Found {len(user_packages)} packages for user {username}")
         
         # Calculer les statistiques
         total_packages = len(user_packages)
         total_downloads = sum(p.get('downloads', 0) for p in user_packages)
         
-        # Date d'inscription (à adapter selon ta structure)
-        member_since = user.get('created_at', '2026')[:10] if user.get('created_at') else '2026'
+        # Date d'inscription
+        if user.get('created_at'):
+            member_since = user['created_at'][:10]  # Prendre juste la date
+        else:
+            member_since = '2026-03-09'  # Date par défaut
         
-        # Statistiques pour l'affichage
         stats = {
             'packages': total_packages,
             'downloads': total_downloads,
             'member_since': member_since
         }
         
-        # Données pour les graphiques (exemple)
+        # Données pour les graphiques (exemple - à remplacer par des vraies données)
         chart_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-        chart_data = [10, 20, 15, 25, 30, 35]  # À remplacer par des données réelles
         
-        popular_labels = ['apkm', 'other', 'test']
-        popular_data = [60, 25, 15]
+        # Générer des données de téléchargements par mois (simulées)
+        if total_packages > 0:
+            # Distribution proportionnelle
+            chart_data = [
+                int(total_downloads * 0.1),  # Jan
+                int(total_downloads * 0.15), # Feb
+                int(total_downloads * 0.2),  # Mar
+                int(total_downloads * 0.25), # Apr
+                int(total_downloads * 0.2),  # May
+                int(total_downloads * 0.1)   # Jun
+            ]
+        else:
+            chart_data = [0, 0, 0, 0, 0, 0]
+        
+        # Packages populaires
+        popular_packages = sorted(user_packages, key=lambda x: x.get('downloads', 0), reverse=True)[:3]
+        popular_labels = [p.get('name', 'unknown') for p in popular_packages]
+        popular_data = [p.get('downloads', 0) for p in popular_packages]
+        
+        # Compléter si moins de 3 packages
+        while len(popular_labels) < 3:
+            popular_labels.append('other')
+            popular_data.append(0)
         
         # Vérifier si l'utilisateur est admin
-        is_admin = username in ['admin', 'gopu-inc', 'mauricio']
+        is_admin = username in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100']
+        
+        app.logger.info(f"Dashboard data prepared: packages={total_packages}, downloads={total_downloads}")
         
         return render_template('dashboard.html',
                              user=user,
@@ -1052,18 +1113,23 @@ def dashboard_page():
     
     except Exception as e:
         app.logger.error(f"Dashboard error: {e}")
-        flash('Error loading dashboard', 'error')
+        import traceback
+        traceback.print_exc()
+        
+        # Données par défaut en cas d'erreur
+        stats = {'packages': 0, 'downloads': 0, 'member_since': '2026-03-09'}
+        flash('Error loading dashboard data', 'error')
+        
         return render_template('dashboard.html',
                              user=user,
                              user_packages=[],
-                             stats={'packages': 0, 'downloads': 0, 'member_since': '2026'},
+                             stats=stats,
                              chart_labels=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                             chart_data=[0,0,0,0,0,0],
+                             chart_data=[0, 0, 0, 0, 0, 0],
                              popular_labels=['apkm', 'other', 'test'],
-                             popular_data=[0,0,0],
+                             popular_data=[0, 0, 0],
                              is_admin=False,
                              now=datetime.now())
-
 @app.route('/login')
 def login_page():
     """Page de connexion"""
