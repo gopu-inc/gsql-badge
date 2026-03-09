@@ -107,6 +107,19 @@
       "size": 23133583,
       "updated_at": "2026-01-29T23:21:47.730533",
       "downloads": 2
+    },
+    {
+      "name": "apkm",
+      "scope": "public",
+      "version": "2.0.0",
+      "release": "1",
+      "arch": "x86_64",
+      "author": "admin",
+      "sha256": "fb3f35eacad86792a838c7c8e02a7b7b188ead6ee0d7c7cadb23633649185381",
+      "size": 2034186,
+      "created_at": "2026-03-09T00:13:45.349084",
+      "updated_at": "2026-03-09T00:13:45.349093",
+      "downloads": 0
     }
   ],
   "badges": [],
