@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Danger Zone - {{ user.username }} | Zarch Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <!-- En-tête -->
+    <div class="flex items-center gap-4 mb-8">
+        <a href="/settings" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-3xl font-bold text-red-600">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            Danger Zone
+        </h1>
+    </div>
+
+    <div class="space-y-6">
+        <!-- Avertissement -->
+        <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-2xl p-6">
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-skull-crossbones text-red-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-red-600 mb-2">Permanent Account Deletion</h2>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">
+                        This action <span class="font-bold text-red-600">cannot be undone</span>. Once you delete your account:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-400 mb-4">
+                        <li>All your packages will be permanently removed</li>
+                        <li>Your custom badges will be deleted</li>
+                        <li>Your reviews and comments will be removed</li>
+                        <li>Your username will become available for others</li>
+                        <li>You will lose access to all your data</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire de suppression -->
+        <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4">Confirm Account Deletion</h3>
+            
+            <form method="POST" action="/settings/delete-account" 
+                  onsubmit="return confirmDeletion()">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">
+                        Enter your password to confirm
+                    </label>
+                    <input type="password" 
+                           name="password" 
+                           required
+                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-200 dark:focus:ring-red-900/30 transition-all"
+                           placeholder="Your password">
+                </div>
+                
+                <div class="mb-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" 
+                               id="confirm" 
+                               required
+                               class="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                            I understand that this action is permanent and irreversible
+                        </span>
+                    </label>
+                </div>
+                
+                <div class="flex gap-3">
+                    <a href="/settings" 
+                       class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl text-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-semibold">
+                        <i class="fas fa-trash mr-2"></i>
+                        Permanently Delete Account
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Autres options destructives -->
+        <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4">Other Destructive Actions</h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div>
+                        <h4 class="font-medium">Delete all packages</h4>
+                        <p class="text-sm text-gray-500">Remove all your published packages</p>
+                    </div>
+                    <button class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all opacity-50 cursor-not-allowed" disabled>
+                        Coming soon
+                    </button>
+                </div>
+                
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div>
+                        <h4 class="font-medium">Clear all notifications</h4>
+                        <p class="text-sm text-gray-500">Remove all your notifications</p>
+                    </div>
+                    <button class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all opacity-50 cursor-not-allowed" disabled>
+                        Coming soon
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDeletion() {
+    const checkbox = document.getElementById('confirm');
+    if (!checkbox.checked) {
+        alert('Please confirm that you understand the consequences');
+        return false;
+    }
+    
+    return confirm('⚠️ FINAL WARNING: This will permanently delete your account and all associated data. Are you absolutely sure?');
+}
+</script>
+{% endblock %}
