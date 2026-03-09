@@ -1,73 +1,124 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     
-    <!-- Open Graph / Social Media -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="{% block og_title %}Zarch Hub - APKM Package Registry{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}The official package registry for APKM - Alpine Package Manager{% endblock %}">
-    <meta property="og:image" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    <meta property="og:image:secure_url" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Zarch Hub - APKM Package Registry">
-    <meta property="og:site_name" content="Zarch Hub">
-    <meta property="og:locale" content="fr_FR">
-    
-    <!-- Additional OpenGraph Images -->
-    <meta property="og:image:2" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png">
-    <meta property="og:image:3" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png">
-    
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@zarchhub">
-    <meta name="twitter:creator" content="@zarchhub">
-    <meta name="twitter:title" content="Zarch Hub">
-    <meta name="twitter:description" content="APKM Package Registry">
-    <meta name="twitter:image" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    
-    <!-- Discord Rich Presence -->
-    <meta name="theme-color" content="#8B5CF6">
-    <meta name="discord:guild_id" content="W2xN49q9h">
-    <meta name="discord:invite_url" content="https://discord.gg/W2xN49q9h">
-    
-    <!-- Mobile Web App Capabilities -->
+    <!-- =========================================================================
+         META TAGS DE BASE
+         ========================================================================= -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Zarch Hub">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Zarch Hub">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#8B5CF6">
     
-    <!-- iOS Icons -->
-    <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-3.png">
+    <!-- =========================================================================
+         OPEN GRAPH / SOCIAL MEDIA (DYNAMIQUE)
+         ========================================================================= -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}Zarch Hub - APKM Package Registry{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}The official package registry for APKM - Alpine Package Manager{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png{% endblock %}">
+    <meta property="og:image:secure_url" content="{% block og_image_secure %}{{ self.og_image() }}{% endblock %}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{% block og_image_alt %}Zarch Hub Logo{% endblock %}">
+    <meta property="og:site_name" content="Zarch Hub">
+    <meta property="og:locale" content="fr_FR">
     
-    <!-- Android Icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-2.png">
+    <!-- =========================================================================
+         TWITTER CARD
+         ========================================================================= -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@zarchhub">
+    <meta name="twitter:creator" content="@zarchhub">
+    <meta name="twitter:title" content="{% block twitter_title %}Zarch Hub{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}APKM Package Registry{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png{% endblock %}">
     
-    <!-- Google Fonts - Android/iOS Kit -->
+    <!-- =========================================================================
+         DISCORD RICH PRESENCE
+         ========================================================================= -->
+    <meta name="theme-color" content="#8B5CF6">
+    <meta name="discord:guild_id" content="W2xN49q9h">
+    <meta name="discord:invite_url" content="https://discord.gg/W2xN49q9h">
+    
+    <!-- =========================================================================
+         ICÔNES ET FAVICONS
+         ========================================================================= -->
+    <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/apple-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- =========================================================================
+         POLICES & FONTS (optimisées)
+         ========================================================================= -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome -->
+    <!-- =========================================================================
+         FONT AWESOME (CDN rapide)
+         ========================================================================= -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- =========================================================================
+         TAILWIND CSS (via CDN avec optimisations)
+         ========================================================================= -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Custom CSS -->
+    <!-- =========================================================================
+         AOS ANIMATION (avec chargement conditionnel)
+         ========================================================================= -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" media="print" onload="this.media='all'">
+    
+    <!-- =========================================================================
+         TITRE DYNAMIQUE
+         ========================================================================= -->
+    <title>{% block title %}Zarch Hub - APKM Package Registry{% endblock %}</title>
+    
+    <!-- =========================================================================
+         STYLES PERSONNALISÉS (version boostée)
+         ========================================================================= -->
     <style>
+        /* =====================================================================
+           VARIABLES CSS
+           ===================================================================== */
+        :root {
+            --primary: #8B5CF6;
+            --primary-dark: #7C3AED;
+            --secondary: #EC4899;
+            --dark: #1F2937;
+            --light: #F9FAFB;
+            --gray: #6B7280;
+            --gradient-primary: linear-gradient(135deg, #8B5CF6, #EC4899);
+            --gradient-success: linear-gradient(135deg, #10B981, #059669);
+            --gradient-warning: linear-gradient(135deg, #F59E0B, #D97706);
+            --gradient-danger: linear-gradient(135deg, #EF4444, #DC2626);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            --blur: blur(8px);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+            --transition: all 0.3s ease;
+        }
+
+        /* =====================================================================
+           STYLES DE BASE
+           ===================================================================== */
         * {
             margin: 0;
             padding: 0;
@@ -75,18 +126,24 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
         }
-        
-        body {
-            font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+        html {
+            scroll-behavior: smooth;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: #1a1a1a;
+            line-height: 1.5;
         }
-        
-        /* Dark mode support */
+
+        /* =====================================================================
+           MODE SOMBRE
+           ===================================================================== */
         @media (prefers-color-scheme: dark) {
             body {
                 background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -95,6 +152,7 @@
             
             .glass-nav {
                 background: rgba(17, 24, 39, 0.95) !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
             }
             
             .glass-card {
@@ -103,12 +161,20 @@
                 color: #f0f0f0;
             }
             
-            .footer-text {
+            .text-gray-600 {
                 color: #9CA3AF !important;
             }
         }
-        
-        /* iOS safe areas */
+
+        /* Mode sombre explicite (via classe) */
+        .dark body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #f0f0f0;
+        }
+
+        /* =====================================================================
+           ZONES SÉCURISÉES POUR iOS
+           ===================================================================== */
         .safe-top {
             padding-top: env(safe-area-inset-top, 0px);
         }
@@ -117,60 +183,80 @@
             padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         
-        /* Custom scrollbar */
+        .safe-left {
+            padding-left: env(safe-area-inset-left, 0px);
+        }
+        
+        .safe-right {
+            padding-right: env(safe-area-inset-right, 0px);
+        }
+
+        /* =====================================================================
+           SCROLLBAR PERSONNALISÉE
+           ===================================================================== */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
         }
         
         ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(139, 92, 246, 0.1);
             border-radius: 10px;
         }
         
         ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
             border-radius: 10px;
+            transition: all 0.3s ease;
         }
         
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
+            background: linear-gradient(135deg, #7C3AED, #DB2777);
         }
-        
-        /* Glassmorphism */
+
+        /* =====================================================================
+           GLASSMORPHISM
+           ===================================================================== */
         .glass-nav {
             background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            backdrop-filter: var(--blur);
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
         
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            backdrop-filter: var(--blur);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition);
         }
         
         .glass-card:hover {
-            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-2px);
         }
-        
-        /* Buttons */
+
+        /* =====================================================================
+           BOUTONS
+           ===================================================================== */
         .btn-primary {
-            background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
-            transition: all 0.3s ease;
+            background: var(--gradient-primary);
+            transition: var(--transition);
             position: relative;
             overflow: hidden;
             color: white;
             font-weight: 600;
             border: none;
             cursor: pointer;
+            box-shadow: var(--shadow-lg);
         }
         
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.5);
+            box-shadow: var(--shadow-xl);
         }
         
         .btn-primary::after {
@@ -191,29 +277,32 @@
             height: 300px;
         }
         
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         .btn-secondary {
             background: transparent;
-            border: 2px solid #8B5CF6;
-            color: #8B5CF6;
+            border: 2px solid var(--primary);
+            color: var(--primary);
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: var(--transition);
             cursor: pointer;
         }
         
         .btn-secondary:hover {
-            background: #8B5CF6;
+            background: var(--gradient-primary);
+            border-color: transparent;
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.5);
+            box-shadow: var(--shadow-lg);
         }
-        
-        /* Links */
-        a {
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        /* Animations */
+
+        /* =====================================================================
+           ANIMATIONS
+           ===================================================================== */
         @keyframes float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
@@ -258,101 +347,114 @@
             animation: blob 7s infinite;
         }
         
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        .animation-delay-1000 { animation-delay: 1s; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-3000 { animation-delay: 3s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        /* =====================================================================
+           BADGE ADMIN
+           ===================================================================== */
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 0.5rem;
+            padding: 0.125rem 0.375rem;
+            background: linear-gradient(135deg, #3B82F6, #2563EB);
+            border-radius: 9999px;
+            animation: pop 0.3s ease;
+            vertical-align: middle;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .admin-badge i {
+            font-size: 0.7rem;
+            color: white;
+        }
+        
         @keyframes pop {
             0% { transform: scale(0); }
             80% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
-        
-        .animate-pop {
-            animation: pop 0.3s ease;
-        }
-        
-        /* Loading spinner */
+
+        /* =====================================================================
+           SPINNER DE CHARGEMENT
+           ===================================================================== */
         .spinner {
             border: 3px solid rgba(139, 92, 246, 0.1);
-            border-top-color: #8B5CF6;
+            border-top-color: var(--primary);
             border-radius: 50%;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+
+        /* =====================================================================
+           UTILITAIRES
+           ===================================================================== */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
         }
         
-        /* Admin badge */
-        .admin-badge {
-            display: inline-flex;
-            align-items: center;
-            margin-left: 0.5rem;
-            padding: 0.125rem 0.375rem;
-            background-color: #3b82f6;
-            border-radius: 9999px;
-            animation: pop 0.3s ease;
-            vertical-align: middle;
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         
-        /* Mobile optimizations */
-        @media (max-width: 640px) {
-            .container {
-                padding-left: 1rem;
-                padding-right: 1rem;
-            }
-            
-            h1 {
-                font-size: 2rem !important;
-            }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         
-        /* iOS momentum scrolling */
-        .scrollable {
-            -webkit-overflow-scrolling: touch;
-            overflow-y: auto;
-        }
-        
-        /* Disable pull-to-refresh on some elements */
         .no-pull {
             overscroll-behavior-y: contain;
-        }
-        
-        /* Touch feedback */
-        .touch-feedback {
-            transition: transform 0.2s;
         }
         
         .touch-feedback:active {
             transform: scale(0.98);
         }
         
-        /* Prevent text selection on mobile */
         .no-select {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
         }
-        
-        /* Animation delays */
-        .animation-delay-1000 {
-            animation-delay: 1s;
-        }
-        
-        .animation-delay-2000 {
-            animation-delay: 2s;
-        }
-        
-        .animation-delay-3000 {
-            animation-delay: 3s;
-        }
-        
-        .animation-delay-4000 {
-            animation-delay: 4s;
+
+        /* =====================================================================
+           RESPONSIVE
+           ===================================================================== */
+        @media (max-width: 640px) {
+            .glass-card {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem !important;
+            }
+            
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
         }
     </style>
     
-    <!-- JSON-LD Schema -->
-    <script type="application/ld+json">
+    <!-- =========================================================================
+         JSON-LD SCHEMA (STRUCTURED DATA)
+         ========================================================================= -->
+    <script type="application/ld+json" id="schema-org">
     {
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -367,379 +469,512 @@
         ],
         "potentialAction": {
             "@type": "SearchAction",
-            "target": "{{ request.url_root }}packages?q={search_term_string}",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "{{ request.url_root }}packages?q={search_term_string}"
+            },
             "query-input": "required name=search_term_string"
         }
     }
     </script>
     
-    <title>{% block title %}Zarch Hub - APKM Package Registry{% endblock %}</title>
-    
+    <!-- =========================================================================
+         BLOC POUR SCRIPTS/STYLES SUPPLÉMENTAIRES
+         ========================================================================= -->
     {% block extra_head %}{% endblock %}
 </head>
+
 <body class="antialiased min-h-screen safe-top safe-bottom no-pull">
-    <!-- Animated Background -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <!-- =========================================================================
+         FOND ANIMÉ (blobs)
+         ========================================================================= -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
         <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
         <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
     </div>
 
-    <!-- Navigation -->
+    <!-- =========================================================================
+         NAVIGATION PRINCIPALE
+         ========================================================================= -->
     <nav class="glass-nav sticky top-0 z-50 safe-top">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
-                <a href="/" class="flex items-center space-x-3 group">
+                <a href="/" class="flex items-center space-x-3 group" aria-label="Zarch Hub Home">
                     <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png" 
-                         alt="Zarch Hub" 
-                         class="h-10 w-auto rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300">
-                    <span class="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        Zarch<span class="text-gray-900 dark:text-white">Hub</span>
+                         alt="Zarch Hub Logo" 
+                         class="h-8 sm:h-10 w-auto rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300"
+                         width="40" height="40">
+                    <span class="text-lg sm:text-xl font-bold">
+                        <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Zarch</span>
+                        <span class="text-gray-900 dark:text-white">Hub</span>
                     </span>
                 </a>
                 
-                <!-- Desktop Navigation -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <a href="/" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-home mr-2"></i>Home
-                    </a>
-                    <!-- Dans la section desktop navigation, après Discord -->
-{% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
-<a href="/edit/community" class="px-3 py-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-    <i class="fas fa-users-cog mr-2"></i>Community
-</a>
-{% endif %}
-                    <a href="/packages" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-box mr-2"></i>Packages
-                    </a>
-                    <a href="/docs" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-book mr-2"></i>Docs
-                    </a>
-                    <a href="https://discord.gg/W2xN49q9h" target="_blank" class="px-3 py-2 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fab fa-discord mr-2"></i>Discord
+                <!-- Navigation Desktop -->
+                <div class="hidden md:flex items-center space-x-1 lg:space-x-2">
+                    <a href="/" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                        <i class="fas fa-home mr-1"></i>Home
                     </a>
                     
-                    <div class="nav-divider w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                    <a href="/packages" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                        <i class="fas fa-box mr-1"></i>Packages
+                    </a>
+                    
+                    <a href="/docs" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                        <i class="fas fa-book mr-1"></i>Docs
+                    </a>
+                    
+                    <a href="https://discord.gg/W2xN49q9h" target="_blank" rel="noopener noreferrer" 
+                       class="px-3 py-2 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                        <i class="fab fa-discord mr-1"></i>Discord
+                    </a>
                     
                     {% if session.user %}
-                    <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg">
-                        <i class="fas fa-upload mr-2"></i>Upload
-                    </a>
-                    <a href="/dashboard" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                    </a>
-                    <a href="/logout" class="px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                    </a>
+                        <!-- Admin Link (conditionnel) -->
+                        {% if session.user.username in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100'] %}
+                        <a href="/edit/community" class="px-3 py-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                            <i class="fas fa-users-cog mr-1"></i>Community
+                        </a>
+                        {% endif %}
+                        
+                        <div class="nav-divider w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                        
+                        <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg text-sm lg:text-base">
+                            <i class="fas fa-upload mr-1"></i>Upload
+                        </a>
+                        
+                        <a href="/dashboard" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                            <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                        </a>
+                        
+                        <a href="/logout" class="px-3 py-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                            <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                        </a>
                     {% else %}
-                    <a href="/login" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-sign-in-alt mr-2"></i>Login
-                    </a>
-                    <a href="/register" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg">
-                        <i class="fas fa-user-plus mr-2"></i>Register
-                    </a>
+                        <div class="nav-divider w-px h-6 bg-gray-300 dark:bg-gray-600 mx-2"></div>
+                        
+                        <a href="/login" class="px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all duration-300 hover:scale-105 text-sm lg:text-base">
+                            <i class="fas fa-sign-in-alt mr-1"></i>Login
+                        </a>
+                        
+                        <a href="/register" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg text-sm lg:text-base">
+                            <i class="fas fa-user-plus mr-1"></i>Register
+                        </a>
                     {% endif %}
                 </div>
                 
-                <!-- Mobile Menu Button -->
-                <button class="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" id="mobileMenuBtn">
-                    <i class="fas fa-bars text-2xl"></i>
+                <!-- Menu Mobile Button -->
+                <button class="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        id="mobileMenuBtn"
+                        aria-label="Toggle mobile menu"
+                        aria-expanded="false">
+                    <i class="fas fa-bars text-2xl" id="menuIcon"></i>
                 </button>
             </div>
         </div>
         
-        <!-- Mobile Menu -->
-        <div class="md:hidden hidden" id="mobileMenu">
-            <div class="px-4 pt-2 pb-4 space-y-2 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                <a href="/" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
-                    <i class="fas fa-home w-6"></i>
-                    <span>Home</span>
-                </a>
-                <a href="/packages" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
-                    <i class="fas fa-box w-6"></i>
-                    <span>Packages</span>
-                </a>
-                <a href="/docs" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
-                    <i class="fas fa-book w-6"></i>
-                    <span>Docs</span>
-                </a>
-                <a href="https://discord.gg/W2xN49q9h" target="_blank" class="flex items-center px-4 py-3 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800">
-                    <i class="fab fa-discord w-6"></i>
-                    <span>Discord</span>
+        <!-- Menu Mobile (caché par défaut) -->
+        <div class="md:hidden hidden glass-card border-t-0 rounded-b-2xl overflow-hidden" id="mobileMenu">
+            <div class="px-4 py-2 space-y-1 max-h-[80vh] overflow-y-auto scrollbar-hide">
+                <a href="/" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all">
+                    <i class="fas fa-home w-6 text-purple-600"></i>
+                    <span class="ml-3">Home</span>
                 </a>
                 
-                <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                <a href="/packages" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all">
+                    <i class="fas fa-box w-6 text-purple-600"></i>
+                    <span class="ml-3">Packages</span>
+                </a>
+                
+                <a href="/docs" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all">
+                    <i class="fas fa-book w-6 text-purple-600"></i>
+                    <span class="ml-3">Docs</span>
+                </a>
+                
+                <a href="https://discord.gg/W2xN49q9h" target="_blank" rel="noopener noreferrer" 
+                   class="flex items-center px-4 py-3 rounded-lg text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-800 transition-all">
+                    <i class="fab fa-discord w-6 text-indigo-600"></i>
+                    <span class="ml-3">Discord</span>
+                </a>
                 
                 {% if session.user %}
-                <a href="/upload" class="flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
-                    <i class="fas fa-upload w-6"></i>
-                    <span>Upload</span>
-                </a>
-                <a href="/dashboard" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
-                    <i class="fas fa-tachometer-alt w-6"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/logout" class="flex items-center px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800">
-                    <i class="fas fa-sign-out-alt w-6"></i>
-                    <span>Logout</span>
-                </a>
+                    {% if session.user.username in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100'] %}
+                    <a href="/edit/community" class="flex items-center px-4 py-3 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all">
+                        <i class="fas fa-users-cog w-6 text-purple-600"></i>
+                        <span class="ml-3">Community</span>
+                    </a>
+                    {% endif %}
+                    
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                    
+                    <a href="/upload" class="flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
+                        <i class="fas fa-upload w-6"></i>
+                        <span class="ml-3">Upload Package</span>
+                    </a>
+                    
+                    <a href="/dashboard" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all">
+                        <i class="fas fa-tachometer-alt w-6 text-purple-600"></i>
+                        <span class="ml-3">Dashboard</span>
+                    </a>
+                    
+                    <a href="/logout" class="flex items-center px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-800 transition-all">
+                        <i class="fas fa-sign-out-alt w-6 text-red-600"></i>
+                        <span class="ml-3">Logout</span>
+                    </a>
                 {% else %}
-                <a href="/login" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800">
-                    <i class="fas fa-sign-in-alt w-6"></i>
-                    <span>Login</span>
-                </a>
-                <a href="/register" class="flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
-                    <i class="fas fa-user-plus w-6"></i>
-                    <span>Register</span>
-                </a>
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                    
+                    <a href="/login" class="flex items-center px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800 transition-all">
+                        <i class="fas fa-sign-in-alt w-6 text-purple-600"></i>
+                        <span class="ml-3">Login</span>
+                    </a>
+                    
+                    <a href="/register" class="flex items-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
+                        <i class="fas fa-user-plus w-6"></i>
+                        <span class="ml-3">Register</span>
+                    </a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- =========================================================================
+         CONTENU PRINCIPAL
+         ========================================================================= -->
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 min-h-[calc(100vh-16rem)]">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="relative z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 mt-12 safe-bottom">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <!-- =========================================================================
+         FOOTER
+         ========================================================================= -->
+    <footer class="relative z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 mt-auto safe-bottom">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
                 <!-- Brand -->
-                <div class="space-y-4">
+                <div class="space-y-3 sm:space-y-4">
                     <div class="flex items-center space-x-3">
                         <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png" 
                              alt="Zarch Hub" 
-                             class="h-8 w-auto rounded-lg">
-                        <span class="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                             class="h-6 sm:h-8 w-auto rounded-lg">
+                        <span class="text-base sm:text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                             Zarch Hub
                         </span>
                     </div>
-                    <p class="footer-text text-gray-600 dark:text-gray-400 text-sm">
+                    <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-xs">
                         The official package registry for APKM - Alpine Package Manager
                     </p>
-                    <div class="flex space-x-4">
-                        <a href="https://discord.gg/W2xN49q9h" target="_blank" class="text-gray-400 hover:text-indigo-600 transition-colors">
-                            <i class="fab fa-discord text-xl"></i>
+                    <div class="flex space-x-3 sm:space-x-4">
+                        <a href="https://discord.gg/W2xN49q9h" target="_blank" rel="noopener noreferrer" 
+                           class="text-gray-400 hover:text-indigo-600 transition-colors text-lg sm:text-xl"
+                           aria-label="Discord">
+                            <i class="fab fa-discord"></i>
                         </a>
-                        <a href="https://github.com/gopu-inc" target="_blank" class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-                            <i class="fab fa-github text-xl"></i>
+                        <a href="https://github.com/gopu-inc" target="_blank" rel="noopener noreferrer" 
+                           class="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-lg sm:text-xl"
+                           aria-label="GitHub">
+                            <i class="fab fa-github"></i>
                         </a>
-                        <a href="mailto:ceoseshell@gmail.com" class="text-gray-400 hover:text-purple-600 transition-colors">
-                            <i class="fas fa-envelope text-xl"></i>
+                        <a href="mailto:ceoseshell@gmail.com" 
+                           class="text-gray-400 hover:text-purple-600 transition-colors text-lg sm:text-xl"
+                           aria-label="Email">
+                            <i class="fas fa-envelope"></i>
                         </a>
                     </div>
                 </div>
                 
                 <!-- Quick Links -->
                 <div>
-                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h3>
-                    <ul class="space-y-2">
-                        <li><a href="/packages" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Packages</a></li>
-                        <li><a href="/docs" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Documentation</a></li>
-                        <li><a href="/upload" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Upload</a></li>
-                        <li><a href="/stats" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Statistics</a></li>
+                    <h3 class="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-3 sm:mb-4">Quick Links</h3>
+                    <ul class="space-y-1.5 sm:space-y-2">
+                        <li><a href="/packages" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Packages</a></li>
+                        <li><a href="/docs" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Documentation</a></li>
+                        <li><a href="/upload" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Upload</a></li>
+                        <li><a href="/stats" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Statistics</a></li>
                     </ul>
                 </div>
                 
                 <!-- Resources -->
                 <div>
-                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Resources</h3>
-                    <ul class="space-y-2">
-                        <li><a href="https://github.com/gopu-inc/apkm-gest" target="_blank" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">GitHub</a></li>
-                        <li><a href="/api/docs" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">API</a></li>
-                        <li><a href="/status" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Status</a></li>
-                        <li><a href="/cookies" class="footer-text text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Cookies</a></li>
+                    <h3 class="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-3 sm:mb-4">Resources</h3>
+                    <ul class="space-y-1.5 sm:space-y-2">
+                        <li><a href="https://github.com/gopu-inc/apkm-gest" target="_blank" rel="noopener noreferrer" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">GitHub</a></li>
+                        <li><a href="/api/docs" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">API</a></li>
+                        <li><a href="/status" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Status</a></li>
+                        <li><a href="/cookies" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">Cookies</a></li>
                     </ul>
                 </div>
                 
                 <!-- Contact -->
                 <div>
-                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Contact</h3>
-                    <ul class="space-y-2">
-                        <li class="flex items-center space-x-2 footer-text text-gray-600 dark:text-gray-400">
-                            <i class="fas fa-envelope w-5"></i>
-                            <a href="mailto:ceoseshell@gmail.com" class="hover:text-purple-600">ceoseshell@gmail.com</a>
+                    <h3 class="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-3 sm:mb-4">Contact</h3>
+                    <ul class="space-y-1.5 sm:space-y-2">
+                        <li class="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                            <i class="fas fa-envelope w-4 text-purple-600"></i>
+                            <a href="mailto:ceoseshell@gmail.com" class="hover:text-purple-600 truncate">ceoseshell@gmail.com</a>
                         </li>
-                        <li class="flex items-center space-x-2 footer-text text-gray-600 dark:text-gray-400">
-                            <i class="fas fa-globe w-5"></i>
+                        <li class="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                            <i class="fas fa-globe w-4 text-purple-600"></i>
                             <a href="https://zarch.io" class="hover:text-purple-600">zarch.io</a>
                         </li>
                     </ul>
                 </div>
             </div>
             
-            <div class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8 text-center text-sm footer-text text-gray-600 dark:text-gray-400">
+            <!-- Copyright -->
+            <div class="border-t border-gray-200 dark:border-gray-700 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 <p>&copy; 2026 Zarch Hub. Crafted with <i class="fas fa-heart text-red-500"></i> for the APKM community</p>
-                <p class="mt-2 space-x-4">
+                <p class="mt-2 space-x-2 sm:space-x-4">
                     <a href="/privacy" class="hover:text-purple-600">Privacy</a>
                     <span>•</span>
                     <a href="/terms" class="hover:text-purple-600">Terms</a>
                     <span>•</span>
                     <a href="/cookies" class="hover:text-purple-600">Cookies</a>
                     <span>•</span>
-                    <a href="https://discord.gg/W2xN49q9h" target="_blank" class="hover:text-purple-600">Join Discord</a>
+                    <a href="https://discord.gg/W2xN49q9h" target="_blank" rel="noopener noreferrer" class="hover:text-purple-600">Join Discord</a>
                 </p>
             </div>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            once: true,
-            offset: 100,
-            disable: 'mobile'
-        });
-        
-        // Mobile menu toggle
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        
-        if (mobileMenuBtn && mobileMenu) {
-            mobileMenuBtn.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-                const icon = mobileMenuBtn.querySelector('i');
-                if (icon) {
-                    icon.classList.toggle('fa-bars');
-                    icon.classList.toggle('fa-times');
-                }
-            });
-        }
-        
-        // Close mobile menu on window resize (desktop)
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768 && mobileMenu) {
-                mobileMenu.classList.add('hidden');
-                const icon = mobileMenuBtn?.querySelector('i');
-                if (icon) {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            }
-        });
-        
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-        
-        // Add active class to current nav link
-        const currentPath = window.location.pathname;
-        document.querySelectorAll('.nav-link').forEach(link => {
-            if (link.getAttribute('href') === currentPath) {
-                link.classList.add('active');
-            }
-        });
-
-        // ============================================================
-        // ADMIN BADGE SYSTEM
-        // ============================================================
-        
-        // Liste des administrateurs (à synchroniser avec le serveur)
-        const ADMIN_LIST = ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100'];
-        
-        // Vérifier si un utilisateur est admin
-        function isAdmin(username) {
-            return ADMIN_LIST.includes(username);
-        }
-        
-        // Vérifier si l'utilisateur courant est admin
-        function isCurrentUserAdmin() {
-            const userStr = localStorage.getItem('zarch_user');
-            if (!userStr) return false;
-            try {
-                const user = JSON.parse(userStr);
-                return isAdmin(user.username);
-            } catch {
-                return false;
-            }
-        }
-        
-        // Générer le badge admin HTML
-        function getAdminBadge() {
-            return '<span class="admin-badge" title="Verified Administrator"><i class="fas fa-check-circle text-white text-xs"></i></span>';
-        }
-        
-        // Appliquer les badges sur tous les noms d'utilisateur
-        function applyAdminBadges() {
-            // Badge pour l'utilisateur courant dans la navigation
-            const usernameDisplay = document.getElementById('usernameDisplay');
-            if (usernameDisplay && isCurrentUserAdmin()) {
-                const username = usernameDisplay.textContent.trim();
-                if (!usernameDisplay.querySelector('.admin-badge')) {
-                    usernameDisplay.innerHTML = username + getAdminBadge();
-                }
-            }
-            
-            // Badges sur tous les éléments avec la classe 'author-name'
-            document.querySelectorAll('.author-name').forEach(el => {
-                const username = el.textContent.trim() || el.dataset.author;
-                if (isAdmin(username) && !el.querySelector('.admin-badge')) {
-                    el.innerHTML = username + getAdminBadge();
-                }
-            });
-            
-            // Badges sur les éléments avec l'attribut data-author
-            document.querySelectorAll('[data-author]').forEach(el => {
-                const username = el.dataset.author;
-                if (isAdmin(username) && !el.querySelector('.admin-badge')) {
-                    // Ne pas dupliquer si déjà traité
-                    if (!el.querySelector('.admin-badge')) {
-                        const badge = document.createElement('span');
-                        badge.className = 'admin-badge';
-                        badge.innerHTML = '<i class="fas fa-check-circle text-white text-xs"></i>';
-                        badge.title = 'Verified Administrator';
-                        el.appendChild(badge);
-                    }
-                }
-            });
-        }
-        
-        // Observer pour les éléments chargés dynamiquement
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    applyAdminBadges();
-                }
-            });
-        });
-        
-        // Démarrer l'observation
-        observer.observe(document.body, { childList: true, subtree: true });
-        
-        // Appliquer au chargement initial
-        document.addEventListener('DOMContentLoaded', applyAdminBadges);
-    </script>
-    
-    <!-- Flash messages -->
+    <!-- =========================================================================
+         FLASH MESSAGES
+         ========================================================================= -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="fixed top-20 right-4 z-50 space-y-2 max-w-md">
+            <div class="fixed top-20 right-4 z-50 space-y-2 max-w-xs sm:max-w-md pointer-events-none" id="flashMessages">
                 {% for category, message in messages %}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-l-4 animate-slide-in 
-                                {% if category == 'success' %}border-green-500{% elif category == 'error' %}border-red-500{% else %}border-blue-500{% endif %}">
-                        <div class="flex items-center space-x-3">
-                            <i class="fas fa-{% if category == 'success' %}check-circle text-green-500{% elif category == 'error' %}exclamation-circle text-red-500{% else %}info-circle text-blue-500{% endif %}"></i>
-                            <p class="text-sm text-gray-700 dark:text-gray-300">{{ message }}</p>
+                    <div class="flash-message glass-card p-3 sm:p-4 rounded-lg shadow-lg border-l-4 animate-slide-in pointer-events-auto
+                                {% if category == 'success' %}border-green-500 bg-green-50 dark:bg-green-900/20{% elif category == 'error' %}border-red-500 bg-red-50 dark:bg-red-900/20{% else %}border-blue-500 bg-blue-50 dark:bg-blue-900/20{% endif %}">
+                        <div class="flex items-center space-x-2 sm:space-x-3">
+                            <i class="fas fa-{% if category == 'success' %}check-circle text-green-500{% elif category == 'error' %}exclamation-circle text-red-500{% else %}info-circle text-blue-500{% endif %} text-sm sm:text-base"></i>
+                            <p class="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">{{ message }}</p>
+                            <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 {% endfor %}
             </div>
+            
+            <script>
+                // Auto-hide flash messages after 5 seconds
+                setTimeout(() => {
+                    document.querySelectorAll('.flash-message').forEach(msg => {
+                        msg.style.opacity = '0';
+                        msg.style.transform = 'translateX(100%)';
+                        setTimeout(() => msg.remove(), 300);
+                    });
+                }, 5000);
+            </script>
         {% endif %}
     {% endwith %}
+
+    <!-- =========================================================================
+         SCRIPTS
+         ========================================================================= -->
+    <!-- AOS Animation (chargé conditionnellement) -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" defer></script>
     
+    <!-- Scripts principaux -->
+    <script>
+        // =====================================================================
+        // INITIALISATION
+        // =====================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialiser AOS
+            if (typeof AOS !== 'undefined') {
+                AOS.init({
+                    duration: 800,
+                    once: true,
+                    offset: 100,
+                    disable: window.innerWidth < 640 // Désactiver sur mobile si lent
+                });
+            }
+            
+            // Initialiser le menu mobile
+            initMobileMenu();
+            
+            // Initialiser le thème
+            initTheme();
+            
+            // Initialiser les badges admin
+            initAdminBadges();
+            
+            // Appliquer les classes aux liens actifs
+            highlightActiveLink();
+        });
+        
+        // =====================================================================
+        // MENU MOBILE
+        // =====================================================================
+        function initMobileMenu() {
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const menuIcon = document.getElementById('menuIcon');
+            
+            if (!menuBtn || !mobileMenu) return;
+            
+            menuBtn.addEventListener('click', function() {
+                const isExpanded = menuBtn.getAttribute('aria-expanded') === 'true';
+                menuBtn.setAttribute('aria-expanded', !isExpanded);
+                
+                if (mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.remove('hidden');
+                    menuIcon.classList.remove('fa-bars');
+                    menuIcon.classList.add('fa-times');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    mobileMenu.classList.add('hidden');
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Fermer le menu au clic sur un lien
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                });
+            });
+            
+            // Fermer au redimensionnement (passage en desktop)
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768 && !mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                    menuIcon.classList.remove('fa-times');
+                    menuIcon.classList.add('fa-bars');
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+        
+        // =====================================================================
+        // GESTION DU THÈME
+        // =====================================================================
+        function initTheme() {
+            // Vérifier le thème sauvegardé
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // =====================================================================
+        // BADGES ADMIN
+        // =====================================================================
+        const ADMIN_LIST = ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100'];
+        
+        function isAdmin(username) {
+            return ADMIN_LIST.includes(username);
+        }
+        
+        function initAdminBadges() {
+            // Appliquer les badges aux éléments avec la classe 'author-name'
+            document.querySelectorAll('.author-name').forEach(el => {
+                const username = el.textContent.trim() || el.dataset.author;
+                if (isAdmin(username) && !el.querySelector('.admin-badge')) {
+                    el.innerHTML = username + '<span class="admin-badge" title="Verified Administrator"><i class="fas fa-check-circle"></i></span>';
+                }
+            });
+            
+            // Appliquer aux éléments avec data-author
+            document.querySelectorAll('[data-author]').forEach(el => {
+                const username = el.dataset.author;
+                if (isAdmin(username) && !el.querySelector('.admin-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'admin-badge';
+                    badge.innerHTML = '<i class="fas fa-check-circle"></i>';
+                    badge.title = 'Verified Administrator';
+                    el.appendChild(badge);
+                }
+            });
+        }
+        
+        // Observer pour les éléments dynamiques
+        const observer = new MutationObserver(initAdminBadges);
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // =====================================================================
+        // LIENS ACTIFS
+        // =====================================================================
+        function highlightActiveLink() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('nav a[href]').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href !== '#' && href !== '/' && currentPath.startsWith(href) && href.length > 1) {
+                    link.classList.add('text-purple-600', 'font-medium');
+                } else if (href === '/' && currentPath === '/') {
+                    link.classList.add('text-purple-600', 'font-medium');
+                }
+            });
+        }
+        
+        // =====================================================================
+        // UTILITAIRES
+        // =====================================================================
+        function copyToClipboard(text, successMessage = 'Copied!') {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification(successMessage, 'success');
+            }).catch(() => {
+                showNotification('Failed to copy', 'error');
+            });
+        }
+        
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('flashMessages') || document.body;
+            const notification = document.createElement('div');
+            notification.className = `glass-card p-3 sm:p-4 rounded-lg shadow-lg border-l-4 animate-slide-in mb-2
+                ${type === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 
+                  type === 'error' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 
+                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20'}`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <i class="fas fa-${type === 'success' ? 'check-circle text-green-500' : 
+                                       type === 'error' ? 'exclamation-circle text-red-500' : 
+                                       'info-circle text-blue-500'} text-sm sm:text-base"></i>
+                    <p class="text-xs sm:text-sm text-gray-700 dark:text-gray-300 flex-1">${message}</p>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+    </script>
+    
+    <!-- =========================================================================
+         BLOC POUR SCRIPTS SUPPLÉMENTAIRES
+         ========================================================================= -->
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
