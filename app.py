@@ -1528,7 +1528,6 @@ def dashboard_page():
         # =====================================================================
         # 1. CHARGEMENT DES DONNÉES UTILISATEUR
         # =====================================================================
-        # Récupérer la base de données des utilisateurs
         users_db = GitHubManager.read_from_github('database/users.json', {'users': []})
         current_user = next((u for u in users_db.get('users', []) if u['username'] == username), user)
         
@@ -1538,15 +1537,30 @@ def dashboard_page():
         packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
         all_packages = packages_db.get('packages', [])
         
-        # Packages de l'utilisateur
-        user_packages = [p for p in all_packages if p.get('author') == username]
+        # Packages de l'utilisateur avec valeurs par défaut
+        user_packages = []
+        for pkg in all_packages:
+            if pkg.get('author') == username:
+                # S'assurer que toutes les clés nécessaires existent
+                safe_pkg = {
+                    'name': pkg.get('name', 'unknown'),
+                    'version': pkg.get('version', '0.0.0'),
+                    'scope': pkg.get('scope', 'public'),
+                    'downloads': pkg.get('downloads', 0),
+                    'created_at': pkg.get('created_at'),
+                    'size': pkg.get('size', 0),
+                    'id': pkg.get('id', hash(pkg.get('name'))),
+                    'rating': pkg.get('rating', 0),
+                    'description': pkg.get('description', '')
+                }
+                user_packages.append(safe_pkg)
         
         # Statistiques
         total_packages = len(user_packages)
         total_downloads = sum(p.get('downloads', 0) for p in user_packages)
         
         # =====================================================================
-        # 3. CHARGEMENT DES BADGES PERSONNALISÉS
+        # 3. CHARGEMENT DES BADGES
         # =====================================================================
         badges = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
         badges_count = len(badges)
@@ -1561,34 +1575,30 @@ def dashboard_page():
             package_reviews = GitHubManager.read_from_github(f'reviews/{package["name"]}.json', {'reviews': []})
             reviews_count += len(package_reviews.get('reviews', []))
             
-            # Ajouter les 3 dernières reviews
             for review in package_reviews.get('reviews', [])[:3]:
                 recent_reviews.append({
-                    'author': review.get('username'),
+                    'author': review.get('username', 'anonymous'),
                     'package': package['name'],
-                    'rating': review.get('rating'),
-                    'comment': review.get('comment'),
-                    'time': review.get('created_at', '')[:10]
+                    'rating': review.get('rating', 0),
+                    'comment': review.get('comment', ''),
+                    'time': review.get('created_at', '')[:10] if review.get('created_at') else 'N/A'
                 })
         
-        # Trier par date et limiter
         recent_reviews = sorted(recent_reviews, key=lambda x: x['time'], reverse=True)[:5]
         
         # =====================================================================
-        # 5. CHARGEMENT DE L'ACTIVITÉ RÉCENTE
+        # 5. ACTIVITÉ RÉCENTE
         # =====================================================================
         recent_activity = []
         
-        # Activité des packages récents
         for pkg in sorted(user_packages, key=lambda x: x.get('created_at', ''), reverse=True)[:3]:
             recent_activity.append({
                 'icon': 'upload',
                 'color': 'purple',
                 'message': f'Published <span class="font-medium">{pkg["name"]} v{pkg["version"]}</span>',
-                'time': pkg.get('created_at', '')[:10]
+                'time': pkg.get('created_at', '')[:10] if pkg.get('created_at') else 'Recently'
             })
         
-        # Activité des téléchargements (simulée)
         if total_downloads > 0:
             recent_activity.append({
                 'icon': 'download',
@@ -1597,7 +1607,6 @@ def dashboard_page():
                 'time': 'Today'
             })
         
-        # Activité des badges
         if badges_count > 0:
             recent_activity.append({
                 'icon': 'award',
@@ -1609,84 +1618,78 @@ def dashboard_page():
         # =====================================================================
         # 6. DONNÉES COMMUNAUTAIRES
         # =====================================================================
-        # Top contributeurs
         author_stats = {}
+        author_downloads = {}
+        
         for pkg in all_packages:
             author = pkg.get('author')
             if author:
                 if author not in author_stats:
                     author_stats[author] = 0
+                    author_downloads[author] = 0
                 author_stats[author] += 1
+                author_downloads[author] += pkg.get('downloads', 0)
         
         top_contributors = []
         for author, count in sorted(author_stats.items(), key=lambda x: x[1], reverse=True)[:5]:
+            user_info = next((u for u in users_db.get('users', []) if u.get('username') == author), {})
             top_contributors.append({
                 'username': author,
-                'packages': count
+                'packages': count,
+                'downloads': author_downloads.get(author, 0)
             })
-        
-        # Statistiques communautaires
-        online_members = len(set(p.get('author') for p in all_packages))  # Simulé
-        new_packages_today = len([p for p in all_packages if p.get('created_at', '').startswith(datetime.now().strftime('%Y-%m-%d'))])
-        active_discussions = 8  # Simulé
-        new_badges_today = 3  # Simulé
-        
-        # Notifications communautaires
-        community_notifications = [
-            {
-                'icon': 'users',
-                'color': 'blue',
-                'message': f'<span class="font-medium">{online_members}</span> contributors active',
-                'time': 'Now'
-            },
-            {
-                'icon': 'box',
-                'color': 'purple',
-                'message': f'<span class="font-medium">{new_packages_today}</span> new packages today',
-                'time': 'Today'
-            },
-            {
-                'icon': 'comments',
-                'color': 'green',
-                'message': 'New discussion in #general',
-                'time': '2h ago'
-            }
-        ]
         
         # =====================================================================
         # 7. DONNÉES POUR LES GRAPHIQUES
         # =====================================================================
-        # Simuler des données de téléchargements pour les 30 derniers jours
         import random
         from datetime import timedelta
         
         chart_labels = []
         chart_data = []
         
-        for i in range(30, 0, -1):
+        for i in range(7, 0, -1):
             date = (datetime.now() - timedelta(days=i)).strftime('%d/%m')
             chart_labels.append(date)
-            chart_data.append(random.randint(0, 20))  # Simulé
+            chart_data.append(random.randint(0, 20))
         
         popular_labels = [p['name'] for p in user_packages[:3]] if user_packages else ['apkm', 'bool', 'apsm']
         popular_data = [p.get('downloads', 0) for p in user_packages[:3]] if user_packages else [42, 15, 7]
         
         # =====================================================================
-        # 8. STATISTIQUES PACKAGÉES
+        # 8. STATISTIQUES
         # =====================================================================
         stats = {
             'packages': total_packages,
             'downloads': total_downloads,
-            'member_since': user.get('created_at', '2026')[:10]
+            'member_since': current_user.get('created_at', '2026')[:10]
         }
         
         # =====================================================================
-        # 9. VÉRIFICATION ADMIN
+        # 9. NOTIFICATIONS COMMUNAUTAIRES
         # =====================================================================
-        is_admin = username in ['admin', 'gopu-inc', 'mauricio', 'mauricio_tukss1231', 'Mauricio-100']
+        community_notifications = [
+            {
+                'icon': 'users',
+                'color': 'blue',
+                'message': f'<span class="font-medium">{len(author_stats)}</span> contributors active',
+                'time': 'Now'
+            },
+            {
+                'icon': 'box',
+                'color': 'purple',
+                'message': f'<span class="font-medium">{len(all_packages)}</span> total packages',
+                'time': 'Today'
+            }
+        ]
         
         # =====================================================================
-        # 10. RENDU DU TEMPLATE AVEC TOUTES LES DONNÉES
+        # 10. VÉRIFICATION ADMIN
+        # =====================================================================
+        is_admin = username in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100']
+        
+        # =====================================================================
+        # 11. RENDU DU TEMPLATE
         # =====================================================================
         return render_template('dashboard.html',
                              user=current_user,
@@ -1702,10 +1705,10 @@ def dashboard_page():
                              reviews_count=reviews_count,
                              recent_activity=recent_activity,
                              top_contributors=top_contributors,
-                             online_members=online_members,
-                             new_packages=new_packages_today,
-                             active_discussions=active_discussions,
-                             new_badges=new_badges_today,
+                             online_members=len(author_stats),
+                             new_packages=len([p for p in all_packages if p.get('created_at', '').startswith(datetime.now().strftime('%Y-%m-%d'))]),
+                             active_discussions=8,
+                             new_badges=3,
                              community_notifications=community_notifications,
                              is_admin=is_admin,
                              now=datetime.now())
@@ -1715,7 +1718,7 @@ def dashboard_page():
         import traceback
         traceback.print_exc()
         
-        # Données par défaut en cas d'erreur
+        # Données par défaut
         default_stats = {
             'packages': 0,
             'downloads': 0,
@@ -1726,8 +1729,8 @@ def dashboard_page():
                              user=user,
                              user_packages=[],
                              stats=default_stats,
-                             chart_labels=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                             chart_data=[0, 0, 0, 0, 0, 0],
+                             chart_labels=['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+                             chart_data=[0, 0, 0, 0, 0, 0, 0],
                              popular_labels=['apkm', 'bool', 'apsm'],
                              popular_data=[0, 0, 0],
                              badges={},
