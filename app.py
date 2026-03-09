@@ -1259,6 +1259,67 @@ def index():
                          packages=recent_packages,
                          now=datetime.now())
 
+@app.route('/package/<name>/reviews')
+def package_reviews(name):
+    """Page des reviews d'un package"""
+    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+    package = next((p for p in db.get('packages', []) if p['name'] == name), None)
+    
+    if not package:
+        abort(404)
+    
+    # Récupérer les reviews
+    reviews_db = GitHubManager.read_from_github(f'reviews/{name}.json', {'reviews': [], 'average': 0})
+    
+    return render_template('reviews.html', package=package, reviews=reviews_db)
+
+@app.route('/api/v1/package/<name>/review', methods=['POST'])
+@token_required
+def add_review(name):
+    """Ajouter une review"""
+    user = g.user
+    data = request.get_json()
+    
+    rating = data.get('rating')
+    comment = data.get('comment', '')
+    
+    if not rating or rating < 1 or rating > 5:
+        return jsonify({'error': 'Invalid rating'}), 400
+    
+    # Sauvegarder la review
+    reviews_db = GitHubManager.read_from_github(f'reviews/{name}.json', {'reviews': [], 'average': 0})
+    
+    # Vérifier si l'utilisateur a déjà reviewé
+    for r in reviews_db['reviews']:
+        if r['username'] == user['username']:
+            return jsonify({'error': 'Already reviewed'}), 400
+    
+    review = {
+        'username': user['username'],
+        'rating': rating,
+        'comment': comment,
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat()
+    }
+    
+    reviews_db['reviews'].append(review)
+    
+    # Recalculer la moyenne
+    total = sum(r['rating'] for r in reviews_db['reviews'])
+    reviews_db['average'] = total / len(reviews_db['reviews'])
+    
+    GitHubManager.save_to_github(f'reviews/{name}.json', reviews_db, f"New review for {name}")
+    
+    return jsonify({'success': True, 'average': reviews_db['average']})
+
+@app.route('/api/v1/package/<name>/rating')
+def get_rating(name):
+    """Récupérer la note moyenne"""
+    reviews_db = GitHubManager.read_from_github(f'reviews/{name}.json', {'reviews': [], 'average': 0})
+    return jsonify({
+        'average': reviews_db['average'],
+        'count': len(reviews_db['reviews'])
+    })
 @app.route('/packages')
 def packages_page():
     """Page de liste des packages avec recherche et filtres"""
