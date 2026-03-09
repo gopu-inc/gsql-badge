@@ -1393,7 +1393,7 @@ def debug_db():
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
     return jsonify(db)
 
-@app.route('/debug/session')
+@app.route('/debug/token')
 def debug_session():
     """Debug uniquement"""
     if not app.debug:
@@ -1403,7 +1403,19 @@ def debug_session():
         'user': session.get('user'),
         'token': session.get('token')
     })
-
+@app.route('/debug/cookies')
+def debug_session():
+    """Route de debug pour vérifier la session"""
+    if not app.debug:
+        abort(404)
+    
+    return jsonify({
+        'session': dict(session),
+        'cookies': dict(request.cookies),
+        'user': session.get('user'),
+        'token': session.get('token'),
+        'has_token_cookie': 'zarch_token' in request.cookies
+    })
 # ============================================================================
 # INITIALISATION
 # ============================================================================
