@@ -1,58 +1,62 @@
 {% extends "base.html" %}
 
 {% block og_title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
-{% block og_description %}Manage your packages, view analytics, and configure your Zarch Hub account settings{% endblock %}
+{% block og_description %}Manage your packages, view analytics, and control your Zarch Hub account settings{% endblock %}
 {% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/dashboard-preview.png{% endblock %}
-{% block og_image_alt %}Zarch Hub Dashboard - Package Management{% endblock %}
+{% block og_image_alt %}Zarch Hub Dashboard Interface{% endblock %}
 
 {% block twitter_title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
-{% block twitter_description %}Personal dashboard for managing APKM packages and account settings{% endblock %}
+{% block twitter_description %}Package management and analytics dashboard{% endblock %}
 
-{% block title %}Dashboard - {{ user.username }} - Zarch Hub{% endblock %}
+{% block title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
 
 {% block extra_head %}
-<!-- OpenGraph spécifique au dashboard -->
-<meta property="og:type" content="profile">
-<meta property="profile:username" content="{{ user.username }}">
-<meta property="profile:member_since" content="{{ user.created_at }}">
-<meta property="og:updated_time" content="{{ now.isoformat() }}">
+<!-- Preload critical resources -->
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" as="script">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" as="style">
 
-<!-- Meta pour PWA -->
-<meta name="theme-color" content="#8B5CF6">
-<link rel="manifest" href="/manifest.json">
+<!-- Chart.js pour les graphiques -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 
-<!-- Preconnect pour les APIs -->
-<link rel="preconnect" href="https://api.zarch.io">
-<link rel="dns-prefetch" href="https://api.zarch.io">
+<!-- Sécurité supplémentaire -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 
-<!-- Styles supplémentaires -->
 <style>
-    /* Variables CSS pour le dashboard */
+/* Variables pour les graphiques */
+:root {
+    --chart-grid-color: rgba(139, 92, 246, 0.1);
+    --chart-text-color: #6B7280;
+}
+
+@media (prefers-color-scheme: dark) {
     :root {
-        --dashboard-primary: #8B5CF6;
-        --dashboard-secondary: #EC4899;
-        --dashboard-success: #10B981;
-        --dashboard-warning: #F59E0B;
-        --dashboard-danger: #EF4444;
-        --dashboard-info: #3B82F6;
+        --chart-grid-color: rgba(255, 255, 255, 0.1);
+        --chart-text-color: #9CA3AF;
     }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8 space-y-8" id="dashboard-root">
-    <!-- ============================================================================
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-page="dashboard">
+    <!-- =========================================================================
          EN-TÊTE DU DASHBOARD
-    ============================================================================ -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" data-aos="fade-down">
+         ========================================================================= -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8" data-aos="fade-up">
         <div class="flex items-center gap-4">
             <div class="relative">
-                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
-                    <i class="fas fa-tachometer-alt text-white text-3xl"></i>
+                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg animate-float">
+                    <i class="fas fa-tachometer-alt text-white text-2xl"></i>
                 </div>
-                {% if user.role == 'admin' %}
-                <div class="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                    <i class="fas fa-crown text-white text-xs"></i>
+                {% if is_admin %}
+                <div class="absolute -top-2 -right-2">
+                    <span class="flex h-5 w-5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-5 w-5 bg-purple-500 border-2 border-white dark:border-gray-800"></span>
+                    </span>
                 </div>
                 {% endif %}
             </div>
@@ -60,687 +64,2007 @@
                 <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     Dashboard
                 </h1>
-                <div class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                    <span class="flex items-center">
-                        <i class="fas fa-clock mr-1"></i>
-                        Last active: <span class="font-mono ml-1" id="lastActive">just now</span>
-                    </span>
-                    <span class="w-1 h-1 bg-gray-400 rounded-full"></span>
-                    <span class="flex items-center">
-                        <i class="fas fa-globe mr-1"></i>
-                        <span id="timezone"></span>
-                    </span>
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400 mt-1">
+                    <i class="fas fa-clock text-sm"></i>
+                    <span class="text-sm" id="liveTimestamp"></span>
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-wifi text-sm" id="connectionStatus" title="Connection Status"></i>
                 </div>
             </div>
         </div>
         
-        <div class="flex gap-3">
+        <!-- Actions rapides -->
+        <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
             <button onclick="refreshDashboard()" 
                     class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-105 flex items-center gap-2"
-                    id="refreshBtn">
+                    id="refreshBtn"
+                    title="Refresh dashboard">
                 <i class="fas fa-sync-alt" id="refreshIcon"></i>
                 <span class="hidden sm:inline">Refresh</span>
             </button>
+            
             <a href="/upload" 
-               class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 flex items-center gap-2 shadow-lg">
+               class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2"
+               id="uploadBtn"
+               title="Upload new package">
                 <i class="fas fa-upload"></i>
                 <span class="hidden sm:inline">Upload</span>
             </a>
+            
+            <button onclick="copyAPIToken()" 
+                    class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-105 flex items-center gap-2"
+                    id="copyTokenBtn"
+                    title="Copy API token">
+                <i class="fas fa-key"></i>
+                <span class="hidden sm:inline">Copy Token</span>
+            </button>
         </div>
     </div>
 
-    <!-- ============================================================================
+    <!-- =========================================================================
          MESSAGES ET NOTIFICATIONS
-    ============================================================================ -->
-    <div id="notificationArea" class="space-y-3">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                <div class="animate-slide-in" data-aos="fade-down">
-                    <div class="rounded-xl p-4 {% if category == 'success' %}bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500{% elif category == 'error' %}bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500{% else %}bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500{% endif %} flex items-start justify-between">
-                        <div class="flex items-start gap-3">
-                            <i class="fas {% if category == 'success' %}fa-check-circle text-green-500{% elif category == 'error' %}fa-exclamation-circle text-red-500{% else %}fa-info-circle text-blue-500{% endif %} mt-0.5"></i>
-                            <div>
-                                <p class="{% if category == 'success' %}text-green-700 dark:text-green-300{% elif category == 'error' %}text-red-700 dark:text-red-300{% else %}text-blue-700 dark:text-blue-300{% endif %}">
-                                    {{ message }}
-                                </p>
-                            </div>
-                        </div>
-                        <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+         ========================================================================= -->
+    <div id="notificationArea" class="mb-6 space-y-3"></div>
 
-    <!-- ============================================================================
-         STATISTIQUES RAPIDES
-    ============================================================================ -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stats-grid" data-aos="fade-up" data-aos-delay="50">
-        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Packages</p>
-                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white" id="totalPackages">{{ stats.packages }}</h3>
-                    <p class="text-xs text-gray-500 mt-2">
-                        <span class="text-green-500" id="packagesTrend">+0%</span> from last month
-                    </p>
-                </div>
-                <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-box text-2xl text-purple-600"></i>
-                </div>
+    <!-- =========================================================================
+         STATISTIQUES AVEC ANIMATIONS
+         ========================================================================= -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stats-grid" data-aos="fade-up" data-aos-delay="100">
+        <!-- Packages count -->
+        <div class="stat-card glass-card p-6 text-center hover:shadow-xl transition-all group relative overflow-hidden"
+             onclick="showStatDetail('packages')"
+             role="button"
+             tabindex="0"
+             aria-label="View packages details">
+            <div class="absolute inset-0 bg-gradient-to-br from-purple-600/0 to-pink-600/0 group-hover:from-purple-600/5 group-hover:to-pink-600/5 transition-all"></div>
+            <i class="fas fa-box text-3xl text-purple-600 mb-3 transform group-hover:scale-110 transition-transform"></i>
+            <div class="stat-value text-3xl font-bold text-gray-800 dark:text-white counter" data-target="{{ stats.packages }}">0</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Your Packages</div>
+            <div class="mt-2 text-xs text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fas fa-arrow-right mr-1"></i>Click for details
             </div>
         </div>
-
-        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Downloads</p>
-                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white" id="totalDownloads">{{ stats.downloads }}</h3>
-                    <p class="text-xs text-gray-500 mt-2">
-                        <span class="text-green-500" id="downloadsTrend">+0%</span> from last month
-                    </p>
-                </div>
-                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-download text-2xl text-green-600"></i>
-                </div>
+        
+        <!-- Downloads count -->
+        <div class="stat-card glass-card p-6 text-center hover:shadow-xl transition-all group relative overflow-hidden"
+             onclick="showStatDetail('downloads')"
+             role="button"
+             tabindex="0"
+             aria-label="View downloads details">
+            <div class="absolute inset-0 bg-gradient-to-br from-green-600/0 to-emerald-600/0 group-hover:from-green-600/5 group-hover:to-emerald-600/5 transition-all"></div>
+            <i class="fas fa-download text-3xl text-green-600 mb-3 transform group-hover:scale-110 transition-transform"></i>
+            <div class="stat-value text-3xl font-bold text-gray-800 dark:text-white counter" data-target="{{ stats.downloads }}">0</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Downloads</div>
+            <div class="mt-2 text-xs text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fas fa-arrow-right mr-1"></i>Click for details
             </div>
         </div>
-
-        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Stars</p>
-                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white" id="totalStars">{{ stats.stars|default(0) }}</h3>
-                    <p class="text-xs text-gray-500 mt-2">
-                        <span class="text-yellow-500" id="starsTrend">★</span> from community
-                    </p>
-                </div>
-                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-star text-2xl text-yellow-600"></i>
-                </div>
+        
+        <!-- Stars count -->
+        <div class="stat-card glass-card p-6 text-center hover:shadow-xl transition-all group relative overflow-hidden"
+             onclick="showStatDetail('stars')"
+             role="button"
+             tabindex="0"
+             aria-label="View stars details">
+            <div class="absolute inset-0 bg-gradient-to-br from-yellow-600/0 to-amber-600/0 group-hover:from-yellow-600/5 group-hover:to-amber-600/5 transition-all"></div>
+            <i class="fas fa-star text-3xl text-yellow-600 mb-3 transform group-hover:scale-110 transition-transform"></i>
+            <div class="stat-value text-3xl font-bold text-gray-800 dark:text-white counter" data-target="0">0</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Stars</div>
+            <div class="mt-2 text-xs text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <i class="fas fa-arrow-right mr-1"></i>Coming soon
             </div>
         </div>
-
-        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Member Since</p>
-                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white">{{ stats.member_since }}</h3>
-                    <p class="text-xs text-gray-500 mt-2">
-                        <span class="text-blue-500" id="membershipDays">0</span> days
-                    </p>
-                </div>
-                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-calendar text-2xl text-blue-600"></i>
-                </div>
-            </div>
+        
+        <!-- Member since -->
+        <div class="stat-card glass-card p-6 text-center hover:shadow-xl transition-all group"
+             title="Member since {{ stats.member_since }}">
+            <i class="fas fa-calendar text-3xl text-pink-600 mb-3"></i>
+            <div class="stat-value text-3xl font-bold text-gray-800 dark:text-white">{{ stats.member_since }}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">Member Since</div>
         </div>
     </div>
 
-    <!-- ============================================================================
-         GRAPHIQUES ET ANALYTIQUES
-    ============================================================================ -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="100">
+    <!-- =========================================================================
+         GRAPHIQUES ET ANALYTICS
+         ========================================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" data-aos="fade-up" data-aos-delay="150">
         <!-- Graphique des téléchargements -->
-        <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-            <div class="flex justify-between items-center mb-6">
+        <div class="lg:col-span-2 glass-card rounded-2xl p-6">
+            <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold flex items-center">
                     <i class="fas fa-chart-line text-purple-600 mr-2"></i>
                     Downloads Overview
                 </h3>
                 <div class="flex gap-2">
-                    <button onclick="setChartRange('week')" class="chart-range-btn active px-3 py-1 text-xs rounded-lg bg-purple-600 text-white" id="rangeWeek">Week</button>
-                    <button onclick="setChartRange('month')" class="chart-range-btn px-3 py-1 text-xs rounded-lg hover:bg-purple-100 transition" id="rangeMonth">Month</button>
-                    <button onclick="setChartRange('year')" class="chart-range-btn px-3 py-1 text-xs rounded-lg hover:bg-purple-100 transition" id="rangeYear">Year</button>
+                    <button onclick="setChartRange('week')" 
+                            class="chart-range-btn px-3 py-1 text-sm rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all"
+                            data-range="week">
+                        Week
+                    </button>
+                    <button onclick="setChartRange('month')" 
+                            class="chart-range-btn px-3 py-1 text-sm rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-600 dark:text-gray-400 transition-all"
+                            data-range="month">
+                        Month
+                    </button>
+                    <button onclick="setChartRange('year')" 
+                            class="chart-range-btn px-3 py-1 text-sm rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-600 dark:text-gray-400 transition-all"
+                            data-range="year">
+                        Year
+                    </button>
                 </div>
             </div>
-            <div class="relative h-64">
-                <canvas id="downloadsChart"></canvas>
-                <div id="chartLoading" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center rounded-xl hidden">
+            <div class="chart-container relative h-64">
+                <canvas id="downloadsChart" 
+                        data-labels='{{ chart_labels|safe }}' 
+                        data-values='{{ chart_data|safe }}'
+                        aria-label="Downloads chart"
+                        role="img">
+                    <p>Your browser does not support the canvas element.</p>
+                </canvas>
+                <div id="chartLoading" class="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center rounded-lg backdrop-blur-sm">
                     <div class="spinner"></div>
                 </div>
             </div>
         </div>
-
-        <!-- Popularité des packages -->
+        
+        <!-- Popular packages -->
         <div class="glass-card rounded-2xl p-6">
-            <h3 class="text-lg font-semibold mb-6 flex items-center">
-                <i class="fas fa-chart-pie text-purple-600 mr-2"></i>
-                Popular Packages
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-crown text-yellow-600 mr-2"></i>
+                Most Popular
             </h3>
-            <div class="relative h-64">
-                <canvas id="popularChart"></canvas>
+            <div class="chart-container relative h-64">
+                <canvas id="popularChart" 
+                        data-labels='{{ popular_labels|safe }}' 
+                        data-values='{{ popular_data|safe }}'
+                        aria-label="Popular packages chart"
+                        role="img"></canvas>
+            </div>
+            <div class="mt-4 space-y-2" id="popularPackagesList">
+                {% if user_packages %}
+                    {% for pkg in user_packages[:3] %}
+                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        <div class="flex items-center">
+                            <span class="w-6 h-6 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg flex items-center justify-center mr-2">
+                                <i class="fas fa-cubes text-xs text-purple-600"></i>
+                            </span>
+                            <span class="text-sm font-medium">{{ pkg.name }}</span>
+                        </div>
+                        <span class="text-sm text-gray-500">{{ pkg.downloads }} downloads</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center text-gray-500 py-4">No packages yet</p>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- ============================================================================
-         TABS PRINCIPAUX
-    ============================================================================ -->
-    <div class="glass-card rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="150">
-        <!-- Navigation des tabs -->
-        <div class="border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 overflow-x-auto scrollbar-hide">
-            <nav class="flex space-x-4" role="tablist">
-                <button class="tab-button active px-4 py-4 border-b-2 border-purple-600 text-purple-600 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
-                        onclick="switchTab('packages')" 
-                        role="tab"
-                        aria-selected="true"
-                        id="tab-packages-btn">
-                    <i class="fas fa-box"></i>
-                    My Packages
-                    <span class="ml-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full text-xs" id="packagesCount">{{ user_packages|length }}</span>
-                </button>
-                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
-                        onclick="switchTab('analytics')" 
-                        role="tab"
-                        aria-selected="false"
-                        id="tab-analytics-btn">
-                    <i class="fas fa-chart-line"></i>
-                    Analytics
-                </button>
-                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
-                        onclick="switchTab('api')" 
-                        role="tab"
-                        aria-selected="false"
-                        id="tab-api-btn">
-                    <i class="fas fa-code"></i>
-                    API Access
-                </button>
-                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
-                        onclick="switchTab('settings')" 
-                        role="tab"
-                        aria-selected="false"
-                        id="tab-settings-btn">
-                    <i class="fas fa-cog"></i>
-                    Settings
-                </button>
-                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
-                        onclick="switchTab('security')" 
-                        role="tab"
-                        aria-selected="false"
-                        id="tab-security-btn">
-                    <i class="fas fa-shield-alt"></i>
-                    Security
-                </button>
-            </nav>
+    <!-- =========================================================================
+         GESTION DES PACKAGES
+         ========================================================================= -->
+    <div class="glass-card rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="200">
+        <!-- En-tête avec filtres -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h3 class="text-xl font-semibold flex items-center">
+                <i class="fas fa-boxes text-purple-600 mr-2"></i>
+                Your Packages
+                {% if user_packages %}
+                <span class="ml-3 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-xs rounded-full">
+                    {{ user_packages|length }} total
+                </span>
+                {% endif %}
+            </h3>
+            
+            <div class="flex flex-wrap gap-3">
+                <!-- Barre de recherche -->
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" 
+                           id="packageSearch" 
+                           placeholder="Search packages..." 
+                           class="pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white w-full sm:w-64"
+                           oninput="filterPackages()">
+                </div>
+                
+                <!-- Filtres -->
+                <select id="scopeFilter" 
+                        class="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        onchange="filterPackages()">
+                    <option value="all">All scopes</option>
+                    <option value="public">Public only</option>
+                    <option value="private">Private only</option>
+                </select>
+                
+                <select id="sortFilter" 
+                        class="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        onchange="filterPackages()">
+                    <option value="name">Sort by name</option>
+                    <option value="downloads">Sort by downloads</option>
+                    <option value="date">Sort by date</option>
+                </select>
+            </div>
         </div>
 
-        <!-- ========================================================================
-             TAB: MES PACKAGES
-        ========================================================================= -->
-        <div id="tab-packages" class="tab-content active p-6">
-            {% if user_packages %}
-            <div class="space-y-4">
-                {% for pkg in user_packages %}
-                <div class="package-item bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 hover:shadow-md transition-all hover:scale-[1.02] transform" 
-                     data-aos="fade-up" 
-                     data-aos-delay="{{ loop.index * 50 }}"
-                     data-package-id="{{ pkg.id }}"
-                     data-package-name="{{ pkg.name }}">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div class="flex items-start gap-4 flex-1">
-                            <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-cubes text-xl text-purple-600"></i>
+        <!-- Liste des packages -->
+        {% if user_packages %}
+        <div class="space-y-3" id="packagesList">
+            {% for pkg in user_packages %}
+            <div class="package-item bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 hover:shadow-lg transition-all hover:scale-[1.02] hover:bg-white dark:hover:bg-gray-800 border border-transparent hover:border-purple-200 dark:hover:border-purple-800"
+                 data-name="{{ pkg.name|lower }}"
+                 data-scope="{{ pkg.scope|lower }}"
+                 data-downloads="{{ pkg.downloads }}"
+                 data-date="{{ pkg.created_at }}"
+                 data-package-id="{{ pkg.id }}"
+                 role="article"
+                 aria-label="Package: {{ pkg.name }}">
+                
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <!-- Info package -->
+                    <div class="flex items-start space-x-4 flex-1">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-cubes text-xl text-purple-600"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-lg text-gray-800 dark:text-white truncate">{{ pkg.name }}</h4>
+                                <span class="px-2 py-0.5 bg-{{ 'green' if pkg.scope == 'public' else 'gray' }}-100 text-{{ 'green' if pkg.scope == 'public' else 'gray' }}-600 rounded-full text-xs font-medium">
+                                    <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
+                                    {{ pkg.scope }}
+                                </span>
+                                {% if pkg.verified %}
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium" title="Verified package">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Verified
+                                </span>
+                                {% endif %}
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <h4 class="font-bold text-lg truncate">{{ pkg.name }}</h4>
-                                    <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full text-xs font-mono">
-                                        v{{ pkg.version }}-{{ pkg.release or 'r0' }}
-                                    </span>
-                                    <span class="px-2 py-0.5 {% if pkg.scope == 'public' %}bg-green-100 text-green-600{% else %}bg-gray-100 text-gray-600{% endif %} rounded-full text-xs">
-                                        <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
-                                        {{ pkg.scope }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                                    <span title="Downloads">
-                                        <i class="fas fa-download mr-1"></i>
-                                        <span class="download-count">{{ pkg.downloads }}</span>
-                                    </span>
-                                    <span title="Size">
-                                        <i class="fas fa-weight-hanging mr-1"></i>
-                                        {{ (pkg.size / 1024)|round(1) if pkg.size else 0 }} KB
-                                    </span>
-                                    <span title="Last updated">
-                                        <i class="fas fa-clock mr-1"></i>
-                                        <span class="relative-time" data-timestamp="{{ pkg.updated_at or pkg.created_at }}"></span>
-                                    </span>
-                                </div>
+                            <div class="flex items-center gap-3 text-sm text-gray-500 mt-1 flex-wrap">
+                                <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
+                                <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }} downloads</span>
+                                <span><i class="fas fa-calendar mr-1"></i>{{ pkg.created_at[:10] }}</span>
+                                {% if pkg.size %}
+                                <span><i class="fas fa-weight-hanging mr-1"></i>{{ (pkg.size / 1024)|round(1) }} KB</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <div class="flex gap-2 ml-0 md:ml-4 w-full md:w-auto">
-                            <a href="/package/{{ pkg.name }}" 
-                               class="flex-1 md:flex-none px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all hover:scale-105 text-center"
-                               title="View package">
-                                <i class="fas fa-eye"></i>
-                                <span class="sr-only md:not-sr-only md:ml-2">View</span>
-                            </a>
-                            <button onclick="editPackage('{{ pkg.name }}')" 
-                                    class="flex-1 md:flex-none px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all hover:scale-105 text-center"
-                                    title="Edit package">
-                                <i class="fas fa-edit"></i>
-                                <span class="sr-only md:not-sr-only md:ml-2">Edit</span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-center gap-2 ml-12 md:ml-0">
+                        <a href="/package/{{ pkg.name }}" 
+                           class="p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-all hover:scale-110"
+                           title="View package">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="/package/{{ pkg.name }}/edit" 
+                           class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-all hover:scale-110"
+                           title="Edit package">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button onclick="copyInstallCommand('apkm install {{ pkg.name }}')" 
+                                class="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all hover:scale-110"
+                                title="Copy install command">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button onclick="deletePackage('{{ pkg.name }}', '{{ pkg.id }}')" 
+                                class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all hover:scale-110"
+                                title="Delete package">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" 
+                                    class="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+                                    title="More options">
+                                <i class="fas fa-ellipsis-v"></i>
                             </button>
-                            <button onclick="deletePackage('{{ pkg.name }}')" 
-                                    class="flex-1 md:flex-none px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all hover:scale-105 text-center delete-btn"
-                                    title="Delete package"
-                                    data-package="{{ pkg.name }}">
-                                <i class="fas fa-trash"></i>
-                                <span class="sr-only md:not-sr-only md:ml-2">Delete</span>
-                            </button>
+                            <div x-show="open" 
+                                 @click.away="open = false"
+                                 class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 z-10">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700">Manage versions</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700">View analytics</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-700">Transfer ownership</a>
+                            </div>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% endfor %}
+        </div>
 
-            <!-- Pagination -->
-            {% if total_pages > 1 %}
-            <div class="mt-6 flex justify-center">
-                <nav class="flex items-center gap-2" aria-label="Pagination">
-                    <button onclick="changePage('prev')" 
-                            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            {% if page == 1 %}disabled{% endif %}
-                            id="prevPage">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <span class="px-4 py-2 text-sm" id="pageInfo">Page {{ page }} of {{ total_pages }}</span>
-                    <button onclick="changePage('next')" 
-                            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            {% if page == total_pages %}disabled{% endif %}
-                            id="nextPage">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </nav>
+        <!-- Pagination -->
+        <div class="mt-6 flex justify-between items-center" id="pagination">
+            <button onclick="changePage('prev')" 
+                    class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    id="prevPage"
+                    disabled>
+                <i class="fas fa-chevron-left mr-1"></i>
+                Previous
+            </button>
+            <span class="text-sm text-gray-600 dark:text-gray-400">
+                Page <span id="currentPage">1</span> of <span id="totalPages">{{ (user_packages|length / 5)|round(0, 'ceil')|int }}</span>
+            </span>
+            <button onclick="changePage('next')" 
+                    class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    id="nextPage">
+                Next
+                <i class="fas fa-chevron-right ml-1"></i>
+            </button>
+        </div>
+        {% else %}
+        <!-- État vide -->
+        <div class="text-center py-12 empty-state">
+            <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-box-open text-4xl text-gray-400"></i>
             </div>
-            {% endif %}
-
-            {% else %}
-            <div class="text-center py-16 empty-state">
-                <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-box-open text-4xl text-gray-400"></i>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-3">No packages yet</h3>
-                <p class="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                    Share your first package with the community! Upload your APKM package and start getting downloads.
-                </p>
-                <a href="/upload" 
-                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg gap-2">
-                    <i class="fas fa-upload"></i>
-                    Upload Your First Package
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">No packages yet</h3>
+            <p class="text-gray-500 mb-6 max-w-md mx-auto">
+                Start sharing your work with the community. Upload your first package and reach thousands of developers!
+            </p>
+            <div class="flex flex-wrap gap-4 justify-center">
+                <a href="/upload" class="btn-primary px-6 py-3 rounded-xl text-white font-semibold hover:scale-105 transition-all shadow-lg">
+                    <i class="fas fa-upload mr-2"></i>
+                    Upload Package
+                </a>
+                <a href="/docs" class="btn-secondary px-6 py-3 rounded-xl font-semibold border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white transition-all">
+                    <i class="fas fa-book mr-2"></i>
+                    Read Documentation
                 </a>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
+    </div>
 
-        <!-- ========================================================================
-             TAB: ANALYTIQUES
-        ========================================================================= -->
-        <div id="tab-analytics" class="tab-content hidden p-6">
-            <div class="space-y-6">
-                <!-- Stats avancées -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4">
-                        <div class="text-sm text-gray-500 mb-1">Download Trend</div>
-                        <div class="text-2xl font-bold text-purple-600" id="downloadTrend">+25%</div>
-                        <div class="text-xs text-gray-400 mt-2">vs last month</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4">
-                        <div class="text-sm text-gray-500 mb-1">Active Packages</div>
-                        <div class="text-2xl font-bold text-blue-600" id="activePackages">{{ stats.packages }}</div>
-                        <div class="text-xs text-gray-400 mt-2">with downloads</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4">
-                        <div class="text-sm text-gray-500 mb-1">Conversion Rate</div>
-                        <div class="text-2xl font-bold text-green-600" id="conversionRate">12.5%</div>
-                        <div class="text-xs text-gray-400 mt-2">views to downloads</div>
-                    </div>
-                </div>
-
-                <!-- Graphique détaillé -->
-                <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <h4 class="font-semibold mb-4">Detailed Analytics</h4>
-                    <div class="h-80">
-                        <canvas id="detailedChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Top packages table -->
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Downloads</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="analyticsTable">
-                            {% for pkg in user_packages[:5] %}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                <td class="px-4 py-3 font-medium">{{ pkg.name }}</td>
-                                <td class="px-4 py-3">{{ pkg.views|default(0) }}</td>
-                                <td class="px-4 py-3">{{ pkg.downloads }}</td>
-                                <td class="px-4 py-3">
-                                    {% if pkg.views and pkg.views > 0 %}
-                                        {{ ((pkg.downloads / pkg.views) * 100)|round(1) }}%
-                                    {% else %}
-                                        0%
-                                    {% endif %}
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="text-green-500">
-                                        <i class="fas fa-arrow-up"></i>
-                                        +{{ pkg.trend|default(5) }}%
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================================================================
-             TAB: API ACCESS
-        ========================================================================= -->
-        <div id="tab-api" class="tab-content hidden p-6">
-            <div class="space-y-8">
-                <!-- Token management -->
-                <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-                    <h3 class="text-xl font-bold mb-2 flex items-center">
-                        <i class="fas fa-key mr-2"></i>
-                        Your API Token
-                    </h3>
-                    <p class="text-white/80 text-sm mb-4">
-                        Use this token to authenticate API requests. Keep it secret!
-                    </p>
-                    <div class="flex items-center gap-2 bg-white/10 rounded-xl p-1">
-                        <code class="flex-1 px-4 py-3 font-mono text-sm" id="apiTokenDisplay">
-                            {{ session.token or 'Not available' }}
-                        </code>
-                        <button onclick="copyToken()" 
-                                class="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-white/90 transition-all hover:scale-105 flex items-center gap-2"
-                                id="copyTokenBtn">
-                            <i class="fas fa-copy"></i>
-                            <span>Copy</span>
+    <!-- =========================================================================
+         PARAMÈTRES DU COMPTE
+         ========================================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="250">
+        <!-- Profil -->
+        <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-user-circle text-purple-600 mr-2"></i>
+                Profile Settings
+            </h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="relative">
+                        <div class="w-24 h-24 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                            {{ user.username[0]|upper }}
+                        </div>
+                        <button class="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full hover:bg-purple-700 transition-colors shadow-lg"
+                                onclick="changeAvatar()"
+                                title="Change avatar">
+                            <i class="fas fa-camera text-xs"></i>
                         </button>
                     </div>
                 </div>
-
-                <!-- Rate limits -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                        <div class="text-sm text-gray-500 mb-2">Rate Limit</div>
-                        <div class="text-2xl font-bold text-purple-600">1,000</div>
-                        <div class="text-xs text-gray-400">requests per hour</div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                        <div class="text-sm text-gray-500 mb-2">Used Today</div>
-                        <div class="text-2xl font-bold text-blue-600" id="usedRequests">{{ api_usage.today|default(0) }}</div>
-                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: {{ (api_usage.today|default(0) / 1000 * 100)|round }}%"></div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                        <div class="text-sm text-gray-500 mb-2">Remaining</div>
-                        <div class="text-2xl font-bold text-green-600" id="remainingRequests">{{ 1000 - (api_usage.today|default(0)) }}</div>
-                        <div class="text-xs text-gray-400">resets in 12h</div>
-                    </div>
-                </div>
-
-                <!-- API Documentation -->
-                <div class="bg-gray-900 rounded-xl p-6">
-                    <h4 class="text-white font-semibold mb-4 flex items-center">
-                        <i class="fas fa-code mr-2"></i>
-                        Quick Examples
-                    </h4>
-                    <div class="space-y-4">
-                        <div>
-                            <div class="text-gray-400 text-sm mb-2">List your packages:</div>
-                            <pre class="text-green-400 font-mono text-sm overflow-x-auto p-3 bg-gray-950 rounded-lg"><code>curl -H "Authorization: Bearer YOUR_TOKEN" \
-  https://gsql-badge.onrender.com/v5.2/user/packages</code></pre>
-                        </div>
-                        <div>
-                            <div class="text-gray-400 text-sm mb-2">Upload a package:</div>
-                            <pre class="text-green-400 font-mono text-sm overflow-x-auto p-3 bg-gray-950 rounded-lg"><code>curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "file=@package.tar.bool" \
-  -F "version=1.0.0" \
-  https://gsql-badge.onrender.com/v5.2/package/upload/public/mypackage</code></pre>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Regenerate token -->
-                <div class="border-2 border-yellow-500 rounded-xl p-6">
-                    <h4 class="text-lg font-bold text-yellow-600 mb-3 flex items-center">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Token Management
-                    </h4>
-                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                        Regenerating your token will invalidate the current one. Any applications using the old token will stop working.
-                    </p>
-                    <button onclick="regenerateToken()" 
-                            class="px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-all hover:scale-105">
-                        <i class="fas fa-sync-alt mr-2"></i>
-                        Regenerate Token
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================================================================
-             TAB: SETTINGS
-        ========================================================================= -->
-        <div id="tab-settings" class="tab-content hidden p-6">
-            <form id="settingsForm" class="space-y-6 max-w-2xl">
-                <!-- Profile settings -->
-                <div class="space-y-4">
-                    <h4 class="font-semibold flex items-center">
-                        <i class="fas fa-user-circle text-purple-600 mr-2"></i>
-                        Profile Settings
-                    </h4>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Display Name
-                        </label>
+                
+                <form id="profileForm" onsubmit="updateProfile(event)">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name</label>
                         <input type="text" 
                                id="displayName" 
                                value="{{ user.username }}" 
-                               class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                               class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Email Address
-                        </label>
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                         <input type="email" 
                                id="email" 
                                value="{{ user.email or '' }}" 
                                placeholder="your@email.com"
-                               class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                               class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Bio
-                        </label>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bio</label>
                         <textarea id="bio" 
-                                  rows="4" 
-                                  placeholder="Tell us about yourself and your projects..."
-                                  class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none">{{ user.bio or '' }}</textarea>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <span id="bioCount">{{ user.bio|length|default(0) }}</span>/500 characters
-                        </p>
+                                  rows="3" 
+                                  placeholder="Tell us about yourself"
+                                  class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none">{{ user.bio or '' }}</textarea>
                     </div>
-                </div>
-
-                <!-- Notification settings -->
-                <div class="space-y-4">
-                    <h4 class="font-semibold flex items-center">
-                        <i class="fas fa-bell text-purple-600 mr-2"></i>
-                        Notification Preferences
-                    </h4>
                     
-                    <div class="space-y-3">
-                        <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
-                            <div>
-                                <span class="font-medium">Package Downloads</span>
-                                <p class="text-xs text-gray-500">Get notified when your packages are downloaded</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" 
-                                       id="notifyDownloads" 
-                                       class="sr-only peer"
-                                       {% if user.notifications.downloads|default(true) %}checked{% endif %}>
-                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                            </div>
-                        </label>
-                        
-                        <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
-                            <div>
-                                <span class="font-medium">Newsletter</span>
-                                <p class="text-xs text-gray-500">Receive updates about new features and packages</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" 
-                                       id="notifyNewsletter" 
-                                       class="sr-only peer"
-                                       {% if user.notifications.newsletter|default(false) %}checked{% endif %}>
-                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                            </div>
-                        </label>
-                        
-                        <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
-                            <div>
-                                <span class="font-medium">Security Alerts</span>
-                                <p class="text-xs text-gray-500">Important security notifications about your account</p>
-                            </div>
-                            <div class="relative">
-                                <input type="checkbox" 
-                                       id="notifySecurity" 
-                                       class="sr-only peer"
-                                       {% if user.notifications.security|default(true) %}checked{% endif %}>
-                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Save button -->
-                <div class="flex justify-end">
                     <button type="submit" 
-                            class="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2"
-                            id="saveSettingsBtn">
-                        <i class="fas fa-save"></i>
+                            class="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105">
                         Save Changes
                     </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
 
-        <!-- ========================================================================
-             TAB: SECURITY
-        ========================================================================= -->
-        <div id="tab-security" class="tab-content hidden p-6">
-            <div class="space-y-6">
-                <!-- Change password -->
-                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-6">
-                    <h4 class="text-lg font-semibold mb-4 flex items-center">
-                        <i class="fas fa-key text-purple-600 mr-2"></i>
-                        Change Password
-                    </h4>
-                    <form id="passwordForm" class="space-y-4 max-w-md">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Current Password
-                            </label>
-                            <input type="password" 
-                                   id="currentPassword" 
-                                   class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                   required>
+        <!-- API & Security -->
+        <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-key text-green-600 mr-2"></i>
+                API & Security
+            </h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API Token</label>
+                    <div class="flex items-center gap-2">
+                        <div class="token-display flex-1 bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-sm truncate select-all"
+                             id="apiToken"
+                             onclick="selectToken()"
+                             role="textbox"
+                             aria-label="API Token">
+                            {{ session.token or 'Not logged in' }}
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                New Password
-                            </label>
-                            <input type="password" 
-                                   id="newPassword" 
-                                   class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                   required>
-                            <div class="mt-2 text-xs text-gray-500">
-                                Password must contain at least 8 characters, one uppercase, one lowercase, and one number
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Confirm New Password
-                            </label>
-                            <input type="password" 
-                                   id="confirmNewPassword" 
-                                   class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                                   required>
-                        </div>
-                        <button type="submit" 
-                                class="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all hover:scale-105">
-                            Update Password
+                        <button onclick="copyToken()" 
+                                class="p-3 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all hover:scale-110"
+                                title="Copy token">
+                            <i class="fas fa-copy"></i>
                         </button>
-                    </form>
+                        <button onclick="regenerateToken()" 
+                                class="p-3 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all hover:scale-110"
+                                title="Regenerate token">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        This token grants full access to your account. Keep it secure!
+                    </p>
                 </div>
-
-                <!-- Two-factor authentication -->
-                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-6">
-                    <div class="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                            <h4 class="text-lg font-semibold mb-1 flex items-center">
-                                <i class="fas fa-shield-alt text-purple-600 mr-2"></i>
-                                Two-Factor Authentication (2FA)
-                            </h4>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                Add an extra layer of security to your account
-                            </p>
-                        </div>
-                        <button class="px-6 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all hover:scale-105">
-                            Enable 2FA
+                
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h4 class="font-medium mb-2">Two-Factor Authentication</h4>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Protect your account with 2FA</span>
+                        <button onclick="enable2FA()" 
+                                class="px-3 py-1 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-all text-sm">
+                            Enable
                         </button>
                     </div>
                 </div>
-
-                <!-- Active sessions -->
-                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-6">
-                    <h4 class="text-lg font-semibold mb-4 flex items-center">
-                        <i class="fas fa-desktop text-purple-600 mr-2"></i>
-                        Active Sessions
-                    </h4>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-laptop text-2xl text-gray-400"></i>
-                                <div>
-                                    <div class="font-medium">Current session</div>
-                                    <div class="text-xs text-gray-500">
-                                        {{ request.user_agent }} • {{ now.strftime('%Y-%m-%d %H:%M') }}
-                                    </div>
-                                </div>
-                            </div>
-                            <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs">Active now</span>
-                        </div>
-                        <!-- Other sessions would be listed here -->
+                
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h4 class="font-medium mb-2">Sessions</h4>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Active sessions: <span class="font-mono">1</span></span>
+                        <button onclick="logoutAll()" 
+                                class="px-3 py-1 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all text-sm">
+                            Logout all
+                        </button>
                     </div>
-                    <button class="mt-4 px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                        Revoke All Other Sessions
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="glass-card rounded-2xl p-6 border-2 border-red-200 dark:border-red-900/50">
+            <h3 class="text-lg font-semibold mb-4 flex items-center text-red-600">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Danger Zone
+            </h3>
+            
+            <div class="space-y-3">
+                <button onclick="changePassword()" 
+                        class="w-full px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-key"></i>
+                    Change Password
+                </button>
+                
+                <button onclick="exportData()" 
+                        class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-download"></i>
+                    Export My Data
+                </button>
+                
+                <button onclick="confirmDeleteAccount()" 
+                        class="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-trash"></i>
+                    Delete Account
+                </button>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-4 text-center">
+                <i class="fas fa-clock mr-1"></i>
+                Last login: {{ user.last_login or 'Today' }}
+            </p>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODALS
+         ========================================================================= -->
+    
+    <!-- Delete confirmation modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50" onclick="closeModal(event)">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full mx-4 transform transition-all" onclick="event.stopPropagation()">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-600"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Delete Package</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6" id="deleteMessage"></p>
+                
+                <div class="flex gap-3">
+                    <button onclick="closeModal()" 
+                            class="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="executeDelete()" 
+                            class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                        Delete
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Danger zone -->
-                <div class="border-2 border-red-500 rounded-xl p-6">
-                    <h4 class="text-lg font-bold text-red-600 mb-3 flex items-center">
+    <!-- Token expired modal -->
+    <div id="tokenExpiredModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50" onclick="closeModal(event)">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full mx-4" onclick="event.stopPropagation()">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-clock text-4xl text-yellow-600"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Session Expired</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Your session has expired. Please login again to continue.</p>
+                
+                <a href="/login" class="block w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors">
+                    Go to Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alpine.js pour les menus déroulants -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<style>
+/* Animations */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Stats cards */
+.stat-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.stat-card:focus {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+}
+
+/* Counter animation */
+.stat-value {
+    transition: all 0.3s ease;
+}
+
+/* Package items */
+.package-item {
+    transition: all 0.3s ease;
+}
+
+.package-item:focus-within {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+}
+
+/* Spinner */
+.spinner {
+    border: 3px solid rgba(139, 92, 246, 0.1);
+    border-top-color: #8B5CF6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Chart container */
+.chart-container {
+    position: relative;
+    min-height: 250px;
+}
+
+/* Token display */
+.token-display {
+    user-select: all;
+    cursor: text;
+}
+
+.token-display:hover {
+    background-color: #111827 !important;
+}
+
+/* Connection status */
+#connectionStatus {
+    transition: color 0.3s ease;
+}
+
+#connectionStatus.online {
+    color: #10B981;
+}
+
+#connectionStatus.offline {
+    color: #EF4444;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* Notifications */
+.notification {
+    animation: slideIn 0.3s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.notification.success {
+    background-color: #10B981;
+    color: white;
+}
+
+.notification.error {
+    background-color: #EF4444;
+    color: white;
+}
+
+.notification.warning {
+    background-color: #F59E0B;
+    color: white;
+}
+
+.notification.info {
+    background-color: #3B82F6;
+    color: white;
+}
+
+.notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.5);
+    animation: progress 5s linear forwards;
+}
+
+@keyframes progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .stat-card {
+        padding: 1rem !important;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem !important;
+    }
+    
+    .package-item {
+        padding: 0.75rem !important;
+    }
+}
+
+/* Accessibility */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Print styles */
+@media print {
+    .glass-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    .btn-primary, .btn-secondary, button {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+// ============================================================================
+// CONFIGURATION ET ÉTAT GLOBAL
+// ============================================================================
+
+const CONFIG = {
+    apiUrl: '/v5.2',
+    refreshInterval: 30000, // 30 secondes
+    charts: {},
+    currentPackagePage: 1,
+    packagesPerPage: 5,
+    filteredPackages: [],
+    originalPackages: {{ user_packages|default([])|tojson }},
+    updateQueue: [],
+    isRefreshing: false,
+    connectionStatus: navigator.onLine ? 'online' : 'offline',
+    retryCount: 0,
+    maxRetries: 3
+};
+
+// ============================================================================
+// INITIALISATION
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+    initializeDashboard();
+    setupEventListeners();
+    startAutoRefresh();
+    checkConnection();
+    initializeCounters();
+});
+
+async function initializeDashboard() {
+    try {
+        showLoading();
+        
+        // Vérifier le token
+        const tokenValid = await validateToken();
+        if (!tokenValid) {
+            showTokenExpiredModal();
+            return;
+        }
+        
+        // Initialiser les graphiques
+        initializeCharts();
+        
+        // Initialiser la liste des packages
+        filterPackages();
+        
+        // Mettre à jour le timestamp
+        updateTimestamp();
+        
+        hideLoading();
+        showNotification('Dashboard loaded successfully', 'success');
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+        hideLoading();
+        showNotification('Failed to load dashboard data', 'error');
+    }
+}
+
+// ============================================================================
+// VALIDATION DU TOKEN
+// ============================================================================
+
+async function validateToken() {
+    const token = localStorage.getItem('zarch_token');
+    if (!token) {
+        return false;
+    }
+    
+    try {
+        const response = await fetch(`${CONFIG.apiUrl}/auth/verify`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        return data.valid === true;
+    } catch (error) {
+        console.error('Token validation error:', error);
+        return false;
+    }
+}
+
+// ============================================================================
+// CONNEXION ET SYNCHRONISATION
+// ============================================================================
+
+function checkConnection() {
+    const updateConnectionStatus = () => {
+        const status = navigator.onLine ? 'online' : 'offline';
+        CONFIG.connectionStatus = status;
+        
+        const el = document.getElementById('connectionStatus');
+        if (el) {
+            el.className = `fas fa-${status === 'online' ? 'wifi' : 'exclamation-triangle'} ${status}`;
+            el.title = status === 'online' ? 'Connected' : 'Offline - working in offline mode';
+        }
+        
+        if (status === 'online' && CONFIG.retryCount > 0) {
+            CONFIG.retryCount = 0;
+            refreshDashboard();
+        }
+    };
+    
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
+}
+
+function startAutoRefresh() {
+    setInterval(() => {
+        if (CONFIG.connectionStatus === 'online' && !CONFIG.isRefreshing) {
+            refreshDashboard(false); // Silencieux
+        }
+    }, CONFIG.refreshInterval);
+}
+
+async function refreshDashboard(showNotification = true) {
+    if (CONFIG.isRefreshing) return;
+    
+    CONFIG.isRefreshing = true;
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    
+    if (refreshBtn) {
+        refreshBtn.classList.add('opacity-50', 'cursor-wait');
+        refreshIcon.classList.add('fa-spin');
+    }
+    
+    try {
+        const response = await fetch('/dashboard/data', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('zarch_token')}`,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            updateDashboardData(data);
+            if (showNotification) {
+                showNotification('Dashboard updated', 'success');
+            }
+        }
+    } catch (error) {
+        console.error('Refresh error:', error);
+        if (showNotification) {
+            showNotification('Failed to refresh dashboard', 'error');
+        }
+    } finally {
+        CONFIG.isRefreshing = false;
+        if (refreshBtn) {
+            refreshBtn.classList.remove('opacity-50', 'cursor-wait');
+            refreshIcon.classList.remove('fa-spin');
+        }
+    }
+}
+
+function updateDashboardData(data) {
+    // Mettre à jour les compteurs
+    if (data.stats) {
+        updateCounter('packages', data.stats.packages);
+        updateCounter('downloads', data.stats.downloads);
+    }
+    
+    // Mettre à jour les graphiques
+    if (data.charts) {
+        updateCharts(data.charts);
+    }
+    
+    // Mettre à jour la liste des packages
+    if (data.packages) {
+        CONFIG.originalPackages = data.packages;
+        filterPackages();
+    }
+    
+    updateTimestamp();
+}
+
+function updateTimestamp() {
+    const el = document.getElementById('liveTimestamp');
+    if (el) {
+        const now = new Date();
+        el.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+    }
+}
+
+// ============================================================================
+// COMPTEURS ANIMÉS
+// ============================================================================
+
+function initializeCounters() {
+    document.querySelectorAll('.counter').forEach(counter => {
+        const target = parseInt(counter.getAttribute('data-target'));
+        animateCounter(counter, 0, target, 1500);
+    });
+}
+
+function animateCounter(element, start, end, duration) {
+    const range = end - start;
+    const increment = range / (duration / 16);
+    let current = start;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if (current >= end) {
+            element.textContent = end.toLocaleString();
+            clearInterval(timer);
+        } else {
+            element.textContent = Math.floor(current).toLocaleString();
+        }
+    }, 16);
+}
+
+function updateCounter(name, value) {
+    const element = document.querySelector(`.counter[data-target="${value}"]`);
+    if (element) {
+        const current = parseInt(element.textContent.replace(/,/g, ''));
+        animateCounter(element, current, value, 500);
+    }
+}
+
+// ============================================================================
+// GRAPHIQUES
+// ============================================================================
+
+function initializeCharts() {
+    if (!window.Chart) {
+        console.warn('Chart.js not loaded yet, waiting...');
+        setTimeout(initializeCharts, 100);
+        return;
+    }
+    
+    // Graphique des téléchargements
+    const downloadsCtx = document.getElementById('downloadsChart')?.getContext('2d');
+    if (downloadsCtx) {
+        const labels = JSON.parse(downloadsCtx.canvas.dataset.labels || '[]');
+        const values = JSON.parse(downloadsCtx.canvas.dataset.values || '[]');
+        
+        CONFIG.charts.downloads = new Chart(downloadsCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Downloads',
+                    data: values,
+                    borderColor: '#8B5CF6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#8B5CF6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'var(--chart-grid-color)' },
+                        ticks: { color: 'var(--chart-text-color)' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'var(--chart-text-color)' }
+                    }
+                },
+                interaction: { mode: 'nearest', axis: 'x', intersect: false }
+            }
+        });
+        
+        document.getElementById('chartLoading')?.remove();
+    }
+    
+    // Graphique des packages populaires
+    const popularCtx = document.getElementById('popularChart')?.getContext('2d');
+    if (popularCtx) {
+        const labels = JSON.parse(popularCtx.canvas.dataset.labels || '[]');
+        const values = JSON.parse(popularCtx.canvas.dataset.values || '[]');
+        
+        CONFIG.charts.popular = new Chart(popularCtx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        '#8B5CF6',
+                        '#EC4899',
+                        '#10B981',
+                        '#F59E0B',
+                        '#3B82F6'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { enabled: true }
+                },
+                cutout: '60%'
+            }
+        });
+    }
+}
+
+function setChartRange(range) {
+    document.querySelectorAll('.chart-range-btn').forEach(btn => {
+        btn.classList.remove('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-600');
+        btn.classList.add('text-gray-600', 'dark:text-gray-400');
+    });
+    
+    const activeBtn = event.target;
+    activeBtn.classList.add('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-600');
+    activeBtn.classList.remove('text-gray-600', 'dark:text-gray-400');
+    
+    // Simuler le chargement
+    const chartContainer = activeBtn.closest('.glass-card').querySelector('.chart-container');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center rounded-lg backdrop-blur-sm';
+    loadingDiv.innerHTML = '<div class="spinner"></div>';
+    chartContainer.appendChild(loadingDiv);
+    
+    // Simuler une mise à jour
+    setTimeout(() => {
+        loadingDiv.remove();
+        showNotification(`Chart updated to ${range} view`, 'success');
+    }, 1000);
+}
+
+function updateCharts(data) {
+    if (CONFIG.charts.downloads && data.downloads) {
+        CONFIG.charts.downloads.data.labels = data.downloads.labels;
+        CONFIG.charts.downloads.data.datasets[0].data = data.downloads.values;
+        CONFIG.charts.downloads.update();
+    }
+    
+    if (CONFIG.charts.popular && data.popular) {
+        CONFIG.charts.popular.data.labels = data.popular.labels;
+        CONFIG.charts.popular.data.datasets[0].data = data.popular.values;
+        CONFIG.charts.popular.update();
+    }
+}
+
+// ============================================================================
+// GESTION DES PACKAGES
+// ============================================================================
+
+function filterPackages() {
+    const searchTerm = document.getElementById('packageSearch')?.value.toLowerCase() || '';
+    const scopeFilter = document.getElementById('scopeFilter')?.value || 'all';
+    const sortFilter = document.getElementById('sortFilter')?.value || 'name';
+    
+    // Filtrer
+    CONFIG.filteredPackages = CONFIG.originalPackages.filter(pkg => {
+        const matchesSearch = pkg.name.toLowerCase().includes(searchTerm);
+        const matchesScope = scopeFilter === 'all' || pkg.scope === scopeFilter;
+        return matchesSearch && matchesScope;
+    });
+    
+    // Trier
+    CONFIG.filteredPackages.sort((a, b) => {
+        switch(sortFilter) {
+            case 'name':
+                return a.name.localeCompare(b.name);
+            case 'downloads':
+                return (b.downloads || 0) - (a.downloads || 0);
+            case 'date':
+                return new Date(b.created_at) - new Date(a.created_at);
+            default:
+                return 0;
+        }
+    });
+    
+    // Mettre à jour la pagination
+    CONFIG.currentPackagePage = 1;
+    updatePackagesDisplay();
+}
+
+function updatePackagesDisplay() {
+    const start = (CONFIG.currentPackagePage - 1) * CONFIG.packagesPerPage;
+    const end = start + CONFIG.packagesPerPage;
+    const pagePackages = CONFIG.filteredPackages.slice(start, end);
+    
+    const packagesList = document.getElementById('packagesList');
+    if (!packagesList) return;
+    
+    // Mettre à jour l'affichage (simplifié - dans un vrai projet, on utiliserait un template)
+    document.querySelectorAll('.package-item').forEach((el, index) => {
+        if (index < pagePackages.length) {
+            el.style.display = 'flex';
+        } else {
+            el.style.display = 'none';
+        }
+    });
+    
+    // Mettre à jour la pagination
+    const totalPages = Math.ceil(CONFIG.filteredPackages.length / CONFIG.packagesPerPage);
+    document.getElementById('currentPage').textContent = CONFIG.currentPackagePage;
+    document.getElementById('totalPages').textContent = totalPages || 1;
+    
+    document.getElementById('prevPage').disabled = CONFIG.currentPackagePage <= 1;
+    document.getElementById('nextPage').disabled = CONFIG.currentPackagePage >= totalPages;
+}
+
+function changePage(direction) {
+    if (direction === 'prev' && CONFIG.currentPackagePage > 1) {
+        CONFIG.currentPackagePage--;
+    } else if (direction === 'next') {
+        const totalPages = Math.ceil(CONFIG.filteredPackages.length / CONFIG.packagesPerPage);
+        if (CONFIG.currentPackagePage < totalPages) {
+            CONFIG.currentPackagePage++;
+        }
+    }
+    updatePackagesDisplay();
+}
+
+// ============================================================================
+// ACTIONS SUR LES PACKAGES
+// ============================================================================
+
+function copyInstallCommand(cmd) {
+    copyToClipboard(cmd, 'Install command copied to clipboard!');
+}
+
+function copyAPIToken() {
+    const token = localStorage.getItem('zarch_token');
+    if (token) {
+        copyToClipboard(token, 'API token copied to clipboard!');
+    } else {
+        showNotification('No API token found', 'error');
+    }
+}
+
+function copyToken() {
+    copyAPIToken();
+}
+
+function selectToken() {
+    const tokenEl = document.getElementById('apiToken');
+    if (tokenEl) {
+        const range = document.createRange();
+        range.selectNode(tokenEl);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+    }
+}
+
+function copyToClipboard(text, successMessage) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification(successMessage, 'success');
+    }).catch(() => {
+        showNotification('Failed to copy', 'error');
+    });
+}
+
+let packageToDelete = null;
+let packageIdToDelete = null;
+
+function deletePackage(name, id) {
+    packageToDelete = name;
+    packageIdToDelete = id;
+    document.getElementById('deleteMessage').textContent = `Are you sure you want to delete "${name}"? This action cannot be undone.`;
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.getElementById('deleteModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function executeDelete() {
+    if (!packageToDelete) return;
+    
+    showNotification(`Deleting ${packageToDelete}...`, 'info');
+    
+    // Simuler une suppression
+    setTimeout(() => {
+        closeModal();
+        showNotification(`Package ${packageToDelete} deleted successfully`, 'success');
+        
+        // Retirer de la liste
+        const index = CONFIG.originalPackages.findIndex(p => p.name === packageToDelete);
+        if (index !== -1) {
+            CONFIG.originalPackages.splice(index, 1);
+            filterPackages();
+        }
+        
+        packageToDelete = null;
+        packageIdToDelete = null;
+    }, 1500);
+}
+
+// ============================================================================
+// GESTION DU PROFIL
+// ============================================================================
+
+function updateProfile(event) {
+    event.preventDefault();
+    
+    const displayName = document.getElementById('displayName').value;
+    const email = document.getElementById('email').value;
+    const bio = document.getElementById('bio').value;
+    
+    showNotification('Profile updated successfully!', 'success');
+}
+
+function changePassword() {
+    showNotification('Password change feature coming soon', 'info');
+}
+
+function enable2FA() {
+    showNotification('2FA setup coming soon', 'info');
+}
+
+function logoutAll() {
+    showNotification('Logged out from all devices', 'success');
+}
+
+function exportData() {
+    const data = {
+        user: {{ user|tojson }},
+        packages: CONFIG.originalPackages,
+        stats: {{ stats|tojson }},
+        exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `zarch-hub-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification('Data exported successfully', 'success');
+}
+
+function changeAvatar() {
+    showNotification('Avatar change coming soon', 'info');
+}
+
+function regenerateToken() {
+    if (confirm('Regenerating your API token will invalidate the current one. Continue?')) {
+        showNotification('Token regeneration coming soon', 'info');
+    }
+}
+
+function confirmDeleteAccount() {
+    if (confirm('Are you sure you want to delete your account? This action is irreversible and all your packages will be lost.')) {
+        showNotification('Account deletion coming soon', 'info');
+    }
+}
+
+// ============================================================================
+// STATISTIQUES
+// ============================================================================
+
+function showStatDetail(stat) {
+    switch(stat) {
+        case 'packages':
+            document.getElementById('packageSearch').focus();
+            showNotification('Showing all your packages', 'info');
+            break;
+        case 'downloads':
+            showNotification(`Total downloads: {{ stats.downloads }}`, 'info');
+            break;
+        case 'stars':
+            showNotification('Star feature coming soon!', 'info');
+            break;
+    }
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+function showNotification(message, type = 'info') {
+    const area = document.getElementById('notificationArea');
+    if (!area) return;
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type} p-4 rounded-lg shadow-lg flex items-center justify-between animate-slide-in`;
+    notification.setAttribute('role', 'alert');
+    
+    const icon = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    }[type] || 'fa-info-circle';
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${icon} mr-3 text-xl"></i>
+            <span>${message}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="ml-4 hover:opacity-75">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="notification-progress"></div>
+    `;
+    
+    area.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// ============================================================================
+// MODALS
+// ============================================================================
+
+function closeModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    
+    document.getElementById('deleteModal')?.classList.add('hidden');
+    document.getElementById('deleteModal')?.classList.remove('flex');
+    document.getElementById('tokenExpiredModal')?.classList.add('hidden');
+    document.getElementById('tokenExpiredModal')?.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function showTokenExpiredModal() {
+    document.getElementById('tokenExpiredModal').classList.remove('hidden');
+document.getElementById('tokenExpiredModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+// ============================================================================
+// GESTION DES CHARGEMENTS
+// ============================================================================
+
+function showLoading() {
+    document.body.classList.add('loading');
+    
+    // Afficher un skeleton loading pour les graphiques
+    const charts = document.querySelectorAll('.chart-container');
+    charts.forEach(chart => {
+        if (!chart.querySelector('.chart-loading')) {
+            const loading = document.createElement('div');
+            loading.className = 'chart-loading absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center rounded-lg backdrop-blur-sm';
+            loading.innerHTML = '<div class="spinner"></div>';
+            chart.appendChild(loading);
+        }
+    });
+}
+
+function hideLoading() {
+    document.body.classList.remove('loading');
+    
+    // Cacher les skeleton loadings
+    document.querySelectorAll('.chart-loading').forEach(el => el.remove());
+}
+
+// ============================================================================
+// GESTION DES ERREURS ET RETRY
+// ============================================================================
+
+async function retryOperation(operation, maxRetries = CONFIG.maxRetries) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            CONFIG.retryCount = i + 1;
+            return await operation();
+        } catch (error) {
+            console.warn(`Retry ${i + 1}/${maxRetries} failed:`, error);
+            
+            if (i === maxRetries - 1) {
+                throw error;
+            }
+            
+            // Attente exponentielle
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+    }
+}
+
+// ============================================================================
+// GESTION DES ÉVÉNEMENTS
+// ============================================================================
+
+function setupEventListeners() {
+    // Rafraîchissement avec raccourci clavier (Ctrl+R)
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+            e.preventDefault();
+            refreshDashboard();
+        }
+    });
+    
+    // Gestion de la visibilité de la page
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && CONFIG.connectionStatus === 'online') {
+            refreshDashboard(false);
+        }
+    });
+    
+    // Gestion du redimensionnement pour les graphiques
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            Object.values(CONFIG.charts).forEach(chart => chart?.resize());
+        }, 250);
+    });
+    
+    // Sauvegarde automatique du profil
+    const profileInputs = document.querySelectorAll('#profileForm input, #profileForm textarea');
+    profileInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            // Marquer comme modifié mais ne pas sauvegarder automatiquement
+            const saveBtn = document.querySelector('#profileForm button[type="submit"]');
+            saveBtn.classList.add('bg-yellow-500');
+            saveBtn.classList.remove('from-purple-600', 'to-pink-600');
+        });
+    });
+    
+    // Détection des changements hors ligne
+    window.addEventListener('online', () => {
+        showNotification('Connection restored', 'success');
+        refreshDashboard();
+    });
+    
+    window.addEventListener('offline', () => {
+        showNotification('You are offline. Some features may be limited.', 'warning');
+    });
+}
+
+// ============================================================================
+// EXPORT DES DONNÉES
+// ============================================================================
+
+function exportPackages() {
+    const packages = CONFIG.filteredPackages;
+    
+    if (packages.length === 0) {
+        showNotification('No packages to export', 'warning');
+        return;
+    }
+    
+    const data = {
+        exportDate: new Date().toISOString(),
+        user: {{ user.username|tojson }},
+        totalPackages: packages.length,
+        packages: packages.map(pkg => ({
+            name: pkg.name,
+            version: pkg.version,
+            scope: pkg.scope,
+            downloads: pkg.downloads,
+            created_at: pkg.created_at,
+            size: pkg.size
+        }))
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `zarch-packages-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification(`${packages.length} packages exported`, 'success');
+}
+
+function exportChartsAsImage() {
+    if (!CONFIG.charts.downloads) return;
+    
+    // Capturer le graphique des téléchargements
+    const canvas = document.getElementById('downloadsChart');
+    const link = document.createElement('a');
+    link.download = `downloads-chart-${new Date().toISOString().split('T')[0]}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    showNotification('Chart saved as image', 'success');
+}
+
+// ============================================================================
+// ANALYTICS AVANCÉES
+// ============================================================================
+
+function showDetailedAnalytics() {
+    const packages = CONFIG.originalPackages;
+    
+    if (packages.length === 0) {
+        showNotification('No data to analyze', 'warning');
+        return;
+    }
+    
+    // Calculer des statistiques avancées
+    const totalDownloads = packages.reduce((sum, pkg) => sum + (pkg.downloads || 0), 0);
+    const averageDownloads = packages.length > 0 ? Math.round(totalDownloads / packages.length) : 0;
+    const mostDownloaded = packages.reduce((max, pkg) => (pkg.downloads || 0) > (max.downloads || 0) ? pkg : max, packages[0]);
+    const totalSize = packages.reduce((sum, pkg) => sum + (pkg.size || 0), 0);
+    
+    const stats = {
+        totalPackages: packages.length,
+        totalDownloads,
+        averageDownloads,
+        mostDownloaded: mostDownloaded?.name || 'N/A',
+        mostDownloadedCount: mostDownloaded?.downloads || 0,
+        totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+        publicPackages: packages.filter(p => p.scope === 'public').length,
+        privatePackages: packages.filter(p => p.scope === 'private').length
+    };
+    
+    // Afficher dans une notification ou un modal
+    const message = `
+        📊 Detailed Analytics:
+        • Total Packages: ${stats.totalPackages}
+        • Total Downloads: ${stats.totalDownloads.toLocaleString()}
+        • Average Downloads: ${stats.averageDownloads.toLocaleString()}
+        • Most Downloaded: ${stats.mostDownloaded} (${stats.mostDownloadedCount})
+        • Total Size: ${stats.totalSizeMB} MB
+        • Public/Private: ${stats.publicPackages}/${stats.privatePackages}
+    `;
+    
+    showNotification(message, 'info');
+}
+
+// ============================================================================
+// RACCOURCIS CLAVIER
+// ============================================================================
+
+document.addEventListener('keydown', (e) => {
+    // Ctrl+U pour upload
+    if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+        e.preventDefault();
+        window.location.href = '/upload';
+    }
+    
+    // Ctrl+L pour focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        document.getElementById('packageSearch')?.focus();
+    }
+    
+    // Ctrl+E pour exporter
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        exportPackages();
+    }
+    
+    // ? pour aide
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        showKeyboardShortcuts();
+    }
+});
+
+function showKeyboardShortcuts() {
+    const shortcuts = [
+        { key: 'Ctrl+R', description: 'Refresh dashboard' },
+        { key: 'Ctrl+U', description: 'Go to upload' },
+        { key: 'Ctrl+L', description: 'Focus search' },
+        { key: 'Ctrl+E', description: 'Export packages' },
+        { key: '?', description: 'Show this help' }
+    ];
+    
+    let message = '⌨️ Keyboard Shortcuts:\n\n';
+    shortcuts.forEach(s => {
+        message += `${s.key.padEnd(10)} - ${s.description}\n`;
+    });
+    
+    showNotification(message, 'info');
+}
+
+// ============================================================================
+// GESTION DU THÈME
+// ============================================================================
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark');
+    
+    if (isDark) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    }
+    
+    // Mettre à jour les graphiques
+    Object.values(CONFIG.charts).forEach(chart => {
+        if (chart) {
+            chart.options.scales.y.grid.color = 'var(--chart-grid-color)';
+            chart.options.scales.y.ticks.color = 'var(--chart-text-color)';
+            chart.options.scales.x.ticks.color = 'var(--chart-text-color)';
+            chart.update();
+        }
+    });
+    
+    showNotification(`Theme switched to ${isDark ? 'light' : 'dark'} mode`, 'success');
+}
+
+// Ajouter un bouton de thème dans le dashboard
+function addThemeButton() {
+    const actionsDiv = document.querySelector('.flex.flex-wrap.gap-3');
+    if (actionsDiv) {
+        const themeBtn = document.createElement('button');
+        themeBtn.className = 'px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-105 flex items-center gap-2';
+        themeBtn.setAttribute('onclick', 'toggleTheme()');
+        themeBtn.setAttribute('title', 'Toggle theme');
+        themeBtn.innerHTML = `
+            <i class="fas fa-sun dark:hidden"></i>
+            <i class="fas fa-moon hidden dark:inline"></i>
+            <span class="hidden sm:inline">Theme</span>
+        `;
+        actionsDiv.appendChild(themeBtn);
+    }
+}
+
+// ============================================================================
+// MISE À JOUR EN TEMPS RÉEL (WEBSOCKETS)
+// ============================================================================
+
+let ws = null;
+let wsReconnectTimer = null;
+
+function setupWebSocket() {
+    if (ws?.readyState === WebSocket.OPEN) return;
+    
+    try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/dashboard`);
+        
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            showNotification('Real-time updates enabled', 'success');
+        };
+        
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            } catch (error) {
+                console.error('WebSocket message error:', error);
+            }
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            // Tentative de reconnexion après 5 secondes
+            clearTimeout(wsReconnectTimer);
+            wsReconnectTimer = setTimeout(setupWebSocket, 5000);
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    } catch (error) {
+        console.error('WebSocket setup error:', error);
+    }
+}
+
+function handleWebSocketMessage(data) {
+    switch(data.type) {
+        case 'download_update':
+            // Mise à jour des téléchargements en temps réel
+            updatePackageDownloads(data.package, data.downloads);
+            break;
+        case 'package_published':
+            showNotification(`New package published: ${data.package}`, 'success');
+            refreshDashboard(false);
+            break;
+        case 'system_alert':
+            showNotification(data.message, data.severity || 'warning');
+            break;
+    }
+}
+
+function updatePackageDownloads(packageName, newCount) {
+    // Mettre à jour l'affichage du package
+    const packageEl = document.querySelector(`[data-package-id="${packageName}"]`);
+    if (packageEl) {
+        const downloadSpan = packageEl.querySelector('.fa-download').parentElement;
+        if (downloadSpan) {
+            downloadSpan.innerHTML = `<i class="fas fa-download mr-1"></i>${newCount} downloads`;
+        }
+    }
+    
+    // Mettre à jour les graphiques si nécessaire
+    refreshDashboard(false);
+}
+
+// ============================================================================
+// SAUVEGARDE AUTOMATIQUE
+// ============================================================================
+
+let autoSaveTimer = null;
+
+function setupAutoSave() {
+    const profileForm = document.getElementById('profileForm');
+    if (!profileForm) return;
+    
+    profileForm.addEventListener('input', () => {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            // Sauvegarder automatiquement après 2 secondes d'inactivité
+            const formData = {
+                displayName: document.getElementById('displayName')?.value,
+                email: document.getElementById('email')?.value,
+                bio: document.getElementById('bio')?.value
+            };
+            
+            // Sauvegarde locale
+            localStorage.setItem('profile_draft', JSON.stringify({
+                ...formData,
+                timestamp: new Date().toISOString()
+            }));
+            
+            showNotification('Draft saved locally', 'info');
+        }, 2000);
+    });
+}
+
+function loadDraft() {
+    const draft = localStorage.getItem('profile_draft');
+    if (!draft) return;
+    
+    try {
+        const data = JSON.parse(draft);
+        const draftTime = new Date(data.timestamp);
+        const now = new Date();
+        const hoursDiff = (now - draftTime) / (1000 * 60 * 60);
+        
+        // Ne restaurer que si le brouillon a moins de 24h
+        if (hoursDiff < 24) {
+            if (confirm('You have unsaved changes from your last session. Restore them?')) {
+                document.getElementById('displayName').value = data.displayName || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('bio').value = data.bio || '';
+            }
+        }
+        
+        // Nettoyer l'ancien brouillon
+        localStorage.removeItem('profile_draft');
+    } catch (error) {
+        console.error('Error loading draft:', error);
+    }
+}
+
+// ============================================================================
+// GESTION DES ERREURS RÉSEAU
+// ============================================================================
+
+function setupNetworkDetection() {
+    const updateNetworkStatus = () => {
+        const isOnline = navigator.onLine;
+        const statusEl = document.getElementById('connectionStatus');
+        
+        if (statusEl) {
+            statusEl.className = `fas fa-${isOnline ? 'wifi' : 'exclamation-triangle'} ${isOnline ? 'online' : 'offline'}`;
+            statusEl.title = isOnline ? 'Connected' : 'Offline - working in offline mode';
+        }
+        
+        if (!isOnline) {
+            showNotification('You are offline. Changes will be saved locally.', 'warning');
+        }
+    };
+    
+    window.addEventListener('online', updateNetworkStatus);
+    window.addEventListener('offline', updateNetworkStatus);
+    updateNetworkStatus();
+}
+
+// ============================================================================
+// GESTION DU CACHE LOCAL
+// ============================================================================
+
+async function cacheDashboardData() {
+    const cache = await caches.open('zarch-dashboard-v1');
+    
+    // Mettre en cache les données actuelles
+    const data = {
+        timestamp: new Date().toISOString(),
+        packages: CONFIG.originalPackages,
+        stats: {{ stats|tojson }}
+    };
+    
+    const response = new Response(JSON.stringify(data));
+    cache.put('/dashboard/data', response);
+}
+
+async function loadCachedData() {
+    try {
+        const cache = await caches.open('zarch-dashboard-v1');
+        const response = await cache.match('/dashboard/data');
+        
+        if (response) {
+            const data = await response.json();
+            const cacheTime = new Date(data.timestamp);
+            const now = new Date();
+            const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
+            
+            // Utiliser le cache si moins de 1 heure et hors ligne
+            if (!navigator.onLine && hoursDiff < 1) {
+                updateDashboardData(data);
+                showNotification('Using cached data (offline mode)', 'info');
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading cache:', error);
+    }
+    
+    return false;
+}
+
+// ============================================================================
+// INITIALISATION AVANCÉE
+// ============================================================================
+
+async function initializeAdvanced() {
+    // Charger le thème
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+    }
+    
+    // Ajouter le bouton de thème
+    addThemeButton();
+    
+    // Charger le brouillon
+    loadDraft();
+    
+    // Configurer la sauvegarde auto
+    setupAutoSave();
+    
+    // Configurer WebSocket
+    if (CONFIG.connectionStatus === 'online') {
+        setupWebSocket();
+    }
+    
+    // Configurer la détection réseau
+    setupNetworkDetection();
+    
+    // Essayer de charger les données en cache si hors ligne
+    if (!navigator.onLine) {
+        await loadCachedData();
+    }
+    
+    // Mettre en cache les données actuelles
+    if (navigator.onLine) {
+        await cacheDashboardData();
+    }
+    
+    console.log('Advanced features initialized');
+}
+
+// Lancer l'initialisation avancée après le chargement principal
+setTimeout(initializeAdvanced, 500);
+
+// ============================================================================
+// SERVICE WORKER (POUR PWA)
+// ============================================================================
+
+if ('serviceWorker' in navigator && CONFIG.connectionStatus === 'online') {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('ServiceWorker registered:', registration.scope);
+    }).catch(error => {
+        console.log('ServiceWorker registration failed:', error);
+    });
+}
+
+// ============================================================================
+// ANALYSE DES PERFORMANCES
+// ============================================================================
+
+function measurePerformance() {
+    const metrics = {
+        pageLoad: performance.timing.loadEventEnd - performance.timing.navigationStart,
+        domReady: performance.timing.domComplete - performance.timing.domLoading,
+        firstPaint: performance.getEntriesByType('paint')[0]?.startTime || 0
+    };
+    
+    console.log('Performance metrics:', metrics);
+    
+    // Envoyer les métriques au serveur (optionnel)
+    if (navigator.onLine && CONFIG.connectionStatus === 'online') {
+        fetch('/api/metrics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(metrics)
+        }).catch(() => {});
+    }
+}
+
+// Mesurer les performances après le chargement
+window.addEventListener('load', () => {
+    setTimeout(measurePerformance, 0);
+});
+
+// ============================================================================
+// GESTION DE LA MÉMOIRE
+// ============================================================================
+
+// Nettoyer les ressources lors du déchargement
+window.addEventListener('beforeunload', () => {
+    // Fermer WebSocket
+    if (ws) {
+        ws.close();
+    }
+    
+    // Sauvegarder le brouillon
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        const formData = {
+            displayName: document.getElementById('displayName')?.value,
+            email: document.getElementById('email')?.value,
+            bio: document.getElementById('bio')?.value,
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('profile_draft', JSON.stringify(formData));
+    }
+});
+
+// ============================================================================
+// MISE À JOUR DES MÉTADONNÉES
+// ============================================================================
+
+function updateMetaTags() {
+    // Mettre à jour les balises OpenGraph dynamiquement
+    const totalDownloads = {{ stats.downloads }};
+    const packagesCount = {{ stats.packages }};
+    
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDescription = document.querySelector('meta[property="og:description"]');
+    
+    if (ogTitle) {
+        ogTitle.setAttribute('content', `Dashboard - {{ user.username }} (${packagesCount} packages, ${totalDownloads} downloads)`);
+    }
+    
+    if (ogDescription) {
+        ogDescription.setAttribute('content', `Manage ${packagesCount} packages with ${totalDownloads} total downloads on Zarch Hub`);
+    }
+}
+
+// Mettre à jour les métadonnées
+updateMetaTags();
+</script>
+{% endblock %}
