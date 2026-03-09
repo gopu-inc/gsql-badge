@@ -1647,6 +1647,69 @@ def base_page():
 # ============================================================================
 # ROUTES COMMUNAUTÉ
 # ============================================================================
+@app.route('/@<username>')
+def user_profile(username):
+    """Profil public d'un utilisateur"""
+    # Récupérer l'utilisateur
+    db = GitHubManager.read_from_github('database/users.json', {'users': []})
+    user = next((u for u in db['users'] if u['username'] == username), None)
+    
+    if not user:
+        abort(404)
+    
+    # Récupérer ses packages
+    packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+    user_packages = [p for p in packages_db.get('packages', []) if p['author'] == username]
+    
+    # Statistiques
+    total_downloads = sum(p.get('downloads', 0) for p in user_packages)
+    total_packages = len(user_packages)
+    
+    # Badges personnalisés
+    badges_db = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
+    
+    # Activité récente (à implémenter)
+    recent_activity = []
+    
+    return render_template('profile.html',
+                         profile_user=user,
+                         packages=user_packages,
+                         total_downloads=total_downloads,
+                         total_packages=total_packages,
+                         badges=badges_db,
+                         activity=recent_activity,
+                         now=datetime.now())
+@app.route('/settings/badges/create', methods=['GET', 'POST'])
+@token_required
+def create_custom_badge():
+    """Atelier de création de badges"""
+    user = g.user
+    
+    if request.method == 'POST':
+        badge_data = {
+            'name': request.form['name'],
+            'label': request.form['label'],
+            'value': request.form['value'],
+            'color': request.form['color'],
+            'description': request.form.get('description', ''),
+            'created_at': datetime.now().isoformat(),
+            'usage_count': 0
+        }
+        
+        # Sauvegarder le badge
+        db = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
+        db[badge_data['name']] = badge_data
+        GitHubManager.save_to_github(
+            f'badges/{user["username"]}/badges.json', 
+            db, 
+            f"New badge: {badge_data['name']}"
+        )
+        
+        flash('Badge created successfully!', 'success')
+        return redirect(f'/settings/badges/{badge_data["name"]}')
+    
+    return render_template('create_badge.html', user=user)
+
 
 @app.route('/community')
 def edit_community_page():
