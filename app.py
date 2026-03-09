@@ -1804,6 +1804,159 @@ def download_package(scope, name, version, release, arch):
         except:
             return render_template('error.html', error=str(e)), 500
 
+@app.route('/install.sh')
+def install_script():
+    """Script d'installation automatique pour APKM/APSM/BOOL"""
+    script = """#!/bin/sh
+# Zarch Hub Auto-Installer
+set -e
+
+echo "🚀 Zarch Hub Installer"
+echo "======================"
+
+# Couleurs
+RED='\\033[0;31m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[1;33m'
+BLUE='\\033[0;34m'
+NC='\\033[0m'
+
+# Vérification des permissions
+if [ "$EUID" -ne 0 ]; then 
+    echo "${RED}❌ Please run as root${NC}"
+    exit 1
+fi
+
+echo "${BLUE}📦 Installing APKM Tools...${NC}"
+
+# Détection de l'architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)  ARCH="x86_64" ;;
+    aarch64) ARCH="arm64" ;;
+    armv7l)  ARCH="armv7" ;;
+    *)       echo "${RED}❌ Unsupported architecture: $ARCH${NC}"; exit 1 ;;
+esac
+
+echo "${YELLOW}🔧 Architecture detected: $ARCH${NC}"
+
+# URLs des binaires
+BASE_URL="https://gsql-badge.onrender.com/package/download/public"
+VERSION="2.0.0"
+RELEASE="r1"
+
+# Installation d'APKM
+echo "${BLUE}📥 Downloading APKM...${NC}"
+curl -L -o /tmp/apkm.tar.bool "$BASE_URL/apkm/$VERSION/$RELEASE/$ARCH"
+tar -xzf /tmp/apkm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apkm.tar.bool -C /usr/local/bin/
+chmod +x /usr/local/bin/apkm
+rm -f /tmp/apkm.tar.bool
+
+# Installation d'APSM
+echo "${BLUE}📥 Downloading APSM...${NC}"
+curl -L -o /tmp/apsm.tar.bool "$BASE_URL/apsm/$VERSION/$RELEASE/$ARCH"
+tar -xzf /tmp/apsm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apsm.tar.bool -C /usr/local/bin/
+chmod +x /usr/local/bin/apsm
+rm -f /tmp/apsm.tar.bool
+
+# Installation de BOOL
+echo "${BLUE}📥 Downloading BOOL...${NC}"
+curl -L -o /tmp/bool.tar.bool "$BASE_URL/bool/$VERSION/$RELEASE/$ARCH"
+tar -xzf /tmp/bool.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/bool.tar.bool -C /usr/local/bin/
+chmod +x /usr/local/bin/bool
+rm -f /tmp/bool.tar.bool
+
+# Création des répertoires
+mkdir -p /usr/local/share/apkm/{database,cache,PROTOCOLE/security/tokens}
+
+# Configuration initiale
+echo "${BLUE}⚙️  Configuring APKM...${NC}"
+cat > /etc/apkm/repositories.conf << EOF
+# APKM Repositories
+zarch-hub https://gsql-badge.onrender.com 5
+EOF
+
+# Vérification
+echo "${GREEN}✅ Installation complete!${NC}"
+echo ""
+echo "📋 Commands installed:"
+echo "   $(which apkm) - Package manager"
+echo "   $(which apsm) - Publisher"
+echo "   $(which bool) - Builder"
+echo ""
+echo "🚀 Try: apkm --help"
+echo "🔐 Login: apsm login"
+echo "🏗️ build: bool --verify"
+echo "${YELLOW}📊 Statistics:${NC}"
+apkm --version
+"""
+    
+    return Response(script, mimetype='text/plain', headers={
+        'Content-Disposition': 'attachment; filename="install.sh"',
+        'Cache-Control': 'no-cache'
+    })
+
+@app.route('/badge/<path:badge_name>')
+def serve_badge_svg(badge_name):
+    """Génère un badge SVG dynamique"""
+    from badges import BadgeGenerator
+    
+    # Parser le format [label]-[value]-[color]
+    parts = badge_name.replace('.svg', '').split('-')
+    
+    if len(parts) >= 2:
+        # Format: label-value-color
+        if len(parts) >= 3:
+            label, value, color = parts[0], '-'.join(parts[1:-1]), parts[-1]
+        else:
+            label, value = parts[0], parts[1]
+            color = 'blue'
+    else:
+        label = badge_name
+        value = 'unknown'
+        color = 'gray'
+    
+    svg = BadgeGenerator.generate(label, value, color)
+    return Response(svg, mimetype='image/svg+xml')
+
+@app.route('/badge/package/<name>')
+def package_badge(name):
+    """Badge dynamique pour un package"""
+    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+    package = next((p for p in db.get('packages', []) if p['name'] == name), None)
+    
+    if not package:
+        return serve_badge_svg('package-not_found-red')
+    
+    version = package.get('version', 'unknown')
+    downloads = package.get('downloads', 0)
+    
+    # Générer plusieurs badges
+    badges = {
+        'version': BadgeGenerator.generate('version', version, 'blue'),
+        'downloads': BadgeGenerator.generate('downloads', f"{downloads}", 'green'),
+        'license': BadgeGenerator.generate('license', package.get('license', 'MIT'), 'yellow')
+    }
+    
+    return jsonify(badges)
+
+@app.route('/badge/custom/<username>/<badge_name>')
+def custom_badge(username, badge_name):
+    """Badge personnalisé créé par l'utilisateur"""
+    db = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
+    badge = db.get(badge_name)
+    
+    if not badge:
+        return serve_badge_svg('badge-not_found-red')
+    
+    svg = BadgeGenerator.generate(
+        badge['label'],
+        badge['value'],
+        badge.get('color', 'blue')
+    )
+    return Response(svg, mimetype='image/svg+xml')
+
+
 # ============================================================================
 # GESTION DES ERREURS
 # ============================================================================
