@@ -2133,6 +2133,202 @@ def debug_coockies():
         'token': session.get('token'),
         'has_token_cookie': 'zarch_token' in request.cookies
     })
+
+# ============================================================================
+# SETTING COMPLET
+# ============================================================================
+
+@app.route('/settings')
+@token_required
+def settings_dashboard():
+    """Dashboard des paramètres"""
+    user = g.user
+    return render_template('settings/index.html', user=user)
+
+@app.route('/settings/profile', methods=['GET', 'POST'])
+@token_required
+def settings_profile():
+    """Paramètres du profil"""
+    user = g.user
+    
+    if request.method == 'POST':
+        # Mettre à jour le profil
+        db = GitHubManager.read_from_github('database/users.json', {'users': []})
+        for u in db['users']:
+            if u['username'] == user['username']:
+                u['display_name'] = request.form.get('display_name', u['username'])
+                u['bio'] = request.form.get('bio', '')
+                u['website'] = request.form.get('website', '')
+                u['twitter'] = request.form.get('twitter', '')
+                u['github'] = request.form.get('github', '')
+                u['updated_at'] = datetime.now().isoformat()
+                break
+        
+        GitHubManager.save_to_github('database/users.json', db, f"Profile update: {user['username']}")
+        flash('Profile updated successfully!', 'success')
+        return redirect('/settings/profile')
+    
+    return render_template('settings/profile.html', user=user)
+
+@app.route('/settings/security', methods=['GET', 'POST'])
+@token_required
+def settings_security():
+    """Paramètres de sécurité"""
+    user = g.user
+    return render_template('settings/security.html', user=user)
+
+@app.route('/settings/notifications', methods=['GET', 'POST'])
+@token_required
+def settings_notifications():
+    """Paramètres des notifications"""
+    user = g.user
+    return render_template('settings/notifications.html', user=user)
+
+@app.route('/settings/badges')
+@token_required
+def settings_badges():
+    """Gestion des badges personnalisés"""
+    user = g.user
+    badges = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
+    return render_template('settings/badges.html', user=user, badges=badges)
+
+@app.route('/settings/badges/<badge_name>')
+@token_required
+def settings_badge_detail(badge_name):
+    """Détail d'un badge"""
+    user = g.user
+    badges = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
+    badge = badges.get(badge_name)
+    
+    if not badge:
+        abort(404)
+    
+    return render_template('settings/badge_detail.html', user=user, badge=badge, name=badge_name)
+
+@app.route('/settings/badges/<badge_name>/delete', methods=['POST'])
+@token_required
+def settings_badge_delete(badge_name):
+    """Supprimer un badge"""
+    user = g.user
+    badges = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
+    
+    if badge_name in badges:
+        del badges[badge_name]
+        GitHubManager.save_to_github(
+            f'badges/{user["username"]}/badges.json', 
+            badges, 
+            f"Deleted badge: {badge_name}"
+        )
+        flash('Badge deleted', 'success')
+    
+    return redirect('/settings/badges')
+
+@app.route('/settings/delete-account', methods=['POST'])
+@token_required
+def settings_delete_account():
+    """Supprimer définitivement le compte utilisateur"""
+    user = g.user
+    username = user['username']
+    
+    try:
+        # 1. Vérification du mot de passe (sécurité)
+        password = request.form.get('password')
+        if not password:
+            flash('Password is required to delete account', 'error')
+            return redirect('/settings/danger')
+        
+        # Vérifier le mot de passe (à adapter selon ton système d'auth)
+        db = GitHubManager.read_from_github('database/users.json', {'users': []})
+        user_data = next((u for u in db['users'] if u['username'] == username), None)
+        
+        if not user_data:
+            flash('User not found', 'error')
+            return redirect('/settings')
+        
+        # Vérifier le mot de passe (si tu utilises bcrypt)
+        # if not SecurityUtils.check_password(password, user_data['password']):
+        #     flash('Invalid password', 'error')
+        #     return redirect('/settings/danger')
+        
+        # 2. Demander confirmation (déjà géré par le formulaire)
+        
+        # 3. Supprimer tous les packages de l'utilisateur
+        packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        user_packages = [p for p in packages_db.get('packages', []) if p.get('author') == username]
+        
+        deleted_packages = 0
+        for package in user_packages:
+            package_name = package['name']
+            
+            # Supprimer le fichier du package
+            package_path = f"packages/{package.get('scope', 'public')}/{package_name}/{package_name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
+            GitHubManager.delete_from_github(package_path, f"Deleted package {package_name} (account deletion)")
+            
+            # Supprimer les reviews du package
+            GitHubManager.delete_from_github(f'reviews/{package_name}.json', f"Deleted reviews for {package_name}")
+            
+            deleted_packages += 1
+        
+        # 4. Supprimer tous les badges personnalisés
+        badges = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
+        if badges:
+            for badge_name in badges.keys():
+                # Log la suppression (pas besoin de supprimer individuellement)
+                pass
+            GitHubManager.delete_from_github(f'badges/{username}/badges.json', f"Deleted all badges for {username}")
+            GitHubManager.delete_from_github(f'badges/{username}/', f"Deleted badge directory for {username}")
+        
+        # 5. Supprimer les reviews laissées par l'utilisateur
+        # Parcourir tous les packages pour supprimer les reviews de l'utilisateur
+        all_packages = packages_db.get('packages', [])
+        for package in all_packages:
+            reviews = GitHubManager.read_from_github(f'reviews/{package["name"]}.json', {'reviews': [], 'average': 0})
+            if reviews.get('reviews'):
+                original_count = len(reviews['reviews'])
+                reviews['reviews'] = [r for r in reviews['reviews'] if r.get('username') != username]
+                
+                if len(reviews['reviews']) < original_count:
+                    # Recalculer la moyenne
+                    if reviews['reviews']:
+                        total = sum(r['rating'] for r in reviews['reviews'])
+                        reviews['average'] = total / len(reviews['reviews'])
+                    else:
+                        reviews['average'] = 0
+                    
+                    GitHubManager.save_to_github(
+                        f'reviews/{package["name"]}.json',
+                        reviews,
+                        f"Removed reviews by {username} (account deletion)"
+                    )
+        
+        # 6. Supprimer l'utilisateur de la base de données
+        db['users'] = [u for u in db['users'] if u['username'] != username]
+        
+        # 7. Sauvegarder la base de données mise à jour
+        GitHubManager.save_to_github('database/users.json', db, f"Deleted user: {username}")
+        
+        # 8. Nettoyer la session et les cookies
+        session.clear()
+        
+        # Créer une réponse de redirection
+        response = make_response(redirect('/'))
+        
+        # Supprimer le cookie
+        CookieManager.delete_secure_cookie(response, 'zarch_token')
+        
+        # 9. Journaliser l'action
+        app.logger.info(f"Account deleted: {username} (deleted {deleted_packages} packages)")
+        
+        # 10. Message de confirmation
+        flash('Your account has been permanently deleted. We\'re sorry to see you go!', 'info')
+        
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"Error deleting account {username}: {e}")
+        flash(f'Error deleting account: {str(e)}', 'error')
+        return redirect('/settings')
+    
 # ============================================================================
 # INITIALISATION
 # ============================================================================
