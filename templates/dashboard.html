@@ -1,408 +1,746 @@
 {% extends "base.html" %}
 
-{% block og_title %}Dashboard - Zarch Hub{% endblock %}
-{% block og_description %}Manage your packages and account settings{% endblock %}
+{% block og_title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
+{% block og_description %}Manage your packages, view analytics, and configure your Zarch Hub account settings{% endblock %}
+{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/dashboard-preview.png{% endblock %}
+{% block og_image_alt %}Zarch Hub Dashboard - Package Management{% endblock %}
 
-{% block title %}Dashboard - Zarch Hub{% endblock %}
+{% block twitter_title %}Dashboard - {{ user.username }} | Zarch Hub{% endblock %}
+{% block twitter_description %}Personal dashboard for managing APKM packages and account settings{% endblock %}
+
+{% block title %}Dashboard - {{ user.username }} - Zarch Hub{% endblock %}
+
+{% block extra_head %}
+<!-- OpenGraph spécifique au dashboard -->
+<meta property="og:type" content="profile">
+<meta property="profile:username" content="{{ user.username }}">
+<meta property="profile:member_since" content="{{ user.created_at }}">
+<meta property="og:updated_time" content="{{ now.isoformat() }}">
+
+<!-- Meta pour PWA -->
+<meta name="theme-color" content="#8B5CF6">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Preconnect pour les APIs -->
+<link rel="preconnect" href="https://api.zarch.io">
+<link rel="dns-prefetch" href="https://api.zarch.io">
+
+<!-- Styles supplémentaires -->
+<style>
+    /* Variables CSS pour le dashboard */
+    :root {
+        --dashboard-primary: #8B5CF6;
+        --dashboard-secondary: #EC4899;
+        --dashboard-success: #10B981;
+        --dashboard-warning: #F59E0B;
+        --dashboard-danger: #EF4444;
+        --dashboard-info: #3B82F6;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Welcome Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8" data-aos="fade-up">
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-8" id="dashboard-root">
+    <!-- ============================================================================
+         EN-TÊTE DU DASHBOARD
+    ============================================================================ -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" data-aos="fade-down">
         <div class="flex items-center gap-4">
-            <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                <i class="fas fa-tachometer-alt mr-3"></i>Dashboard
-            </h1>
-            {% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
-            <span class="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-sm rounded-full animate-pop">
-                <i class="fas fa-check-circle mr-1"></i> Verified Admin
-            </span>
-            {% endif %}
+            <div class="relative">
+                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+                    <i class="fas fa-tachometer-alt text-white text-3xl"></i>
+                </div>
+                {% if user.role == 'admin' %}
+                <div class="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <i class="fas fa-crown text-white text-xs"></i>
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Dashboard
+                </h1>
+                <div class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        Last active: <span class="font-mono ml-1" id="lastActive">just now</span>
+                    </span>
+                    <span class="w-1 h-1 bg-gray-400 rounded-full"></span>
+                    <span class="flex items-center">
+                        <i class="fas fa-globe mr-1"></i>
+                        <span id="timezone"></span>
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="mt-4 md:mt-0 flex space-x-3">
-            <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg">
-                <i class="fas fa-upload mr-2"></i>Upload Package
+        
+        <div class="flex gap-3">
+            <button onclick="refreshDashboard()" 
+                    class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all hover:scale-105 flex items-center gap-2"
+                    id="refreshBtn">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                <span class="hidden sm:inline">Refresh</span>
+            </button>
+            <a href="/upload" 
+               class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 flex items-center gap-2 shadow-lg">
+                <i class="fas fa-upload"></i>
+                <span class="hidden sm:inline">Upload</span>
             </a>
-            <button onclick="copyAPIToken()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-all hover:scale-105">
-                <i class="fas fa-key mr-2"></i>Copy Token
-            </button>
         </div>
     </div>
 
-    <!-- Welcome Message -->
-    <div class="glass-card rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="50">
-        <p class="text-lg">
-            Welcome back, <span class="font-semibold author-name" data-author="{{ user.username }}">{{ user.username }}</span>!
-            {% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
-            <span class="inline-flex items-center ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-                <i class="fas fa-check-circle mr-1"></i> Admin
-            </span>
+    <!-- ============================================================================
+         MESSAGES ET NOTIFICATIONS
+    ============================================================================ -->
+    <div id="notificationArea" class="space-y-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="animate-slide-in" data-aos="fade-down">
+                    <div class="rounded-xl p-4 {% if category == 'success' %}bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500{% elif category == 'error' %}bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500{% else %}bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500{% endif %} flex items-start justify-between">
+                        <div class="flex items-start gap-3">
+                            <i class="fas {% if category == 'success' %}fa-check-circle text-green-500{% elif category == 'error' %}fa-exclamation-circle text-red-500{% else %}fa-info-circle text-blue-500{% endif %} mt-0.5"></i>
+                            <div>
+                                <p class="{% if category == 'success' %}text-green-700 dark:text-green-300{% elif category == 'error' %}text-red-700 dark:text-red-300{% else %}text-blue-700 dark:text-blue-300{% endif %}">
+                                    {{ message }}
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
             {% endif %}
-        </p>
+        {% endwith %}
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 stats-grid" data-aos="fade-up" data-aos-delay="100">
-        <div class="stat-card glass-card p-6 text-center">
-            <i class="fas fa-box text-3xl text-purple-600 mb-3"></i>
-            <div class="text-3xl font-bold">{{ stats.packages }}</div>
-            <div class="text-sm text-gray-500">Your Packages</div>
+    <!-- ============================================================================
+         STATISTIQUES RAPIDES
+    ============================================================================ -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stats-grid" data-aos="fade-up" data-aos-delay="50">
+        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Packages</p>
+                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white" id="totalPackages">{{ stats.packages }}</h3>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <span class="text-green-500" id="packagesTrend">+0%</span> from last month
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-box text-2xl text-purple-600"></i>
+                </div>
+            </div>
         </div>
-        <div class="stat-card glass-card p-6 text-center">
-            <i class="fas fa-download text-3xl text-green-600 mb-3"></i>
-            <div class="text-3xl font-bold">{{ stats.downloads }}</div>
-            <div class="text-sm text-gray-500">Downloads</div>
+
+        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Downloads</p>
+                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white" id="totalDownloads">{{ stats.downloads }}</h3>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <span class="text-green-500" id="downloadsTrend">+0%</span> from last month
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-download text-2xl text-green-600"></i>
+                </div>
+            </div>
         </div>
-        <div class="stat-card glass-card p-6 text-center">
-            <i class="fas fa-star text-3xl text-yellow-600 mb-3"></i>
-            <div class="text-3xl font-bold">0</div>
-            <div class="text-sm text-gray-500">Stars</div>
+
+        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Stars</p>
+                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white" id="totalStars">{{ stats.stars|default(0) }}</h3>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <span class="text-yellow-500" id="starsTrend">★</span> from community
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-star text-2xl text-yellow-600"></i>
+                </div>
+            </div>
         </div>
-        <div class="stat-card glass-card p-6 text-center">
-            <i class="fas fa-calendar text-3xl text-pink-600 mb-3"></i>
-            <div class="text-3xl font-bold">{{ stats.member_since }}</div>
-            <div class="text-sm text-gray-500">Member Since</div>
+
+        <div class="stat-card glass-card p-6 rounded-xl hover:shadow-xl transition-all transform hover:scale-105">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Member Since</p>
+                    <h3 class="text-3xl font-bold text-gray-800 dark:text-white">{{ stats.member_since }}</h3>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <span class="text-blue-500" id="membershipDays">0</span> days
+                    </p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-calendar text-2xl text-blue-600"></i>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="glass-card rounded-2xl p-6" data-aos="fade-up" data-aos-delay="200">
-        <div class="tabs flex space-x-2 mb-6 overflow-x-auto pb-2">
-            <button class="tab-button active px-4 py-2 bg-purple-600 text-white rounded-lg" onclick="showTab('packages')">
-                <i class="fas fa-box mr-2"></i>My Packages
-            </button>
-            <button class="tab-button px-4 py-2 hover:bg-purple-50 rounded-lg transition" onclick="showTab('analytics')">
-                <i class="fas fa-chart-line mr-2"></i>Analytics
-            </button>
-            <button class="tab-button px-4 py-2 hover:bg-purple-50 rounded-lg transition" onclick="showTab('settings')">
-                <i class="fas fa-cog mr-2"></i>Settings
-            </button>
-            <button class="tab-button px-4 py-2 hover:bg-purple-50 rounded-lg transition" onclick="showTab('api')">
-                <i class="fas fa-code mr-2"></i>API Access
-            </button>
+    <!-- ============================================================================
+         GRAPHIQUES ET ANALYTIQUES
+    ============================================================================ -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" data-aos="fade-up" data-aos-delay="100">
+        <!-- Graphique des téléchargements -->
+        <div class="glass-card rounded-2xl p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold flex items-center">
+                    <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                    Downloads Overview
+                </h3>
+                <div class="flex gap-2">
+                    <button onclick="setChartRange('week')" class="chart-range-btn active px-3 py-1 text-xs rounded-lg bg-purple-600 text-white" id="rangeWeek">Week</button>
+                    <button onclick="setChartRange('month')" class="chart-range-btn px-3 py-1 text-xs rounded-lg hover:bg-purple-100 transition" id="rangeMonth">Month</button>
+                    <button onclick="setChartRange('year')" class="chart-range-btn px-3 py-1 text-xs rounded-lg hover:bg-purple-100 transition" id="rangeYear">Year</button>
+                </div>
+            </div>
+            <div class="relative h-64">
+                <canvas id="downloadsChart"></canvas>
+                <div id="chartLoading" class="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center rounded-xl hidden">
+                    <div class="spinner"></div>
+                </div>
+            </div>
         </div>
 
-        <!-- Packages Tab -->
-        <div id="packages-tab" class="tab-content active">
+        <!-- Popularité des packages -->
+        <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-lg font-semibold mb-6 flex items-center">
+                <i class="fas fa-chart-pie text-purple-600 mr-2"></i>
+                Popular Packages
+            </h3>
+            <div class="relative h-64">
+                <canvas id="popularChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================================
+         TABS PRINCIPAUX
+    ============================================================================ -->
+    <div class="glass-card rounded-2xl overflow-hidden" data-aos="fade-up" data-aos-delay="150">
+        <!-- Navigation des tabs -->
+        <div class="border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 overflow-x-auto scrollbar-hide">
+            <nav class="flex space-x-4" role="tablist">
+                <button class="tab-button active px-4 py-4 border-b-2 border-purple-600 text-purple-600 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
+                        onclick="switchTab('packages')" 
+                        role="tab"
+                        aria-selected="true"
+                        id="tab-packages-btn">
+                    <i class="fas fa-box"></i>
+                    My Packages
+                    <span class="ml-1 px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full text-xs" id="packagesCount">{{ user_packages|length }}</span>
+                </button>
+                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
+                        onclick="switchTab('analytics')" 
+                        role="tab"
+                        aria-selected="false"
+                        id="tab-analytics-btn">
+                    <i class="fas fa-chart-line"></i>
+                    Analytics
+                </button>
+                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
+                        onclick="switchTab('api')" 
+                        role="tab"
+                        aria-selected="false"
+                        id="tab-api-btn">
+                    <i class="fas fa-code"></i>
+                    API Access
+                </button>
+                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
+                        onclick="switchTab('settings')" 
+                        role="tab"
+                        aria-selected="false"
+                        id="tab-settings-btn">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </button>
+                <button class="tab-button px-4 py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm whitespace-nowrap flex items-center gap-2" 
+                        onclick="switchTab('security')" 
+                        role="tab"
+                        aria-selected="false"
+                        id="tab-security-btn">
+                    <i class="fas fa-shield-alt"></i>
+                    Security
+                </button>
+            </nav>
+        </div>
+
+        <!-- ========================================================================
+             TAB: MES PACKAGES
+        ========================================================================= -->
+        <div id="tab-packages" class="tab-content active p-6">
             {% if user_packages %}
             <div class="space-y-4">
                 {% for pkg in user_packages %}
-                <div class="package-item bg-gray-50 dark:bg-gray-800 rounded-xl p-4 hover:shadow-lg transition">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-                        <div class="flex items-start space-x-4">
-                            <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
+                <div class="package-item bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 hover:shadow-md transition-all hover:scale-[1.02] transform" 
+                     data-aos="fade-up" 
+                     data-aos-delay="{{ loop.index * 50 }}"
+                     data-package-id="{{ pkg.id }}"
+                     data-package-name="{{ pkg.name }}">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div class="flex items-start gap-4 flex-1">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <i class="fas fa-cubes text-xl text-purple-600"></i>
                             </div>
-                            <div>
-                                <h3 class="font-bold text-lg">{{ pkg.name }}</h3>
-                                <div class="flex items-center space-x-3 text-sm text-gray-500">
-                                    <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
-                                    <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
-                                    <span class="px-2 py-0.5 bg-{{ 'green' if pkg.scope == 'public' else 'gray' }}-100 rounded-full text-xs">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-bold text-lg truncate">{{ pkg.name }}</h4>
+                                    <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-full text-xs font-mono">
+                                        v{{ pkg.version }}-{{ pkg.release or 'r0' }}
+                                    </span>
+                                    <span class="px-2 py-0.5 {% if pkg.scope == 'public' %}bg-green-100 text-green-600{% else %}bg-gray-100 text-gray-600{% endif %} rounded-full text-xs">
+                                        <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
                                         {{ pkg.scope }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                                    <span title="Downloads">
+                                        <i class="fas fa-download mr-1"></i>
+                                        <span class="download-count">{{ pkg.downloads }}</span>
+                                    </span>
+                                    <span title="Size">
+                                        <i class="fas fa-weight-hanging mr-1"></i>
+                                        {{ (pkg.size / 1024)|round(1) if pkg.size else 0 }} KB
+                                    </span>
+                                    <span title="Last updated">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        <span class="relative-time" data-timestamp="{{ pkg.updated_at or pkg.created_at }}"></span>
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <div class="flex space-x-2 mt-3 md:mt-0">
-                            <a href="/package/{{ pkg.name }}" class="px-3 py-1.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition">
+                        <div class="flex gap-2 ml-0 md:ml-4 w-full md:w-auto">
+                            <a href="/package/{{ pkg.name }}" 
+                               class="flex-1 md:flex-none px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all hover:scale-105 text-center"
+                               title="View package">
                                 <i class="fas fa-eye"></i>
+                                <span class="sr-only md:not-sr-only md:ml-2">View</span>
                             </a>
-                            <button onclick="editPackage('{{ pkg.name }}')" class="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition">
+                            <button onclick="editPackage('{{ pkg.name }}')" 
+                                    class="flex-1 md:flex-none px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all hover:scale-105 text-center"
+                                    title="Edit package">
                                 <i class="fas fa-edit"></i>
+                                <span class="sr-only md:not-sr-only md:ml-2">Edit</span>
                             </button>
-                            <button onclick="deletePackage('{{ pkg.name }}')" class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">
+                            <button onclick="deletePackage('{{ pkg.name }}')" 
+                                    class="flex-1 md:flex-none px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all hover:scale-105 text-center delete-btn"
+                                    title="Delete package"
+                                    data-package="{{ pkg.name }}">
                                 <i class="fas fa-trash"></i>
-                            </button>
-                            <button onclick="copyInstallCommand('apkm install {{ pkg.name }}')" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
-                                <i class="fas fa-copy"></i>
+                                <span class="sr-only md:not-sr-only md:ml-2">Delete</span>
                             </button>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="mt-6 flex justify-center">
+                <nav class="flex items-center gap-2" aria-label="Pagination">
+                    <button onclick="changePage('prev')" 
+                            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            {% if page == 1 %}disabled{% endif %}
+                            id="prevPage">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="px-4 py-2 text-sm" id="pageInfo">Page {{ page }} of {{ total_pages }}</span>
+                    <button onclick="changePage('next')" 
+                            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            {% if page == total_pages %}disabled{% endif %}
+                            id="nextPage">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </nav>
+            </div>
+            {% endif %}
+
             {% else %}
-            <div class="text-center py-12">
-                <i class="fas fa-box-open text-5xl text-gray-400 mb-4"></i>
-                <h3 class="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">No packages yet</h3>
-                <p class="text-gray-500 mb-6">Upload your first package to get started!</p>
-                <a href="/upload" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105">
-                    <i class="fas fa-upload mr-2"></i>Upload Package
+            <div class="text-center py-16 empty-state">
+                <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-box-open text-4xl text-gray-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-3">No packages yet</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
+                    Share your first package with the community! Upload your APKM package and start getting downloads.
+                </p>
+                <a href="/upload" 
+                   class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg gap-2">
+                    <i class="fas fa-upload"></i>
+                    Upload Your First Package
                 </a>
             </div>
             {% endif %}
         </div>
 
-        <!-- Analytics Tab -->
-        <div id="analytics-tab" class="tab-content hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white/50 rounded-xl p-4">
-                    <h3 class="font-semibold mb-4">Downloads Over Time</h3>
-                    <canvas id="downloadsChart" height="200"></canvas>
-                </div>
-                <div class="bg-white/50 rounded-xl p-4">
-                    <h3 class="font-semibold mb-4">Popular Packages</h3>
-                    <canvas id="popularChart" height="200"></canvas>
-                </div>
-            </div>
-            
-            <div class="mt-6 grid grid-cols-2 gap-4">
-                <div class="bg-white/50 rounded-xl p-4 text-center">
-                    <div class="text-2xl font-bold text-purple-600">{{ stats.downloads }}</div>
-                    <div class="text-sm text-gray-500">Total Downloads</div>
-                </div>
-                <div class="bg-white/50 rounded-xl p-4 text-center">
-                    <div class="text-2xl font-bold text-green-600">{{ stats.packages }}</div>
-                    <div class="text-sm text-gray-500">Active Packages</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Settings Tab -->
-        <div id="settings-tab" class="tab-content hidden">
-            <form id="settingsForm" class="space-y-6 max-w-2xl">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-user mr-2 text-purple-600"></i>Display Name
-                    </label>
-                    <input type="text" id="displayName" value="{{ user.username }}" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-envelope mr-2 text-purple-600"></i>Email
-                    </label>
-                    <input type="email" id="email" value="{{ user.email or '' }}" 
-                           placeholder="your@email.com"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-align-left mr-2 text-purple-600"></i>Bio
-                    </label>
-                    <textarea id="bio" rows="3" 
-                              placeholder="Tell us about yourself"
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">{{ user.bio or '' }}</textarea>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        <i class="fas fa-bell mr-2 text-purple-600"></i>Notifications
-                    </label>
-                    <div class="space-y-2">
-                        <label class="flex items-center space-x-2">
-                            <input type="checkbox" checked class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                            <span class="text-sm text-gray-600">Email me when my packages are downloaded</span>
-                        </label>
-                        <label class="flex items-center space-x-2">
-                            <input type="checkbox" checked class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                            <span class="text-sm text-gray-600">Newsletter and updates</span>
-                        </label>
+        <!-- ========================================================================
+             TAB: ANALYTIQUES
+        ========================================================================= -->
+        <div id="tab-analytics" class="tab-content hidden p-6">
+            <div class="space-y-6">
+                <!-- Stats avancées -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4">
+                        <div class="text-sm text-gray-500 mb-1">Download Trend</div>
+                        <div class="text-2xl font-bold text-purple-600" id="downloadTrend">+25%</div>
+                        <div class="text-xs text-gray-400 mt-2">vs last month</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4">
+                        <div class="text-sm text-gray-500 mb-1">Active Packages</div>
+                        <div class="text-2xl font-bold text-blue-600" id="activePackages">{{ stats.packages }}</div>
+                        <div class="text-xs text-gray-400 mt-2">with downloads</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4">
+                        <div class="text-sm text-gray-500 mb-1">Conversion Rate</div>
+                        <div class="text-2xl font-bold text-green-600" id="conversionRate">12.5%</div>
+                        <div class="text-xs text-gray-400 mt-2">views to downloads</div>
                     </div>
                 </div>
-                
-                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all">
-                    Save Changes
-                </button>
-            </form>
-            
-            <div class="danger-zone border-2 border-red-500 rounded-xl p-6 mt-8">
-                <h3 class="text-lg font-bold text-red-600 mb-4 flex items-center">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
-                </h3>
-                <div class="flex flex-wrap gap-3">
-                    <button onclick="changePassword()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                        <i class="fas fa-key mr-2"></i>Change Password
-                    </button>
-                    <button onclick="regenerateToken()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                        <i class="fas fa-sync mr-2"></i>Regenerate Token
-                    </button>
-                    <button onclick="deleteAccount()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                        <i class="fas fa-trash mr-2"></i>Delete Account
-                    </button>
+
+                <!-- Graphique détaillé -->
+                <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                    <h4 class="font-semibold mb-4">Detailed Analytics</h4>
+                    <div class="h-80">
+                        <canvas id="detailedChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top packages table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Downloads</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700" id="analyticsTable">
+                            {% for pkg in user_packages[:5] %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <td class="px-4 py-3 font-medium">{{ pkg.name }}</td>
+                                <td class="px-4 py-3">{{ pkg.views|default(0) }}</td>
+                                <td class="px-4 py-3">{{ pkg.downloads }}</td>
+                                <td class="px-4 py-3">
+                                    {% if pkg.views and pkg.views > 0 %}
+                                        {{ ((pkg.downloads / pkg.views) * 100)|round(1) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="text-green-500">
+                                        <i class="fas fa-arrow-up"></i>
+                                        +{{ pkg.trend|default(5) }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- API Tab -->
-        <div id="api-tab" class="tab-content hidden">
-            <div class="space-y-6">
-                <div>
-                    <h3 class="font-semibold mb-3">Your API Token</h3>
-                    <div class="flex items-center space-x-2">
-                        <div class="token-display bg-gray-900 text-green-400 flex-1 p-3 rounded-lg font-mono text-sm truncate" id="apiToken">
-                            {{ session.token or 'Not logged in' }}
-                        </div>
-                        <button onclick="copyToken()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+        <!-- ========================================================================
+             TAB: API ACCESS
+        ========================================================================= -->
+        <div id="tab-api" class="tab-content hidden p-6">
+            <div class="space-y-8">
+                <!-- Token management -->
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
+                    <h3 class="text-xl font-bold mb-2 flex items-center">
+                        <i class="fas fa-key mr-2"></i>
+                        Your API Token
+                    </h3>
+                    <p class="text-white/80 text-sm mb-4">
+                        Use this token to authenticate API requests. Keep it secret!
+                    </p>
+                    <div class="flex items-center gap-2 bg-white/10 rounded-xl p-1">
+                        <code class="flex-1 px-4 py-3 font-mono text-sm" id="apiTokenDisplay">
+                            {{ session.token or 'Not available' }}
+                        </code>
+                        <button onclick="copyToken()" 
+                                class="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-white/90 transition-all hover:scale-105 flex items-center gap-2"
+                                id="copyTokenBtn">
                             <i class="fas fa-copy"></i>
+                            <span>Copy</span>
                         </button>
                     </div>
-                    <p class="text-sm text-gray-500 mt-2">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        This token gives full access to your account. Keep it secret!
+                </div>
+
+                <!-- Rate limits -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                        <div class="text-sm text-gray-500 mb-2">Rate Limit</div>
+                        <div class="text-2xl font-bold text-purple-600">1,000</div>
+                        <div class="text-xs text-gray-400">requests per hour</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                        <div class="text-sm text-gray-500 mb-2">Used Today</div>
+                        <div class="text-2xl font-bold text-blue-600" id="usedRequests">{{ api_usage.today|default(0) }}</div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: {{ (api_usage.today|default(0) / 1000 * 100)|round }}%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                        <div class="text-sm text-gray-500 mb-2">Remaining</div>
+                        <div class="text-2xl font-bold text-green-600" id="remainingRequests">{{ 1000 - (api_usage.today|default(0)) }}</div>
+                        <div class="text-xs text-gray-400">resets in 12h</div>
+                    </div>
+                </div>
+
+                <!-- API Documentation -->
+                <div class="bg-gray-900 rounded-xl p-6">
+                    <h4 class="text-white font-semibold mb-4 flex items-center">
+                        <i class="fas fa-code mr-2"></i>
+                        Quick Examples
+                    </h4>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="text-gray-400 text-sm mb-2">List your packages:</div>
+                            <pre class="text-green-400 font-mono text-sm overflow-x-auto p-3 bg-gray-950 rounded-lg"><code>curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://gsql-badge.onrender.com/v5.2/user/packages</code></pre>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 text-sm mb-2">Upload a package:</div>
+                            <pre class="text-green-400 font-mono text-sm overflow-x-auto p-3 bg-gray-950 rounded-lg"><code>curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@package.tar.bool" \
+  -F "version=1.0.0" \
+  https://gsql-badge.onrender.com/v5.2/package/upload/public/mypackage</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Regenerate token -->
+                <div class="border-2 border-yellow-500 rounded-xl p-6">
+                    <h4 class="text-lg font-bold text-yellow-600 mb-3 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Token Management
+                    </h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                        Regenerating your token will invalidate the current one. Any applications using the old token will stop working.
                     </p>
-                </div>
-                
-                <div>
-                    <h3 class="font-semibold mb-3">API Usage</h3>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="text-center p-4 bg-purple-50 rounded-lg">
-                            <div class="text-2xl font-bold text-purple-600">150</div>
-                            <div class="text-xs text-gray-500">Requests Today</div>
-                        </div>
-                        <div class="text-center p-4 bg-green-50 rounded-lg">
-                            <div class="text-2xl font-bold text-green-600">2.5k</div>
-                            <div class="text-xs text-gray-500">This Month</div>
-                        </div>
-                        <div class="text-center p-4 bg-pink-50 rounded-lg">
-                            <div class="text-2xl font-bold text-pink-600">1000</div>
-                            <div class="text-xs text-gray-500">Rate Limit</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <h3 class="font-semibold mb-3">Example Usage</h3>
-                    <div class="bg-gray-900 rounded-lg p-4 text-sm text-green-400 font-mono overflow-x-auto">
-                        <div># Publish a package</div>
-                        <div>curl -X POST https://gsql-badge.onrender.com/v5.2/package/upload/public/{{ user.username }}/mypackage \</div>
-                        <div>  -H "Authorization: Bearer YOUR_TOKEN" \</div>
-                        <div>  -F "file=@package.tar.bool" \</div>
-                        <div>  -F "version=1.0.0"</div>
-                        <br>
-                        <div># Search packages</div>
-                        <div>curl https://gsql-badge.onrender.com/v5.2/package/search?q=mypackage</div>
-                    </div>
+                    <button onclick="regenerateToken()" 
+                            class="px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 transition-all hover:scale-105">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        Regenerate Token
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Simple Auth Status -->
-    <div class="glass-card rounded-xl p-4 mt-8 text-center text-sm" data-aos="fade-up">
-        <i class="fas fa-check-circle text-green-500 mr-2"></i>
-        Logged in as <span class="font-semibold author-name" data-author="{{ user.username }}">{{ user.username }}</span>
-        {% if session.user and session.user.username in ['admin', 'gopu-inc', 'mauricio'] %}
-        <span class="inline-flex items-center ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
-            <i class="fas fa-check-circle mr-1"></i> Admin
-        </span>
-        {% endif %}
-        <span class="mx-2">•</span>
-        <a href="/logout" class="text-red-600 hover:text-red-700">Logout</a>
-        <span class="mx-2">•</span>
-        <a href="/" class="text-purple-600 hover:text-purple-700">Home</a>
-    </div>
-</div>
+        <!-- ========================================================================
+             TAB: SETTINGS
+        ========================================================================= -->
+        <div id="tab-settings" class="tab-content hidden p-6">
+            <form id="settingsForm" class="space-y-6 max-w-2xl">
+                <!-- Profile settings -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold flex items-center">
+                        <i class="fas fa-user-circle text-purple-600 mr-2"></i>
+                        Profile Settings
+                    </h4>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Display Name
+                        </label>
+                        <input type="text" 
+                               id="displayName" 
+                               value="{{ user.username }}" 
+                               class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Email Address
+                        </label>
+                        <input type="email" 
+                               id="email" 
+                               value="{{ user.email or '' }}" 
+                               placeholder="your@email.com"
+                               class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Bio
+                        </label>
+                        <textarea id="bio" 
+                                  rows="4" 
+                                  placeholder="Tell us about yourself and your projects..."
+                                  class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none">{{ user.bio or '' }}</textarea>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <span id="bioCount">{{ user.bio|length|default(0) }}</span>/500 characters
+                        </p>
+                    </div>
+                </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// Tab switching
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.add('hidden');
-    });
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active', 'bg-purple-600', 'text-white');
-        btn.classList.add('hover:bg-purple-50');
-    });
-    
-    document.getElementById(tabName + '-tab').classList.remove('hidden');
-    event.target.classList.add('active', 'bg-purple-600', 'text-white');
-    
-    if (tabName === 'analytics' && !window.chartsInitialized) {
-        initCharts();
-        window.chartsInitialized = true;
-    }
-}
+                <!-- Notification settings -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold flex items-center">
+                        <i class="fas fa-bell text-purple-600 mr-2"></i>
+                        Notification Preferences
+                    </h4>
+                    
+                    <div class="space-y-3">
+                        <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
+                            <div>
+                                <span class="font-medium">Package Downloads</span>
+                                <p class="text-xs text-gray-500">Get notified when your packages are downloaded</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" 
+                                       id="notifyDownloads" 
+                                       class="sr-only peer"
+                                       {% if user.notifications.downloads|default(true) %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
+                            <div>
+                                <span class="font-medium">Newsletter</span>
+                                <p class="text-xs text-gray-500">Receive updates about new features and packages</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" 
+                                       id="notifyNewsletter" 
+                                       class="sr-only peer"
+                                       {% if user.notifications.newsletter|default(false) %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
+                            <div>
+                                <span class="font-medium">Security Alerts</span>
+                                <p class="text-xs text-gray-500">Important security notifications about your account</p>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" 
+                                       id="notifySecurity" 
+                                       class="sr-only peer"
+                                       {% if user.notifications.security|default(true) %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-// Initialize charts
-function initCharts() {
-    const downloadsCtx = document.getElementById('downloadsChart').getContext('2d');
-    new Chart(downloadsCtx, {
-        type: 'line',
-        data: {
-            labels: {{ chart_labels|safe }},
-            datasets: [{
-                label: 'Downloads',
-                data: {{ chart_data|safe }},
-                borderColor: '#8B5CF6',
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
-    });
-    
-    const popularCtx = document.getElementById('popularChart').getContext('2d');
-    new Chart(popularCtx, {
-        type: 'doughnut',
-        data: {
-            labels: {{ popular_labels|safe }},
-            datasets: [{
-                data: {{ popular_data|safe }},
-                backgroundColor: ['#8B5CF6', '#10B981', '#F59E0B']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom' } }
-        }
-    });
-}
+                <!-- Save button -->
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg flex items-center gap-2"
+                            id="saveSettingsBtn">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
 
-// Copy functions
-function copyAPIToken() {
-    const token = localStorage.getItem('zarch_token') || '{{ session.token }}';
-    if (token) {
-        navigator.clipboard.writeText(token);
-        showNotification('API token copied!', 'success');
-    }
-}
-function copyToken() { copyAPIToken(); }
-function copyInstallCommand(cmd) {
-    navigator.clipboard.writeText(cmd);
-    showNotification('Command copied!', 'success');
-}
+        <!-- ========================================================================
+             TAB: SECURITY
+        ========================================================================= -->
+        <div id="tab-security" class="tab-content hidden p-6">
+            <div class="space-y-6">
+                <!-- Change password -->
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-6">
+                    <h4 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-key text-purple-600 mr-2"></i>
+                        Change Password
+                    </h4>
+                    <form id="passwordForm" class="space-y-4 max-w-md">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Current Password
+                            </label>
+                            <input type="password" 
+                                   id="currentPassword" 
+                                   class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                   required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                New Password
+                            </label>
+                            <input type="password" 
+                                   id="newPassword" 
+                                   class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                   required>
+                            <div class="mt-2 text-xs text-gray-500">
+                                Password must contain at least 8 characters, one uppercase, one lowercase, and one number
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Confirm New Password
+                            </label>
+                            <input type="password" 
+                                   id="confirmNewPassword" 
+                                   class="w-full px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                   required>
+                        </div>
+                        <button type="submit" 
+                                class="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all hover:scale-105">
+                            Update Password
+                        </button>
+                    </form>
+                </div>
 
-// Package actions
-function editPackage(name) { window.location.href = `/edit/${name}`; }
-function deletePackage(name) {
-    if (confirm(`Delete ${name}?`)) {
-        showNotification('Delete feature coming soon', 'info');
-    }
-}
+                <!-- Two-factor authentication -->
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-6">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                            <h4 class="text-lg font-semibold mb-1 flex items-center">
+                                <i class="fas fa-shield-alt text-purple-600 mr-2"></i>
+                                Two-Factor Authentication (2FA)
+                            </h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Add an extra layer of security to your account
+                            </p>
+                        </div>
+                        <button class="px-6 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all hover:scale-105">
+                            Enable 2FA
+                        </button>
+                    </div>
+                </div>
 
-// Settings
-function changePassword() { showNotification('Password change coming soon', 'info'); }
-function regenerateToken() { showNotification('Token regeneration coming soon', 'info'); }
-function deleteAccount() { showNotification('Account deletion coming soon', 'info'); }
+                <!-- Active sessions -->
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-900/50 rounded-xl p-6">
+                    <h4 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-desktop text-purple-600 mr-2"></i>
+                        Active Sessions
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-laptop text-2xl text-gray-400"></i>
+                                <div>
+                                    <div class="font-medium">Current session</div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ request.user_agent }} • {{ now.strftime('%Y-%m-%d %H:%M') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs">Active now</span>
+                        </div>
+                        <!-- Other sessions would be listed here -->
+                    </div>
+                    <button class="mt-4 px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                        Revoke All Other Sessions
+                    </button>
+                </div>
 
-// Form submission
-document.getElementById('settingsForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    showNotification('Settings saved!', 'success');
-});
-
-// Notification system
-function showNotification(message, type = 'info') {
-    const notif = document.createElement('div');
-    notif.className = `fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg animate-slide-in ${
-        type === 'success' ? 'bg-green-500 text-white' :
-        type === 'error' ? 'bg-red-500 text-white' :
-        'bg-blue-500 text-white'
-    }`;
-    notif.textContent = message;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 3000);
-}
-</script>
-{% endblock %}
+                <!-- Danger zone -->
+                <div class="border-2 border-red-500 rounded-xl p-6">
+                    <h4 class="text-lg font-bold text-red-600 mb-3 flex items-center">
