@@ -12,9 +12,134 @@
 {% block extra_head %}
 <!-- Chart.js pour les graphiques -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<!-- Calendrier pour les dates -->
+<!-- Flatpickr pour les dates -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<style>
+    /* Animations personnalisées */
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+    }
+    
+    .animate-float {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .animate-slide-in {
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .animate-pulse {
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    /* Stats cards */
+    .stat-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
+    }
+    
+    /* Package items */
+    .package-item {
+        transition: all 0.3s ease;
+    }
+    
+    .package-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.2);
+    }
+    
+    /* Badge preview */
+    .badge-preview {
+        transition: all 0.3s ease;
+    }
+    
+    .badge-preview:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Scrollbar personnalisée */
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    
+    /* Skeleton loading */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    
+    .dark .skeleton {
+        background: linear-gradient(90deg, #2d2d2d 25%, #3d3d3d 50%, #2d2d2d 75%);
+    }
+    
+    /* Connection status */
+    #connectionStatus.online {
+        color: #10B981;
+    }
+    
+    #connectionStatus.offline {
+        color: #EF4444;
+    }
+    
+    /* Admin badge */
+    .admin-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: 0.375rem;
+        padding: 0.125rem 0.375rem;
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
+        border-radius: 9999px;
+        animation: pop 0.3s ease;
+        vertical-align: middle;
+    }
+    
+    .admin-badge i {
+        font-size: 0.7rem;
+        color: white;
+    }
+    
+    @keyframes pop {
+        0% { transform: scale(0); }
+        80% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -44,11 +169,11 @@
                 </h1>
                 <div class="flex items-center gap-2 text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
                     <i class="fas fa-clock"></i>
-                    <span id="liveTimestamp"></span>
+                    <span id="liveTimestamp">{{ now.strftime('%H:%M:%S') }}</span>
                     <span class="mx-1">•</span>
                     <i class="fas fa-wifi" id="connectionStatus" title="Connection Status"></i>
                     <span class="mx-1">•</span>
-                    <span class="text-purple-600 font-medium" id="notificationCount"></span>
+                    <span class="text-purple-600 font-medium" id="notificationCount">{% if notifications_count > 0 %}{{ notifications_count }} new{% endif %}</span>
                 </div>
             </div>
         </div>
@@ -84,7 +209,17 @@
     <!-- =========================================================================
          NOTIFICATIONS EN DIRECT
          ========================================================================= -->
-    <div id="liveNotifications" class="mb-6 space-y-2"></div>
+    <div id="liveNotifications" class="mb-6 space-y-2">
+        {% for notification in notifications %}
+        <div class="glass-card p-3 rounded-lg flex items-center justify-between animate-slide-in border-l-4 border-{{ notification.color }}-500">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-{{ notification.icon }} text-{{ notification.color }}-500"></i>
+                <span class="text-sm">{{ notification.message|safe }}</span>
+            </div>
+            <span class="text-xs text-gray-500">{{ notification.time }}</span>
+        </div>
+        {% endfor %}
+    </div>
 
     <!-- =========================================================================
          STATISTIQUES AVANCÉES
@@ -152,19 +287,21 @@
                 Recent Activity
             </h3>
             <div class="space-y-2 lg:space-y-3 max-h-64 lg:max-h-80 overflow-y-auto pr-2 scrollbar-hide">
-                {% for activity in recent_activity %}
-                <div class="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div class="w-6 h-6 rounded-full bg-{{ activity.color }}-100 flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-{{ activity.icon }} text-{{ activity.color }}-600 text-xs"></i>
+                {% if recent_activity %}
+                    {% for activity in recent_activity %}
+                    <div class="flex items-start gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="w-6 h-6 rounded-full bg-{{ activity.color }}-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-{{ activity.icon }} text-{{ activity.color }}-600 text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-medium">{{ activity.message|safe }}</p>
+                            <p class="text-xs text-gray-500">{{ activity.time }}</p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-medium truncate">{{ activity.message }}</p>
-                        <p class="text-xs text-gray-500">{{ activity.time }}</p>
-                    </div>
-                </div>
+                    {% endfor %}
                 {% else %}
-                <p class="text-center text-gray-500 text-sm py-4">No recent activity</p>
-                {% endfor %}
+                    <p class="text-center text-gray-500 text-sm py-4">No recent activity</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -238,20 +375,23 @@
                                     <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
                                     {{ pkg.scope }}
                                 </span>
-                                {% if pkg.rating %}
+                                {% if pkg.rating and pkg.rating > 0 %}
                                 <span class="text-xs text-yellow-600 flex items-center">
-                                    <i class="fas fa-star mr-1"></i>{{ pkg.rating }}
+                                    <i class="fas fa-star mr-1"></i>{{ "%.1f"|format(pkg.rating) }}
                                 </span>
                                 {% endif %}
                             </div>
                             <div class="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
                                 <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
                                 <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
-                                <span><i class="fas fa-calendar mr-1"></i>{{ pkg.created_at[:10] }}</span>
-                                {% if pkg.size %}
+                                <span><i class="fas fa-calendar mr-1"></i>{{ pkg.created_at[:10] if pkg.created_at else 'N/A' }}</span>
+                                {% if pkg.size and pkg.size > 0 %}
                                 <span><i class="fas fa-weight-hanging mr-1"></i>{{ (pkg.size / 1024)|round(1) }} KB</span>
                                 {% endif %}
                             </div>
+                            {% if pkg.description %}
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">{{ pkg.description }}</p>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -267,7 +407,7 @@
                            title="Edit package">
                             <i class="fas fa-edit text-sm lg:text-base"></i>
                         </a>
-                        <a href="/package/{{ pkg.name }}/badges" 
+                        <a href="/settings/badges?package={{ pkg.name }}" 
                            class="p-1.5 lg:p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-all hover:scale-110"
                            title="Manage badges">
                             <i class="fas fa-award text-sm lg:text-base"></i>
@@ -330,7 +470,7 @@
     <!-- =========================================================================
          BADGES PERSONNALISÉS
          ========================================================================= -->
-    {% if badges %}
+    {% if badges and badges|length > 0 %}
     <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6 mb-6 lg:mb-8" data-aos="fade-up">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg lg:text-xl font-semibold flex items-center">
@@ -379,36 +519,40 @@
             </h3>
             
             <div class="space-y-3">
-                {% for review in recent_reviews %}
-                <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <a href="/@{{ review.author }}" class="flex-shrink-0">
-                        <div class="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center">
-                            <span class="text-xs font-bold">{{ review.author[0]|upper }}</span>
-                        </div>
-                    </a>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between">
-                            <a href="/@{{ review.author }}" class="text-sm font-medium hover:text-purple-600">
-                                {{ review.author }}
-                            </a>
-                            <div class="flex items-center">
-                                {% for i in range(5) %}
-                                    {% if i < review.rating %}
-                                        <i class="fas fa-star text-yellow-400 text-xs"></i>
-                                    {% else %}
-                                        <i class="far fa-star text-yellow-400 text-xs"></i>
-                                    {% endif %}
-                                {% endfor %}
+                {% if recent_reviews and recent_reviews|length > 0 %}
+                    {% for review in recent_reviews %}
+                    <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <a href="/@{{ review.author }}" class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center">
+                                <span class="text-xs font-bold">{{ review.author[0]|upper }}</span>
                             </div>
+                        </a>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <a href="/@{{ review.author }}" class="text-sm font-medium hover:text-purple-600">
+                                    {{ review.author }}
+                                </a>
+                                <div class="flex items-center">
+                                    {% for i in range(5) %}
+                                        {% if i < review.rating %}
+                                            <i class="fas fa-star text-yellow-400 text-xs"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-yellow-400 text-xs"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">on <a href="/package/{{ review.package }}" class="hover:text-purple-600">{{ review.package }}</a></p>
+                            {% if review.comment %}
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{{ review.comment }}</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-400 mt-1">{{ review.time }}</p>
                         </div>
-                        <p class="text-xs text-gray-500 mt-1">{{ review.package }}</p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{{ review.comment }}</p>
-                        <p class="text-xs text-gray-400 mt-1">{{ review.time }}</p>
                     </div>
-                </div>
+                    {% endfor %}
                 {% else %}
-                <p class="text-center text-gray-500 text-sm py-4">No reviews yet</p>
-                {% endfor %}
+                    <p class="text-center text-gray-500 text-sm py-4">No reviews yet</p>
+                {% endif %}
             </div>
             
             <a href="/community" class="mt-4 text-sm text-purple-600 hover:text-purple-700 flex items-center justify-center">
@@ -420,29 +564,31 @@
         <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6">
             <h3 class="text-base lg:text-lg font-semibold mb-3 lg:mb-4 flex items-center">
                 <i class="fas fa-bell text-purple-600 mr-2"></i>
-                Community Notifications
+                Community Updates
             </h3>
             
             <div class="space-y-3">
-                {% for notif in community_notifications %}
-                <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div class="w-8 h-8 bg-{{ notif.color }}-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-{{ notif.icon }} text-{{ notif.color }}-600 text-sm"></i>
+                {% if community_notifications and community_notifications|length > 0 %}
+                    {% for notif in community_notifications %}
+                    <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <div class="w-8 h-8 bg-{{ notif.color }}-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-{{ notif.icon }} text-{{ notif.color }}-600 text-sm"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm">{{ notif.message|safe }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ notif.time }}</p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm">{{ notif.message|safe }}</p>
-                        <p class="text-xs text-gray-500 mt-1">{{ notif.time }}</p>
-                    </div>
-                </div>
+                    {% endfor %}
                 {% else %}
-                <p class="text-center text-gray-500 text-sm py-4">No new notifications</p>
-                {% endfor %}
+                    <p class="text-center text-gray-500 text-sm py-4">No new updates</p>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <!-- =========================================================================
-         COMMUNAUTÉ (NOUVELLE ROUTE /COMMUNITY)
+         COMMUNAUTÉ
          ========================================================================= -->
     <div class="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6" data-aos="fade-up">
         <div class="flex items-center justify-between mb-4">
@@ -458,34 +604,35 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <!-- Membres en ligne -->
             <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-green-600">{{ online_members|default('12') }}</div>
+                <div class="text-xl font-bold text-green-600">{{ online_members|default(12) }}</div>
                 <div class="text-xs text-gray-500">Online</div>
             </div>
             
             <!-- Nouveaux packages -->
             <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-purple-600">{{ new_packages|default('5') }}</div>
+                <div class="text-xl font-bold text-purple-600">{{ new_packages|default(5) }}</div>
                 <div class="text-xs text-gray-500">New today</div>
             </div>
             
             <!-- Discussions actives -->
             <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-blue-600">{{ active_discussions|default('8') }}</div>
+                <div class="text-xl font-bold text-blue-600">{{ active_discussions|default(8) }}</div>
                 <div class="text-xs text-gray-500">Discussions</div>
             </div>
             
             <!-- Badges créés -->
             <div class="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="text-xl font-bold text-yellow-600">{{ new_badges|default('3') }}</div>
+                <div class="text-xl font-bold text-yellow-600">{{ new_badges|default(3) }}</div>
                 <div class="text-xs text-gray-500">New badges</div>
             </div>
         </div>
         
         <!-- Top contributeurs -->
+        {% if top_contributors and top_contributors|length > 0 %}
         <div class="mt-4">
             <h3 class="text-sm font-semibold mb-3">Top Contributors</h3>
             <div class="flex flex-wrap gap-2">
-                {% for contributor in top_contributors %}
+                {% for contributor in top_contributors[:5] %}
                 <a href="/@{{ contributor.username }}" 
                    class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 rounded-full hover:bg-purple-50 transition-all">
                     <div class="w-5 h-5 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
@@ -497,6 +644,7 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -518,86 +666,6 @@
         </div>
     </div>
 </div>
-
-<style>
-/* Animations et styles personnalisés */
-@keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.animate-slide-in {
-    animation: slideIn 0.3s ease-out;
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
-}
-
-.animate-float {
-    animation: float 3s ease-in-out infinite;
-}
-
-/* Scrollbar personnalisée */
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Stats cards */
-.stat-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-}
-
-/* Package items */
-.package-item {
-    transition: all 0.3s ease;
-}
-
-/* Badge preview */
-.badge-preview {
-    transition: all 0.3s ease;
-}
-
-/* Connection status */
-#connectionStatus.online {
-    color: #10B981;
-}
-
-#connectionStatus.offline {
-    color: #EF4444;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-    .stat-card {
-        padding: 0.75rem !important;
-    }
-    
-    .stat-value {
-        font-size: 1.25rem !important;
-    }
-}
-</style>
 
 <script>
 // ============================================================================
@@ -636,8 +704,20 @@ async function initializeDashboard() {
     await loadCommunityData();
 }
 
+function updateTimestamp() {
+    const update = () => {
+        const el = document.getElementById('liveTimestamp');
+        if (el) {
+            const now = new Date();
+            el.textContent = now.toLocaleTimeString();
+        }
+    };
+    update();
+    setInterval(update, 1000);
+}
+
 // ============================================================================
-// CONNEXION ET SYNCHRONISATION
+// CONNEXION
 // ============================================================================
 function checkConnection() {
     const updateStatus = () => {
@@ -651,14 +731,6 @@ function checkConnection() {
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
     updateStatus();
-}
-
-function updateTimestamp() {
-    const el = document.getElementById('liveTimestamp');
-    if (el) {
-        el.textContent = new Date().toLocaleTimeString();
-    }
-    setTimeout(updateTimestamp, 1000);
 }
 
 function startAutoRefresh() {
@@ -690,7 +762,7 @@ async function refreshData() {
 // ============================================================================
 function initializeCounters() {
     document.querySelectorAll('.counter').forEach(counter => {
-        const target = parseInt(counter.dataset.target);
+        const target = parseInt(counter.getAttribute('data-target'));
         animateCounter(counter, 0, target, 1000);
     });
 }
@@ -721,10 +793,10 @@ function initializeCharts() {
     CONFIG.charts.downloads = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            labels: {{ chart_labels|tojson|safe }},
             datasets: [{
                 label: 'Downloads',
-                data: {{ chart_data|default([12, 19, 3, 5])|safe }},
+                data: {{ chart_data|tojson|safe }},
                 borderColor: '#8B5CF6',
                 backgroundColor: 'rgba(139, 92, 246, 0.1)',
                 tension: 0.4,
@@ -744,7 +816,6 @@ function initializeCharts() {
 }
 
 function updateChartRange(range) {
-    // Simuler le chargement
     showNotification(`Loading ${range} data...`, 'info');
 }
 
@@ -767,7 +838,7 @@ function filterPackages() {
         switch(sortFilter) {
             case 'name': return a.name.localeCompare(b.name);
             case 'downloads': return (b.downloads || 0) - (a.downloads || 0);
-            case 'date': return new Date(b.created_at) - new Date(a.created_at);
+            case 'date': return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             case 'rating': return (b.rating || 0) - (a.rating || 0);
             default: return 0;
         }
@@ -782,7 +853,8 @@ function updatePackagesDisplay() {
     const end = start + CONFIG.packagesPerPage;
     const pagePackages = CONFIG.filteredPackages.slice(start, end);
     
-    document.querySelectorAll('.package-item').forEach((el, index) => {
+    const packages = document.querySelectorAll('.package-item');
+    packages.forEach((el, index) => {
         el.style.display = index < pagePackages.length ? 'flex' : 'none';
     });
     
@@ -813,18 +885,19 @@ function showNotification(message, type = 'info') {
     if (!container) return;
     
     const notification = document.createElement('div');
-    notification.className = `glass-card p-3 rounded-lg flex items-center justify-between animate-slide-in
-        ${type === 'success' ? 'border-green-500' : 
-          type === 'error' ? 'border-red-500' : 
-          'border-blue-500'}`;
+    notification.className = `glass-card p-3 rounded-lg flex items-center justify-between animate-slide-in mb-2`;
+    
+    const colors = {
+        success: 'border-l-4 border-green-500',
+        error: 'border-l-4 border-red-500',
+        info: 'border-l-4 border-blue-500'
+    };
+    
+    notification.className += ' ' + (colors[type] || colors.info);
     
     notification.innerHTML = `
         <div class="flex items-center gap-2">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : 
-                               type === 'error' ? 'exclamation-circle' : 
-                               'info-circle'} text-${type === 'success' ? 'green' : 
-                                                      type === 'error' ? 'red' : 
-                                                      'blue'}-500"></i>
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} text-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'blue'}-500"></i>
             <span class="text-sm">${message}</span>
         </div>
         <button onclick="this.parentElement.remove()" class="text-gray-500 hover:text-gray-700">
@@ -836,19 +909,11 @@ function showNotification(message, type = 'info') {
     setTimeout(() => notification.remove(), 5000);
 }
 
-function updateNotificationCount() {
-    const count = CONFIG.notifications.length;
-    const el = document.getElementById('notificationCount');
-    if (el) {
-        el.textContent = count > 0 ? `${count} new` : '';
-    }
-}
-
 // ============================================================================
 // REVIEWS
 // ============================================================================
 async function loadReviews() {
-    // Charger les reviews depuis l'API
+    // À implémenter avec API réelle
 }
 
 function showReviewsModal() {
@@ -857,33 +922,22 @@ function showReviewsModal() {
     modal.classList.add('flex');
     document.body.style.overflow = 'hidden';
     
-    // Charger les reviews dans le modal
     const list = document.getElementById('reviewsList');
     list.innerHTML = '<p class="text-center text-gray-500">Loading reviews...</p>';
     
     setTimeout(() => {
-        list.innerHTML = CONFIG.originalPackages.map(pkg => `
-            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div class="flex justify-between">
-                    <span class="font-medium">${pkg.name}</span>
-                    <span class="text-sm text-gray-500">${pkg.reviews || 0} reviews</span>
-                </div>
-            </div>
-        `).join('');
+        list.innerHTML = '<p class="text-center text-gray-500">No reviews yet</p>';
     }, 500);
 }
 
-// ============================================================================
-// COMMUNAUTÉ
-// ============================================================================
 async function loadCommunityData() {
-    // Charger les données communautaires
+    // À implémenter avec API réelle
 }
 
 function showStatDetail(stat) {
     switch(stat) {
         case 'packages':
-            document.getElementById('packageSearch').focus();
+            document.getElementById('packageSearch')?.focus();
             showNotification('Showing all your packages', 'info');
             break;
         case 'downloads':
@@ -904,6 +958,8 @@ function showStatDetail(stat) {
 function copyInstallCommand(cmd) {
     navigator.clipboard.writeText(cmd).then(() => {
         showNotification('Command copied!', 'success');
+    }).catch(() => {
+        showNotification('Failed to copy', 'error');
     });
 }
 
@@ -937,7 +993,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Initialisation
 console.log('Dashboard v2.0 loaded');
 </script>
 {% endblock %}
