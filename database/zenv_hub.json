@@ -112,11 +112,14 @@
       "name": "apkm",
       "scope": "public",
       "version": "2.0.0",
-      "author": "mauricio",
-      "sha256": "36eac862281472551fb622f54a105038d4e6fe9db631918b548a4ae4fbde7e36",
-      "size": 95406,
-      "updated_at": "2026-03-01T21:19:38.009133",
-      "downloads": 1
+      "release": "1",
+      "arch": "x86_64",
+      "author": "admin",
+      "sha256": "fb3f35eacad86792a838c7c8e02a7b7b188ead6ee0d7c7cadb23633649185381",
+      "size": 2034186,
+      "created_at": "2026-03-09T00:11:23.507033",
+      "updated_at": "2026-03-09T00:11:23.507042",
+      "downloads": 0
     }
   ],
   "badges": [],
