@@ -1520,28 +1520,22 @@ def upload_page():
 @app.route('/dashboard')
 @token_required
 def dashboard_page():
-    """Dashboard utilisateur avec toutes les fonctionnalités"""
+    """Dashboard minimal compatible avec le template"""
     user = g.user
     username = user['username']
     
     try:
         # =====================================================================
-        # 1. CHARGEMENT DES DONNÉES UTILISATEUR
-        # =====================================================================
-        users_db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        current_user = next((u for u in users_db.get('users', []) if u['username'] == username), user)
-        
-        # =====================================================================
-        # 2. CHARGEMENT DES PACKAGES DE L'UTILISATEUR
+        # 1. CHARGER LES PACKAGES DE L'UTILISATEUR
         # =====================================================================
         packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
         all_packages = packages_db.get('packages', [])
         
-        # Packages de l'utilisateur avec valeurs par défaut
+        # Filtrer les packages de l'utilisateur
         user_packages = []
         for pkg in all_packages:
             if pkg.get('author') == username:
-                # S'assurer que toutes les clés nécessaires existent
+                # Créer une copie sécurisée avec toutes les clés nécessaires
                 safe_pkg = {
                     'name': pkg.get('name', 'unknown'),
                     'version': pkg.get('version', '0.0.0'),
@@ -1549,203 +1543,57 @@ def dashboard_page():
                     'downloads': pkg.get('downloads', 0),
                     'created_at': pkg.get('created_at'),
                     'size': pkg.get('size', 0),
-                    'id': pkg.get('id', hash(pkg.get('name'))),
-                    'rating': pkg.get('rating', 0),
                     'description': pkg.get('description', '')
                 }
                 user_packages.append(safe_pkg)
         
-        # Statistiques
+        # =====================================================================
+        # 2. CALCULER LES STATISTIQUES
+        # =====================================================================
         total_packages = len(user_packages)
         total_downloads = sum(p.get('downloads', 0) for p in user_packages)
         
-        # =====================================================================
-        # 3. CHARGEMENT DES BADGES
-        # =====================================================================
-        badges = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
-        badges_count = len(badges)
+        # Date d'inscription (avec fallback)
+        member_since = user.get('created_at', '2026-01-01')
+        if member_since and len(member_since) > 10:
+            member_since = member_since[:10]
         
-        # =====================================================================
-        # 4. CHARGEMENT DES REVIEWS
-        # =====================================================================
-        reviews_count = 0
-        recent_reviews = []
-        
-        for package in user_packages:
-            package_reviews = GitHubManager.read_from_github(f'reviews/{package["name"]}.json', {'reviews': []})
-            reviews_count += len(package_reviews.get('reviews', []))
-            
-            for review in package_reviews.get('reviews', [])[:3]:
-                recent_reviews.append({
-                    'author': review.get('username', 'anonymous'),
-                    'package': package['name'],
-                    'rating': review.get('rating', 0),
-                    'comment': review.get('comment', ''),
-                    'time': review.get('created_at', '')[:10] if review.get('created_at') else 'N/A'
-                })
-        
-        recent_reviews = sorted(recent_reviews, key=lambda x: x['time'], reverse=True)[:5]
-        
-        # =====================================================================
-        # 5. ACTIVITÉ RÉCENTE
-        # =====================================================================
-        recent_activity = []
-        
-        for pkg in sorted(user_packages, key=lambda x: x.get('created_at', ''), reverse=True)[:3]:
-            recent_activity.append({
-                'icon': 'upload',
-                'color': 'purple',
-                'message': f'Published <span class="font-medium">{pkg["name"]} v{pkg["version"]}</span>',
-                'time': pkg.get('created_at', '')[:10] if pkg.get('created_at') else 'Recently'
-            })
-        
-        if total_downloads > 0:
-            recent_activity.append({
-                'icon': 'download',
-                'color': 'green',
-                'message': f'Reached <span class="font-medium">{total_downloads}</span> total downloads',
-                'time': 'Today'
-            })
-        
-        if badges_count > 0:
-            recent_activity.append({
-                'icon': 'award',
-                'color': 'yellow',
-                'message': f'Created <span class="font-medium">{badges_count}</span> custom badges',
-                'time': 'Recently'
-            })
-        
-        # =====================================================================
-        # 6. DONNÉES COMMUNAUTAIRES
-        # =====================================================================
-        author_stats = {}
-        author_downloads = {}
-        
-        for pkg in all_packages:
-            author = pkg.get('author')
-            if author:
-                if author not in author_stats:
-                    author_stats[author] = 0
-                    author_downloads[author] = 0
-                author_stats[author] += 1
-                author_downloads[author] += pkg.get('downloads', 0)
-        
-        top_contributors = []
-        for author, count in sorted(author_stats.items(), key=lambda x: x[1], reverse=True)[:5]:
-            user_info = next((u for u in users_db.get('users', []) if u.get('username') == author), {})
-            top_contributors.append({
-                'username': author,
-                'packages': count,
-                'downloads': author_downloads.get(author, 0)
-            })
-        
-        # =====================================================================
-        # 7. DONNÉES POUR LES GRAPHIQUES
-        # =====================================================================
-        import random
-        from datetime import timedelta
-        
-        chart_labels = []
-        chart_data = []
-        
-        for i in range(7, 0, -1):
-            date = (datetime.now() - timedelta(days=i)).strftime('%d/%m')
-            chart_labels.append(date)
-            chart_data.append(random.randint(0, 20))
-        
-        popular_labels = [p['name'] for p in user_packages[:3]] if user_packages else ['apkm', 'bool', 'apsm']
-        popular_data = [p.get('downloads', 0) for p in user_packages[:3]] if user_packages else [42, 15, 7]
-        
-        # =====================================================================
-        # 8. STATISTIQUES
-        # =====================================================================
         stats = {
             'packages': total_packages,
             'downloads': total_downloads,
-            'member_since': current_user.get('created_at', '2026')[:10]
+            'member_since': member_since
         }
         
         # =====================================================================
-        # 9. NOTIFICATIONS COMMUNAUTAIRES
+        # 3. LOG POUR DÉBOGAGE
         # =====================================================================
-        community_notifications = [
-            {
-                'icon': 'users',
-                'color': 'blue',
-                'message': f'<span class="font-medium">{len(author_stats)}</span> contributors active',
-                'time': 'Now'
-            },
-            {
-                'icon': 'box',
-                'color': 'purple',
-                'message': f'<span class="font-medium">{len(all_packages)}</span> total packages',
-                'time': 'Today'
-            }
-        ]
+        app.logger.info(f"Dashboard loaded for {username}: {total_packages} packages, {total_downloads} downloads")
         
         # =====================================================================
-        # 10. VÉRIFICATION ADMIN
-        # =====================================================================
-        is_admin = username in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100']
-        
-        # =====================================================================
-        # 11. RENDU DU TEMPLATE
+        # 4. RENDU DU TEMPLATE
         # =====================================================================
         return render_template('dashboard.html',
-                             user=current_user,
+                             user=user,
                              user_packages=user_packages,
-                             stats=stats,
-                             chart_labels=chart_labels,
-                             chart_data=chart_data,
-                             popular_labels=popular_labels,
-                             popular_data=popular_data,
-                             badges=badges,
-                             badges_count=badges_count,
-                             recent_reviews=recent_reviews,
-                             reviews_count=reviews_count,
-                             recent_activity=recent_activity,
-                             top_contributors=top_contributors,
-                             online_members=len(author_stats),
-                             new_packages=len([p for p in all_packages if p.get('created_at', '').startswith(datetime.now().strftime('%Y-%m-%d'))]),
-                             active_discussions=8,
-                             new_badges=3,
-                             community_notifications=community_notifications,
-                             is_admin=is_admin,
-                             now=datetime.now())
+                             stats=stats)
     
     except Exception as e:
-        app.logger.error(f"Dashboard error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        app.logger.error(f"Dashboard error for {username}: {str(e)}")
         
-        # Données par défaut
+        # Statistiques par défaut en cas d'erreur
         default_stats = {
             'packages': 0,
             'downloads': 0,
-            'member_since': user.get('created_at', '2026')[:10]
+            'member_since': user.get('created_at', '2026-01-01')[:10] if user.get('created_at') else '2026-01-01'
         }
+        
+        # Afficher l'erreur à l'utilisateur (optionnel)
+        flash('Unable to load some dashboard data', 'warning')
         
         return render_template('dashboard.html',
                              user=user,
                              user_packages=[],
-                             stats=default_stats,
-                             chart_labels=['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
-                             chart_data=[0, 0, 0, 0, 0, 0, 0],
-                             popular_labels=['apkm', 'bool', 'apsm'],
-                             popular_data=[0, 0, 0],
-                             badges={},
-                             badges_count=0,
-                             recent_reviews=[],
-                             reviews_count=0,
-                             recent_activity=[],
-                             top_contributors=[],
-                             online_members=0,
-                             new_packages=0,
-                             active_discussions=0,
-                             new_badges=0,
-                             community_notifications=[],
-                             is_admin=(username in ['admin', 'gopu-inc', 'mauricio']),
-                             now=datetime.now())
+                             stats=default_stats)
 @app.route('/login')
 def login_page():
     """Page de connexion"""
