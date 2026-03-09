@@ -1,376 +1,315 @@
 {% extends "base.html" %}
 
-{% block og_title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
-{% block og_description %}Package {{ package.name }} version {{ package.version }} by {{ package.author }}{% endblock %}
+{% block og_title %}Browse Packages - Zarch Hub{% endblock %}
+{% block og_description %}Browse and search packages from the Zarch Hub registry{% endblock %}
 
-{% block title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
+{% block title %}Browse Packages - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Package Header -->
-    <div class="glass-card rounded-2xl p-8 mb-8" data-aos="fade-up">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-cubes text-white text-3xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        {{ package.name }}
-                    </h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">
-                        by <span class="font-semibold author-name" data-author="{{ package.author }}">{{ package.author }}</span>
-                    </p>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <span class="px-4 py-2 bg-{{ 'green' if package.scope == 'public' else 'gray' }}-100 text-{{ 'green' if package.scope == 'public' else 'gray' }}-600 rounded-full text-sm font-medium">
-                    <i class="fas fa-{{ 'globe' if package.scope == 'public' else 'lock' }} mr-2"></i>
-                    {{ package.scope }}
-                </span>
-                <span class="px-4 py-2 bg-purple-100 text-purple-600 rounded-full text-sm font-medium">
-                    <i class="fas fa-tag mr-2"></i>
-                    {{ package.version }}
-                </span>
-            </div>
-        </div>
-
-        <!-- Quick Info Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-code-branch text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Release</div>
-                <div class="font-semibold">{{ package.release }}</div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-microchip text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Architecture</div>
-                <div class="font-semibold">{{ package.arch }}</div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-download text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Downloads</div>
-                <div class="font-semibold">{{ package.downloads }}</div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-calendar text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Published</div>
-                <div class="font-semibold">{{ package.created_at[:10] }}</div>
-            </div>
-        </div>
-
-        <!-- Description -->
-        {% if package.description %}
-        <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <p class="text-gray-700 dark:text-gray-300">{{ package.description }}</p>
-        </div>
-        {% endif %}
-
-        <!-- Action Buttons -->
-        <div class="flex flex-wrap gap-4">
-            <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}" 
-               class="flex-1 md:flex-none btn-primary px-6 py-3 rounded-xl text-white font-semibold text-center">
-                <i class="fas fa-download mr-2"></i>
-                Download Package
-            </a>
-            <button onclick="copyInstallCommand('apkm install {{ package.name }}')" 
-                    class="flex-1 md:flex-none btn-secondary px-6 py-3 rounded-xl font-semibold text-center">
-                <i class="fas fa-copy mr-2"></i>
-                Copy Install Command
-            </button>
-            <button onclick="copyAPIToken()" 
-                    class="flex-1 md:flex-none bg-gray-200 dark:bg-gray-700 px-6 py-3 rounded-xl font-semibold text-center hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-                <i class="fas fa-key mr-2"></i>
-                Copy Token
-            </button>
-        </div>
+<div class="max-w-7xl mx-auto px-4 py-8">
+    
+    <!-- En-tête avec statistiques -->
+    <div class="text-center mb-8" data-aos="fade-up">
+        <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+            Browse Packages
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+            {{ total_results }} packages found • {{ total_downloads }} total downloads • {{ total_authors }} contributors
+        </p>
     </div>
 
-    <!-- Tabs Navigation -->
-    <div class="border-b border-gray-200 dark:border-gray-700 mb-6" data-aos="fade-up">
-        <nav class="flex space-x-8" aria-label="Tabs">
-            <button onclick="showTab('readme')" class="tab-button active py-4 px-1 border-b-2 border-purple-600 text-purple-600 font-medium text-sm" id="tab-readme-btn">
-                <i class="fas fa-book mr-2"></i>
-                README
-            </button>
-            <button onclick="showTab('files')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm" id="tab-files-btn">
-                <i class="fas fa-folder mr-2"></i>
-                Files
-            </button>
-            <button onclick="showTab('dependencies')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm" id="tab-deps-btn">
-                <i class="fas fa-link mr-2"></i>
-                Dependencies
-            </button>
-            <button onclick="showTab('versions')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium text-sm" id="tab-versions-btn">
-                <i class="fas fa-history mr-2"></i>
-                Versions
-            </button>
-        </nav>
+    <!-- Barre de recherche principale -->
+    <div class="max-w-2xl mx-auto mb-6" data-aos="fade-up" data-aos-delay="50">
+        <form action="{{ url_for('packages_page') }}" method="get" id="searchForm">
+            <div class="relative group">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
+                <input type="text" 
+                       name="q" 
+                       id="searchInput"
+                       value="{{ query }}"
+                       placeholder="Search packages by name, description, or author..." 
+                       class="w-full pl-12 pr-32 py-4 rounded-2xl glass-card text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-900/50 transition-all duration-300"
+                       autocomplete="off">
+                
+                <!-- Suggestions en temps réel (optionnel) -->
+                <div id="suggestions" class="absolute left-0 right-0 mt-2 glass-card rounded-xl overflow-hidden hidden z-20">
+                    <!-- Les suggestions seront injectées ici par JavaScript -->
+                </div>
+                
+                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-2">
+                    <select name="sort" 
+                            class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border-0 text-sm focus:ring-2 focus:ring-purple-500"
+                            onchange="this.form.submit()">
+                        <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Most Recent</option>
+                        <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>Most Downloads</option>
+                        <option value="name" {% if sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                    </select>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105">
+                        Search
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filtres cachés pour préserver le contexte -->
+            <input type="hidden" name="page" value="1">
+            <input type="hidden" name="scope" value="{{ scope }}">
+        </form>
     </div>
 
-    <!-- Tab Contents -->
-    <div class="glass-card rounded-2xl p-8" data-aos="fade-up">
-        <!-- README Tab -->
-        <div id="tab-readme" class="tab-content active">
-            {% if readme_html %}
-                <div class="markdown-body">
-                    {{ readme_html|safe }}
-                </div>
-            {% else %}
-                <div class="text-center py-16">
-                    <i class="fas fa-file-alt text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No README Available</h3>
-                    <p class="text-gray-500 dark:text-gray-400">This package doesn't have a README file.</p>
-                </div>
-            {% endif %}
-        </div>
+    <!-- Filtres rapides -->
+    <div class="flex flex-wrap justify-center gap-2 mb-8" data-aos="fade-up" data-aos-delay="100">
+        <a href="{{ url_for('packages_page', q=query, sort=sort, scope='all') }}" 
+           class="px-4 py-2 rounded-full text-sm transition-all
+                  {% if scope == 'all' %}
+                      bg-purple-600 text-white
+                  {% else %}
+                      glass-card hover:bg-purple-600 hover:text-white
+                  {% endif %}">
+            All
+        </a>
+        <a href="{{ url_for('packages_page', q=query, sort=sort, scope='public') }}" 
+           class="px-4 py-2 rounded-full text-sm transition-all
+                  {% if scope == 'public' %}
+                      bg-green-600 text-white
+                  {% else %}
+                      glass-card hover:bg-green-600 hover:text-white
+                  {% endif %}">
+            <i class="fas fa-globe mr-1"></i>Public
+        </a>
+        <a href="{{ url_for('packages_page', q=query, sort=sort, scope='private') }}" 
+           class="px-4 py-2 rounded-full text-sm transition-all
+                  {% if scope == 'private' %}
+                      bg-gray-600 text-white
+                  {% else %}
+                      glass-card hover:bg-gray-600 hover:text-white
+                  {% endif %}">
+            <i class="fas fa-lock mr-1"></i>Private
+        </a>
+    </div>
 
-        <!-- Files Tab -->
-        <div id="tab-files" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-4">Package Contents</h3>
-            <div class="bg-gray-900 rounded-xl p-4">
-                <pre class="text-green-400 font-mono text-sm overflow-x-auto"><code>tar -tzf {{ package.name }}-{{ package.version }}-{{ package.release }}-{{ package.arch }}.tar.bool</code></pre>
+    <!-- Résultats de recherche -->
+    {% if query %}
+    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400" data-aos="fade-up">
+        Found <span class="font-bold text-purple-600">{{ total_results }}</span> results for "{{ query }}"
+        <a href="{{ url_for('packages_page') }}" class="ml-2 text-purple-600 hover:text-purple-700">
+            <i class="fas fa-times"></i> Clear
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Grille des packages -->
+    {% if packages %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {% for pkg in packages %}
+        <a href="/package/{{ pkg.name }}" 
+           class="glass-card rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group"
+           data-aos="fade-up" 
+           data-aos-delay="{{ loop.index * 25 }}">
+            
+            <!-- Scope badge et highlight si recherche -->
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-cubes text-purple-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold truncate max-w-[120px]">
+                            {% if query %}
+                                {{ pkg.name|replace(query, '<span class="bg-yellow-200 dark:bg-yellow-900/50 text-purple-900 dark:text-purple-300 px-1 rounded">' + query + '</span>')|safe }}
+                            {% else %}
+                                {{ pkg.name }}
+                            {% endif %}
+                        </h3>
+                        <p class="text-xs text-gray-500">by {{ pkg.author }}</p>
+                    </div>
+                </div>
+                <span class="text-xs px-2 py-1 rounded-full 
+                    {% if pkg.scope == 'public' %}
+                        bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                    {% else %}
+                        bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400
+                    {% endif %}">
+                    <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
+                    {{ pkg.scope }}
+                </span>
             </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                <i class="fas fa-info-circle mr-2"></i>
-                Extract with: <code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">tar -xzf {{ package.name }}-{{ package.version }}-{{ package.release }}-{{ package.arch }}.tar.bool</code>
+            
+            <!-- Description avec highlight -->
+            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                {% if query and pkg.description %}
+                    {{ pkg.description|replace(query, '<span class="bg-yellow-200 dark:bg-yellow-900/50 px-1 rounded">' + query + '</span>')|safe }}
+                {% else %}
+                    {{ pkg.description or 'No description provided' }}
+                {% endif %}
             </p>
-        </div>
-
-        <!-- Dependencies Tab -->
-        <div id="tab-dependencies" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-4">Dependencies</h3>
-            <div class="space-y-3">
-                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <i class="fas fa-cube text-purple-600 mr-3"></i>
-                    <span class="flex-1">libc</span>
-                    <span class="text-sm text-gray-500">>= 2.30</span>
-                </div>
-                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <i class="fas fa-cube text-purple-600 mr-3"></i>
-                    <span class="flex-1">gcc</span>
-                    <span class="text-sm text-gray-500">>= 10.0</span>
-                </div>
-                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <i class="fas fa-cube text-purple-600 mr-3"></i>
-                    <span class="flex-1">make</span>
-                    <span class="text-sm text-gray-500">>= 4.3</span>
-                </div>
+            
+            <!-- Métadonnées -->
+            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
+                <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
+                <span><i class="fas fa-calendar mr-1"></i>{{ pkg.created_at[:10] if pkg.created_at else 'N/A' }}</span>
             </div>
-        </div>
-
-        <!-- Versions Tab -->
-        <div id="tab-versions" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-4">Available Versions</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Release</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arch</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Downloads</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                            <td class="px-6 py-4 whitespace-nowrap font-medium">{{ package.version }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">{{ package.release }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">{{ package.arch }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">{{ package.created_at[:10] }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">{{ package.downloads }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <a href="/package/{{ package.name }}?version={{ package.version }}" class="text-purple-600 hover:text-purple-700">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            
+            <!-- Indicateur de pertinence (debug, à enlever en prod) 
+            {% if pkg._score is defined %}
+            <div class="mt-2 text-xs text-right text-purple-400">Score: {{ pkg._score }}</div>
+            {% endif %} -->
+        </a>
+        {% endfor %}
     </div>
 
-    <!-- Package Metadata Card -->
-    <div class="mt-8 glass-card rounded-2xl p-6" data-aos="fade-up">
-        <h3 class="text-lg font-semibold mb-4">Package Metadata</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-                <div class="text-sm text-gray-500">SHA256</div>
-                <div class="font-mono text-xs truncate" title="{{ package.sha256 }}">{{ package.sha256[:16] }}...</div>
-            </div>
-            <div>
-                <div class="text-sm text-gray-500">Size</div>
-                <div class="font-semibold">{{ (package.size / 1024)|round(1) }} KB</div>
-            </div>
-            <div>
-                <div class="text-sm text-gray-500">Author</div>
-                <div class="font-semibold author-name" data-author="{{ package.author }}">{{ package.author }}</div>
-            </div>
-            <div>
-                <div class="text-sm text-gray-500">Last Updated</div>
-                <div class="font-semibold">{{ package.updated_at[:10] if package.updated_at else package.created_at[:10] }}</div>
-            </div>
-        </div>
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="flex justify-center items-center gap-2 mt-8" data-aos="fade-up">
+        {% if page > 1 %}
+        <a href="{{ url_for('packages_page', page=page-1, q=query, sort=sort, scope=scope) }}" 
+           class="px-4 py-2 glass-card rounded-lg hover:bg-purple-600 hover:text-white transition-all">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% endif %}
+        
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <span class="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg">
+                {{ p }}
+            </span>
+            {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
+            <a href="{{ url_for('packages_page', page=p, q=query, sort=sort, scope=scope) }}" 
+               class="px-4 py-2 glass-card rounded-lg hover:bg-purple-600 hover:text-white transition-all">
+                {{ p }}
+            </a>
+            {% elif p == 4 and page > 5 %}
+            <span class="px-2">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page < total_pages %}
+        <a href="{{ url_for('packages_page', page=page+1, q=query, sort=sort, scope=scope) }}" 
+           class="px-4 py-2 glass-card rounded-lg hover:bg-purple-600 hover:text-white transition-all">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
     </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Aucun résultat -->
+    <div class="text-center py-12" data-aos="fade-up">
+        <div class="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-search text-3xl text-gray-400"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">No packages found</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">
+            {% if query %}
+                No results for "{{ query }}"
+            {% else %}
+                No packages available yet
+            {% endif %}
+        </p>
+        {% if query %}
+        <a href="{{ url_for('packages_page') }}" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-arrow-left mr-1"></i> Clear search
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
-<style>
-.tab-content {
-    transition: opacity 0.3s ease;
-}
-.tab-content.hidden {
-    display: none;
-}
-.tab-content.active {
-    display: block;
-}
-
-/* Markdown Styles */
-.markdown-body {
-    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
-    word-wrap: break-word;
-}
-
-.markdown-body h1 {
-    padding-bottom: 0.3em;
-    font-size: 2em;
-    border-bottom: 1px solid #eaecef;
-    margin-bottom: 16px;
-    font-weight: 600;
-    line-height: 1.25;
-}
-
-.markdown-body h2 {
-    padding-bottom: 0.3em;
-    font-size: 1.5em;
-    border-bottom: 1px solid #eaecef;
-    margin-top: 24px;
-    margin-bottom: 16px;
-    font-weight: 600;
-    line-height: 1.25;
-}
-
-.markdown-body h3 {
-    font-size: 1.25em;
-    margin-top: 24px;
-    margin-bottom: 16px;
-    font-weight: 600;
-    line-height: 1.25;
-}
-
-.markdown-body p {
-    margin-top: 0;
-    margin-bottom: 16px;
-}
-
-.markdown-body code {
-    padding: 0.2em 0.4em;
-    margin: 0;
-    font-size: 85%;
-    background-color: rgba(27,31,35,0.05);
-    border-radius: 3px;
-    font-family: "SF Mono",Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-}
-
-.markdown-body pre {
-    padding: 16px;
-    overflow: auto;
-    font-size: 85%;
-    line-height: 1.45;
-    background-color: #f6f8fa;
-    border-radius: 3px;
-    margin-top: 0;
-    margin-bottom: 16px;
-}
-
-@media (prefers-color-scheme: dark) {
-    .markdown-body {
-        color: #c9d1d9;
-    }
-    .markdown-body h1,
-    .markdown-body h2 {
-        border-bottom-color: #30363d;
-    }
-    .markdown-body code {
-        background-color: rgba(110,118,129,0.4);
-    }
-    .markdown-body pre {
-        background-color: #161b22;
-    }
-}
-</style>
-
 <script>
-function showTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.add('hidden');
-        tab.classList.remove('active');
+// ============================================================================
+// RECHERCHE EN TEMPS RÉEL (AJAX)
+// ============================================================================
+const searchInput = document.getElementById('searchInput');
+const suggestions = document.getElementById('suggestions');
+let searchTimeout;
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            suggestions.classList.add('hidden');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/v1/packages/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.results && data.results.length > 0) {
+                        showSuggestions(data.results);
+                    } else {
+                        suggestions.classList.add('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    suggestions.classList.add('hidden');
+                });
+        }, 300);
     });
     
-    // Remove active class from all buttons
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active', 'border-purple-600', 'text-purple-600');
-        btn.classList.add('border-transparent', 'text-gray-500');
-    });
-    
-    // Show selected tab
-    const selectedTab = document.getElementById(`tab-${tabName}`);
-    if (selectedTab) {
-        selectedTab.classList.remove('hidden');
-        selectedTab.classList.add('active');
-    }
-    
-    // Activate button
-    const selectedBtn = document.getElementById(`tab-${tabName}-btn`);
-    if (selectedBtn) {
-        selectedBtn.classList.add('active', 'border-purple-600', 'text-purple-600');
-        selectedBtn.classList.remove('border-transparent', 'text-gray-500');
-    }
-}
-
-function copyInstallCommand(cmd) {
-    navigator.clipboard.writeText(cmd).then(() => {
-        showNotification('Command copied to clipboard!', 'success');
-    }).catch(() => {
-        showNotification('Failed to copy command', 'error');
+    // Cacher les suggestions au clic ailleurs
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestions.contains(e.target)) {
+            suggestions.classList.add('hidden');
+        }
     });
 }
 
-function copyAPIToken() {
-    const token = localStorage.getItem('zarch_token');
-    if (token) {
-        navigator.clipboard.writeText(token).then(() => {
-            showNotification('API token copied to clipboard!', 'success');
-        });
-    } else {
-        showNotification('No API token found. Please login first.', 'error');
-    }
+function showSuggestions(results) {
+    suggestions.innerHTML = '';
+    results.forEach(result => {
+        const div = document.createElement('a');
+        div.href = result.url;
+        div.className = 'block px-4 py-2 hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0';
+        div.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="font-medium text-gray-900 dark:text-white">${result.name}</span>
+                    <span class="text-xs text-gray-500 ml-2">v${result.version}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">${result.downloads} downloads</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full ${result.scope === 'public' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
+                        ${result.scope}
+                    </span>
+                </div>
+            </div>
+        `;
+        suggestions.appendChild(div);
+    });
+    suggestions.classList.remove('hidden');
 }
 
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `fixed bottom-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg animate-slide-in ${
-        type === 'success' ? 'bg-green-500 text-white' :
-        type === 'error' ? 'bg-red-500 text-white' :
-        'bg-blue-500 text-white'
-    }`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Auto-show first tab on load
-document.addEventListener('DOMContentLoaded', () => {
-    showTab('readme');
+// Préserver les paramètres lors de la navigation
+document.querySelectorAll('.pagination a, .filter-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        const url = new URL(this.href);
+        const currentUrl = new URL(window.location);
+        
+        // Préserver la recherche
+        if (currentUrl.searchParams.has('q')) {
+            url.searchParams.set('q', currentUrl.searchParams.get('q'));
+        }
+        
+        // Préserver le tri
+        if (currentUrl.searchParams.has('sort')) {
+            url.searchParams.set('sort', currentUrl.searchParams.get('sort'));
+        }
+        
+        // Préserver le scope
+        if (currentUrl.searchParams.has('scope')) {
+            url.searchParams.set('scope', currentUrl.searchParams.get('scope'));
+        }
+        
+        window.location.href = url.toString();
+        e.preventDefault();
+    });
 });
 </script>
 {% endblock %}
