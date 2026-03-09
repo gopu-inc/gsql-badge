@@ -22,7 +22,7 @@ import logging
 import logging.handlers
 from datetime import datetime, timedelta
 from functools import wraps
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode, quote
 
 # Flask et extensions
 from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort
@@ -50,6 +50,7 @@ from pythonjsonlogger import jsonlogger
 # Variables d'environnement
 from dotenv import load_dotenv
 
+from datetime import datetime, timedelta
 # Markdown
 import markdown
 from markdown.extensions import extra, codehilite, toc, tables
@@ -86,6 +87,11 @@ class SecurityConfig:
     COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'False').lower() == 'true'
     COOKIE_SAMESITE = os.environ.get('COOKIE_SAMESITE', 'Lax')
 
+DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID', '1467542922139537469')
+DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
+DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', 'https://gsql-badge.onrender.com/auth/discord/callback')
+DISCORD_API_ENDPOINT = os.environ.get('DISCORD_API_ENDPOINT', 'https://discord.com/api/v10')
+DISCORD_SCOPE = 'identify email guilds'
 # ============================================================================
 # INITIALISATION FLASK
 # ============================================================================
@@ -138,6 +144,14 @@ app.logger.setLevel(logging.INFO)
 # ============================================================================
 # MODÈLES PYDANTIC (Validation des données)
 # ============================================================================
+def generate_pkce():
+    """Génère un code verifier et challenge PKCE"""
+    code_verifier = secrets.token_urlsafe(64)
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode()).digest()
+    ).decode().rstrip('=')
+    return code_verifier, code_challenge
+
 
 class UserLogin(BaseModel):
     username: str
@@ -718,7 +732,347 @@ def api_v52_register():
         
     except ValidationError as e:
         return jsonify({'error': str(e)}), 400
+=============================================
+# ROUTES DISCORD OAUTH2
+# ============================================================================
 
+@app.route('/auth/discord')
+def auth_discord():
+    """Redirige vers Discord pour l'authentification"""
+    # Générer PKCE pour sécurité
+    code_verifier, code_challenge = generate_pkce()
+    
+    # Stocker le verifier en session pour vérification later
+    session['discord_code_verifier'] = code_verifier
+    session['discord_state'] = secrets.token_urlsafe(16)
+    
+    # Paramètres OAuth2
+    params = {
+        'client_id': DISCORD_CLIENT_ID,
+        'redirect_uri': DISCORD_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': DISCORD_SCOPE,
+        'state': session['discord_state'],
+        'code_challenge': code_challenge,
+        'code_challenge_method': 'S256',
+        'prompt': 'consent'  # Force la demande de consentement
+    }
+    
+    auth_url = f"{DISCORD_API_ENDPOINT}/oauth2/authorize?{urlencode(params)}"
+    return redirect(auth_url)
+
+@app.route('/auth/discord/callback')
+def auth_discord_callback():
+    """Callback après authentification Discord"""
+    # Vérifier les paramètres
+    code = request.args.get('code')
+    state = request.args.get('state')
+    error = request.args.get('error')
+    
+    if error:
+        app.logger.error(f"Discord auth error: {error}")
+        flash(f'Discord authentication failed: {error}', 'error')
+        return redirect('/login')
+    
+    # Vérifier l'état pour prévenir CSRF
+    if not state or state != session.get('discord_state'):
+        app.logger.error("Invalid state parameter")
+        flash('Invalid authentication state', 'error')
+        return redirect('/login')
+    
+    if not code:
+        app.logger.error("No code received")
+        flash('No authorization code received', 'error')
+        return redirect('/login')
+    
+    # Récupérer le code verifier
+    code_verifier = session.get('discord_code_verifier')
+    if not code_verifier:
+        app.logger.error("No code verifier found")
+        flash('Invalid session', 'error')
+        return redirect('/login')
+    
+    try:
+        # Échanger le code contre un token
+        token_data = {
+            'client_id': DISCORD_CLIENT_ID,
+            'client_secret': DISCORD_CLIENT_SECRET,
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': DISCORD_REDIRECT_URI,
+            'code_verifier': code_verifier
+        }
+        
+        token_response = requests.post(
+            f"{DISCORD_API_ENDPOINT}/oauth2/token",
+            data=token_data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+        )
+        
+        if token_response.status_code != 200:
+            app.logger.error(f"Token exchange failed: {token_response.text}")
+            flash('Failed to get access token', 'error')
+            return redirect('/login')
+        
+        tokens = token_response.json()
+        access_token = tokens.get('access_token')
+        refresh_token = tokens.get('refresh_token')
+        expires_in = tokens.get('expires_in', 604800)
+        
+        # Récupérer les informations de l'utilisateur Discord
+        user_response = requests.get(
+            f"{DISCORD_API_ENDPOINT}/users/@me",
+            headers={'Authorization': f'Bearer {access_token}'}
+        )
+        
+        if user_response.status_code != 200:
+            app.logger.error(f"Failed to get user info: {user_response.text}")
+            flash('Failed to get user information', 'error')
+            return redirect('/login')
+        
+        discord_user = user_response.json()
+        
+        # Récupérer l'email (nécessite scope email)
+        email = discord_user.get('email')
+        
+        # Vérifier si l'utilisateur existe déjà dans notre DB
+        db = GitHubManager.read_from_github('database/users.json', {'users': []})
+        
+        # Chercher l'utilisateur par Discord ID
+        existing_user = None
+        for u in db.get('users', []):
+            if u.get('discord_id') == discord_user['id']:
+                existing_user = u
+                break
+            elif u.get('email') == email and email:
+                # Lier le compte Discord à l'utilisateur existant
+                u['discord_id'] = discord_user['id']
+                u['discord_avatar'] = f"https://cdn.discordapp.com/avatars/{discord_user['id']}/{discord_user['avatar']}.png" if discord_user.get('avatar') else None
+                u['discord_username'] = discord_user['username']
+                existing_user = u
+                break
+        
+        if existing_user:
+            # Mettre à jour les informations
+            existing_user['last_login'] = datetime.now().isoformat()
+            existing_user['discord_token'] = access_token
+            existing_user['discord_refresh_token'] = refresh_token
+            existing_user['discord_token_expires'] = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
+            
+            user = existing_user
+            message = f"Welcome back, {user['username']}!"
+        else:
+            # Créer un nouvel utilisateur
+            new_user = {
+                'id': str(uuid.uuid4()),
+                'username': discord_user['username'],
+                'email': email,
+                'discord_id': discord_user['id'],
+                'discord_username': discord_user['username'],
+                'discord_avatar': f"https://cdn.discordapp.com/avatars/{discord_user['id']}/{discord_user['avatar']}.png" if discord_user.get('avatar') else None,
+                'discord_token': access_token,
+                'discord_refresh_token': refresh_token,
+                'discord_token_expires': (datetime.now() + timedelta(seconds=expires_in)).isoformat(),
+                'role': 'user',
+                'created_at': datetime.now().isoformat(),
+                'last_login': datetime.now().isoformat(),
+                'provider': 'discord'
+            }
+            
+            db['users'].append(new_user)
+            user = new_user
+            message = f"Welcome to Zarch Hub, {user['username']}!"
+        
+        # Sauvegarder dans GitHub
+        GitHubManager.save_to_github('database/users.json', db, f"Discord login: {user['username']}")
+        
+        # Générer notre token JWT
+        jwt_token = SecurityUtils.generate_token(user['username'], user.get('role', 'user'))
+        
+        # Créer la session
+        session['user'] = user
+        session['token'] = jwt_token
+        session.permanent = True
+        
+        # Nettoyer la session Discord
+        session.pop('discord_state', None)
+        session.pop('discord_code_verifier', None)
+        
+        # Créer la réponse avec cookie sécurisé
+        response = make_response(redirect('/dashboard'))
+        CookieManager.set_secure_cookie(response, 'zarch_token', jwt_token, SecurityConfig.TOKEN_EXPIRY)
+        
+        flash(message, 'success')
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"Discord callback error: {e}")
+        flash('An error occurred during Discord authentication', 'error')
+        return redirect('/login')
+
+@app.route('/auth/discord/refresh')
+@token_required
+def auth_discord_refresh():
+    """Rafraîchir le token Discord"""
+    user = g.user
+    if not user.get('discord_refresh_token'):
+        return jsonify({'error': 'No refresh token'}), 400
+    
+    try:
+        refresh_data = {
+            'client_id': DISCORD_CLIENT_ID,
+            'client_secret': DISCORD_CLIENT_SECRET,
+            'grant_type': 'refresh_token',
+            'refresh_token': user['discord_refresh_token']
+        }
+        
+        response = requests.post(
+            f"{DISCORD_API_ENDPOINT}/oauth2/token",
+            data=refresh_data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+        )
+        
+        if response.status_code == 200:
+            tokens = response.json()
+            
+            # Mettre à jour l'utilisateur
+            db = GitHubManager.read_from_github('database/users.json', {'users': []})
+            for u in db['users']:
+                if u.get('discord_id') == user.get('discord_id'):
+                    u['discord_token'] = tokens['access_token']
+                    if 'refresh_token' in tokens:
+                        u['discord_refresh_token'] = tokens['refresh_token']
+                    u['discord_token_expires'] = (datetime.now() + timedelta(seconds=tokens['expires_in'])).isoformat()
+                    break
+            
+            GitHubManager.save_to_github('database/users.json', db, f"Token refresh: {user['username']}")
+            
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Failed to refresh token'}), 400
+            
+    except Exception as e:
+        app.logger.error(f"Token refresh error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/auth/discord/revoke')
+@token_required
+def auth_discord_revoke():
+    """Révoquer l'accès Discord"""
+    user = g.user
+    if not user.get('discord_token'):
+        return jsonify({'error': 'No Discord token'}), 400
+    
+    try:
+        # Révoquer le token
+        requests.post(
+            f"{DISCORD_API_ENDPOINT}/oauth2/token/revoke",
+            data={
+                'client_id': DISCORD_CLIENT_ID,
+                'client_secret': DISCORD_CLIENT_SECRET,
+                'token': user['discord_token']
+            },
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+        )
+        
+        # Supprimer les infos Discord de l'utilisateur
+        db = GitHubManager.read_from_github('database/users.json', {'users': []})
+        for u in db['users']:
+            if u.get('discord_id') == user.get('discord_id'):
+                u.pop('discord_token', None)
+                u.pop('discord_refresh_token', None)
+                u.pop('discord_token_expires', None)
+                break
+        
+        GitHubManager.save_to_github('database/users.json', db, f"Token revoke: {user['username']}")
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Token revoke error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# API ENDPOINTS POUR DISCORD
+# ============================================================================
+
+@app.route('/api/v1/user/discord')
+@token_required
+def api_user_discord():
+    """Récupérer les infos Discord de l'utilisateur"""
+    user = g.user
+    if not user.get('discord_id'):
+        return jsonify({'connected': False})
+    
+    # Vérifier si le token est expiré
+    token_expires = user.get('discord_token_expires')
+    if token_expires:
+        expires = datetime.fromisoformat(token_expires)
+        if datetime.now() > expires:
+            return jsonify({
+                'connected': True,
+                'expired': True,
+                'user': {
+                    'id': user['discord_id'],
+                    'username': user.get('discord_username'),
+                    'avatar': user.get('discord_avatar')
+                }
+            })
+    
+    return jsonify({
+        'connected': True,
+        'expired': False,
+        'user': {
+            'id': user['discord_id'],
+            'username': user.get('discord_username'),
+            'avatar': user.get('discord_avatar')
+        }
+    })
+
+# ============================================================================
+# MISE À JOUR DU TEMPLATE LOGIN.HTML
+# ============================================================================
+
+# Ajouter ce bloc dans la section des boutons sociaux
+"""
+<div class="grid grid-cols-3 gap-3">
+    <a href="{{ url_for('auth_discord') }}" 
+       class="social-btn discord flex items-center justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all duration-300 transform hover:scale-105 group">
+        <i class="fab fa-discord text-2xl text-indigo-600 group-hover:text-indigo-700 transition-colors"></i>
+    </a>
+    <!-- Autres boutons sociaux -->
+</div>
+"""
+
+# ============================================================================
+# GESTION DES ERREURS DISCORD
+# ============================================================================
+
+@app.errorhandler(401)
+def unauthorized_error(e):
+    """Gérer les erreurs 401"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'error': 'Unauthorized'}), 401
+    flash('Please login to continue', 'info')
+    return redirect('/login')
+
+# ============================================================================
+# MIDDLEWARE DE VÉRIFICATION DES TOKENS DISCORD
+# ============================================================================
+
+@app.before_request
+def check_discord_tokens():
+    """Vérifie l'expiration des tokens Discord"""
+    if session.get('user') and session['user'].get('discord_token_expires'):
+        expires = datetime.fromisoformat(session['user']['discord_token_expires'])
+        if datetime.now() > expires:
+            # Token expiré, essayer de rafraîchir en arrière-plan
+            try:
+                # Rafraîchissement asynchrone (simplifié)
+                app.logger.info(f"Discord token expired for {session['user']['username']}")
+                # Laisser le refresh endpoint gérer ça
+            except Exception as e:
+                app.logger.error(f"Token refresh failed: {e}")
 @app.route('/v5.2/package/upload/<scope>/<name>', methods=['POST'])
 @token_required
 @rate_limit()
