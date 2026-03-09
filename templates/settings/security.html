@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Security Settings - {{ user.username }} | Zarch Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <!-- En-tête -->
+    <div class="flex items-center gap-4 mb-8">
+        <a href="/settings" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Security Settings
+        </h1>
+    </div>
+
+    <div class="space-y-6">
+        <!-- Changement de mot de passe -->
+        <div class="glass-card rounded-2xl p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-key text-purple-600 mr-2"></i>
+                Change Password
+            </h2>
+            
+            <form id="passwordForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Current Password</label>
+                    <input type="password" id="current_password" 
+                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
+                           placeholder="Enter current password">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">New Password</label>
+                    <input type="password" id="new_password" 
+                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
+                           placeholder="Enter new password">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Confirm New Password</label>
+                    <input type="password" id="confirm_password" 
+                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
+                           placeholder="Confirm new password">
+                </div>
+                
+                <button type="submit" 
+                        class="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all">
+                    Update Password
+                </button>
+            </form>
+        </div>
+
+        <!-- Two-Factor Authentication -->
+        <div class="glass-card rounded-2xl p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-mobile-alt text-green-600 mr-2"></i>
+                Two-Factor Authentication
+            </h2>
+            
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+                Add an extra layer of security to your account by enabling two-factor authentication.
+            </p>
+            
+            <button class="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all opacity-50 cursor-not-allowed" disabled>
+                <i class="fas fa-clock mr-2"></i>Coming Soon
+            </button>
+        </div>
+
+        <!-- Sessions actives -->
+        <div class="glass-card rounded-2xl p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-laptop text-blue-600 mr-2"></i>
+                Active Sessions
+            </h2>
+            
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-globe text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">Current Session</p>
+                            <p class="text-xs text-gray-500">IP: {{ request.remote_addr }} • Last active: now</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-medium">Active</span>
+                </div>
+            </div>
+            
+            <button class="mt-4 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout All Other Sessions
+            </button>
+        </div>
+
+        <!-- Journal de connexion -->
+        <div class="glass-card rounded-2xl p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-history text-purple-600 mr-2"></i>
+                Login History
+            </h2>
+            
+            <p class="text-gray-500 text-center py-4">
+                <i class="fas fa-clock mr-2"></i>
+                Coming soon
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const current = document.getElementById('current_password').value;
+    const newPass = document.getElementById('new_password').value;
+    const confirm = document.getElementById('confirm_password').value;
+    
+    if (!current || !newPass || !confirm) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    if (newPass !== confirm) {
+        alert('New passwords do not match');
+        return;
+    }
+    
+    if (newPass.length < 8) {
+        alert('Password must be at least 8 characters');
+        return;
+    }
+    
+    alert('Password change coming soon!');
+});
+</script>
+{% endblock %}
