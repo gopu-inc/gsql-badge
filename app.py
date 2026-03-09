@@ -1518,118 +1518,230 @@ def upload_page():
     return render_template('upload.html', user=user)
 
 @app.route('/dashboard')
+@token_required
 def dashboard_page():
-    """Dashboard utilisateur avec statistiques réelles"""
-    # Vérifier la session d'abord
-    user = session.get('user')
-    
-    # Si pas dans la session, essayer le cookie
-    if not user:
-        token = CookieManager.get_secure_cookie(request, 'zarch_token')
-        if token:
-            # Valider le token
-            user_data = SecurityUtils.validate_token(token)
-            if user_data:
-                session['user'] = user_data
-                user = user_data
-                app.logger.info(f"User {user_data.get('username')} restored from cookie")
-    
-    if not user:
-        flash('Please login to access the dashboard', 'info')
-        return redirect('/login')
+    """Dashboard utilisateur avec toutes les fonctionnalités"""
+    user = g.user
+    username = user['username']
     
     try:
-        username = user.get('username')
-        app.logger.info(f"Loading dashboard for user: {username}")
+        # =====================================================================
+        # 1. CHARGEMENT DES DONNÉES UTILISATEUR
+        # =====================================================================
+        # Récupérer la base de données des utilisateurs
+        users_db = GitHubManager.read_from_github('database/users.json', {'users': []})
+        current_user = next((u for u in users_db.get('users', []) if u['username'] == username), user)
         
-        # Récupérer la base de données des packages
-        db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        # =====================================================================
+        # 2. CHARGEMENT DES PACKAGES DE L'UTILISATEUR
+        # =====================================================================
+        packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        all_packages = packages_db.get('packages', [])
         
-        if not isinstance(db, dict):
-            db = {'packages': []}
-            app.logger.warning("Invalid database format, using empty dict")
+        # Packages de l'utilisateur
+        user_packages = [p for p in all_packages if p.get('author') == username]
         
-        # Filtrer les packages de l'utilisateur
-        user_packages = [p for p in db.get('packages', []) if p.get('author') == username]
-        app.logger.info(f"Found {len(user_packages)} packages for user {username}")
-        
-        # Calculer les statistiques
+        # Statistiques
         total_packages = len(user_packages)
         total_downloads = sum(p.get('downloads', 0) for p in user_packages)
         
-        # Date d'inscription
-        if user.get('created_at'):
-            member_since = user['created_at'][:10]  # Prendre juste la date
-        else:
-            member_since = '2026-03-09'  # Date par défaut
+        # =====================================================================
+        # 3. CHARGEMENT DES BADGES PERSONNALISÉS
+        # =====================================================================
+        badges = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
+        badges_count = len(badges)
         
+        # =====================================================================
+        # 4. CHARGEMENT DES REVIEWS
+        # =====================================================================
+        reviews_count = 0
+        recent_reviews = []
+        
+        for package in user_packages:
+            package_reviews = GitHubManager.read_from_github(f'reviews/{package["name"]}.json', {'reviews': []})
+            reviews_count += len(package_reviews.get('reviews', []))
+            
+            # Ajouter les 3 dernières reviews
+            for review in package_reviews.get('reviews', [])[:3]:
+                recent_reviews.append({
+                    'author': review.get('username'),
+                    'package': package['name'],
+                    'rating': review.get('rating'),
+                    'comment': review.get('comment'),
+                    'time': review.get('created_at', '')[:10]
+                })
+        
+        # Trier par date et limiter
+        recent_reviews = sorted(recent_reviews, key=lambda x: x['time'], reverse=True)[:5]
+        
+        # =====================================================================
+        # 5. CHARGEMENT DE L'ACTIVITÉ RÉCENTE
+        # =====================================================================
+        recent_activity = []
+        
+        # Activité des packages récents
+        for pkg in sorted(user_packages, key=lambda x: x.get('created_at', ''), reverse=True)[:3]:
+            recent_activity.append({
+                'icon': 'upload',
+                'color': 'purple',
+                'message': f'Published <span class="font-medium">{pkg["name"]} v{pkg["version"]}</span>',
+                'time': pkg.get('created_at', '')[:10]
+            })
+        
+        # Activité des téléchargements (simulée)
+        if total_downloads > 0:
+            recent_activity.append({
+                'icon': 'download',
+                'color': 'green',
+                'message': f'Reached <span class="font-medium">{total_downloads}</span> total downloads',
+                'time': 'Today'
+            })
+        
+        # Activité des badges
+        if badges_count > 0:
+            recent_activity.append({
+                'icon': 'award',
+                'color': 'yellow',
+                'message': f'Created <span class="font-medium">{badges_count}</span> custom badges',
+                'time': 'Recently'
+            })
+        
+        # =====================================================================
+        # 6. DONNÉES COMMUNAUTAIRES
+        # =====================================================================
+        # Top contributeurs
+        author_stats = {}
+        for pkg in all_packages:
+            author = pkg.get('author')
+            if author:
+                if author not in author_stats:
+                    author_stats[author] = 0
+                author_stats[author] += 1
+        
+        top_contributors = []
+        for author, count in sorted(author_stats.items(), key=lambda x: x[1], reverse=True)[:5]:
+            top_contributors.append({
+                'username': author,
+                'packages': count
+            })
+        
+        # Statistiques communautaires
+        online_members = len(set(p.get('author') for p in all_packages))  # Simulé
+        new_packages_today = len([p for p in all_packages if p.get('created_at', '').startswith(datetime.now().strftime('%Y-%m-%d'))])
+        active_discussions = 8  # Simulé
+        new_badges_today = 3  # Simulé
+        
+        # Notifications communautaires
+        community_notifications = [
+            {
+                'icon': 'users',
+                'color': 'blue',
+                'message': f'<span class="font-medium">{online_members}</span> contributors active',
+                'time': 'Now'
+            },
+            {
+                'icon': 'box',
+                'color': 'purple',
+                'message': f'<span class="font-medium">{new_packages_today}</span> new packages today',
+                'time': 'Today'
+            },
+            {
+                'icon': 'comments',
+                'color': 'green',
+                'message': 'New discussion in #general',
+                'time': '2h ago'
+            }
+        ]
+        
+        # =====================================================================
+        # 7. DONNÉES POUR LES GRAPHIQUES
+        # =====================================================================
+        # Simuler des données de téléchargements pour les 30 derniers jours
+        import random
+        from datetime import timedelta
+        
+        chart_labels = []
+        chart_data = []
+        
+        for i in range(30, 0, -1):
+            date = (datetime.now() - timedelta(days=i)).strftime('%d/%m')
+            chart_labels.append(date)
+            chart_data.append(random.randint(0, 20))  # Simulé
+        
+        popular_labels = [p['name'] for p in user_packages[:3]] if user_packages else ['apkm', 'bool', 'apsm']
+        popular_data = [p.get('downloads', 0) for p in user_packages[:3]] if user_packages else [42, 15, 7]
+        
+        # =====================================================================
+        # 8. STATISTIQUES PACKAGÉES
+        # =====================================================================
         stats = {
             'packages': total_packages,
             'downloads': total_downloads,
-            'member_since': member_since
+            'member_since': user.get('created_at', '2026')[:10]
         }
         
-        # Données pour les graphiques (exemple - à remplacer par des vraies données)
-        chart_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+        # =====================================================================
+        # 9. VÉRIFICATION ADMIN
+        # =====================================================================
+        is_admin = username in ['admin', 'gopu-inc', 'mauricio', 'mauricio_tukss1231', 'Mauricio-100']
         
-        # Générer des données de téléchargements par mois (simulées)
-        if total_packages > 0:
-            # Distribution proportionnelle
-            chart_data = [
-                int(total_downloads * 0.1),  # Jan
-                int(total_downloads * 0.15), # Feb
-                int(total_downloads * 0.2),  # Mar
-                int(total_downloads * 0.25), # Apr
-                int(total_downloads * 0.2),  # May
-                int(total_downloads * 0.1)   # Jun
-            ]
-        else:
-            chart_data = [0, 0, 0, 0, 0, 0]
-        
-        # Packages populaires
-        popular_packages = sorted(user_packages, key=lambda x: x.get('downloads', 0), reverse=True)[:3]
-        popular_labels = [p.get('name', 'unknown') for p in popular_packages]
-        popular_data = [p.get('downloads', 0) for p in popular_packages]
-        
-        # Compléter si moins de 3 packages
-        while len(popular_labels) < 3:
-            popular_labels.append('other')
-            popular_data.append(0)
-        
-        # Vérifier si l'utilisateur est admin
-        is_admin = username in ['admin', 'gopu-inc', 'mauricio', 'Mauricio-100']
-        
-        app.logger.info(f"Dashboard data prepared: packages={total_packages}, downloads={total_downloads}")
-        
+        # =====================================================================
+        # 10. RENDU DU TEMPLATE AVEC TOUTES LES DONNÉES
+        # =====================================================================
         return render_template('dashboard.html',
-                             user=user,
+                             user=current_user,
                              user_packages=user_packages,
                              stats=stats,
                              chart_labels=chart_labels,
                              chart_data=chart_data,
                              popular_labels=popular_labels,
                              popular_data=popular_data,
+                             badges=badges,
+                             badges_count=badges_count,
+                             recent_reviews=recent_reviews,
+                             reviews_count=reviews_count,
+                             recent_activity=recent_activity,
+                             top_contributors=top_contributors,
+                             online_members=online_members,
+                             new_packages=new_packages_today,
+                             active_discussions=active_discussions,
+                             new_badges=new_badges_today,
+                             community_notifications=community_notifications,
                              is_admin=is_admin,
                              now=datetime.now())
     
     except Exception as e:
-        app.logger.error(f"Dashboard error: {e}")
+        app.logger.error(f"Dashboard error: {str(e)}")
         import traceback
         traceback.print_exc()
         
         # Données par défaut en cas d'erreur
-        stats = {'packages': 0, 'downloads': 0, 'member_since': '2026-03-09'}
-        flash('Error loading dashboard data', 'error')
+        default_stats = {
+            'packages': 0,
+            'downloads': 0,
+            'member_since': user.get('created_at', '2026')[:10]
+        }
         
         return render_template('dashboard.html',
                              user=user,
                              user_packages=[],
-                             stats=stats,
+                             stats=default_stats,
                              chart_labels=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                              chart_data=[0, 0, 0, 0, 0, 0],
-                             popular_labels=['apkm', 'other', 'test'],
+                             popular_labels=['apkm', 'bool', 'apsm'],
                              popular_data=[0, 0, 0],
-                             is_admin=False,
+                             badges={},
+                             badges_count=0,
+                             recent_reviews=[],
+                             reviews_count=0,
+                             recent_activity=[],
+                             top_contributors=[],
+                             online_members=0,
+                             new_packages=0,
+                             active_discussions=0,
+                             new_badges=0,
+                             community_notifications=[],
+                             is_admin=(username in ['admin', 'gopu-inc', 'mauricio']),
                              now=datetime.now())
 @app.route('/login')
 def login_page():
