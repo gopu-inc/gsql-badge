@@ -1,395 +1,332 @@
 {% extends "base.html" %}
 
 {% block og_title %}Register - Zarch Hub{% endblock %}
-{% block og_description %}Create a Zarch Hub account to publish and share your packages with the community{% endblock %}
+{% block og_description %}Create your Zarch Hub account to publish and share packages with the community{% endblock %}
 
 {% block title %}Register - Zarch Hub{% endblock %}
 
 {% block content %}
 <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-    <div class="glass-card rounded-3xl p-8 md:p-12 max-w-md w-full" data-aos="fade-up">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-4 animate-float">
-                <i class="fas fa-cubes text-white text-3xl"></i>
+    <!-- Carte d'inscription principale -->
+    <div class="glass-card rounded-3xl p-8 md:p-12 max-w-2xl w-full relative overflow-hidden" data-aos="fade-up">
+        <!-- Éléments décoratifs animés -->
+        <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-purple-600/10 to-pink-600/10 rounded-full blur-3xl -mr-24 -mt-24 animate-pulse"></div>
+        <div class="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-600/10 to-cyan-600/10 rounded-full blur-3xl -ml-24 -mb-24 animate-pulse animation-delay-2000"></div>
+        
+        <!-- Header avec progression -->
+        <div class="text-center mb-8 relative">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-4 transform hover:scale-110 transition-transform duration-300 shadow-lg animate-float">
+                <i class="fas fa-user-plus text-white text-3xl"></i>
             </div>
             <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                Join Zarch Hub
+                Create Account
             </h1>
             <p class="text-gray-600 dark:text-gray-400">
-                Create your account and start sharing packages
+                Join the Zarch Hub community and start sharing packages
             </p>
         </div>
 
-        <!-- Error Message -->
-        <div class="error-message hidden" id="errorMessage">
-            <i class="fas fa-exclamation-circle text-red-500"></i>
-            <span class="text-red-700 dark:text-red-300" id="errorText">Registration failed</span>
+        <!-- Barre de progression -->
+        <div class="mb-8">
+            <div class="flex justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Account completion</span>
+                <span class="text-sm font-medium text-purple-600" id="completionPercentage">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div class="bg-gradient-to-r from-purple-600 to-pink-600 h-2.5 rounded-full transition-all duration-500" id="progressBar" style="width: 0%"></div>
+            </div>
         </div>
 
-        <!-- Success Message -->
-        <div class="success-message hidden" id="successMessage">
-            <i class="fas fa-check-circle text-green-500"></i>
-            <span class="text-green-700 dark:text-green-300" id="successText">Account created! Redirecting...</span>
+        <!-- Messages d'alerte -->
+        <div id="errorMessage" class="mb-6 hidden animate-slide-in">
+            <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4 flex items-start">
+                <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+                <div class="flex-1">
+                    <p class="text-red-700 dark:text-red-300 font-medium" id="errorText">Registration failed</p>
+                    <p class="text-red-600 dark:text-red-400 text-sm mt-1" id="errorDetail"></p>
+                </div>
+                <button onclick="closeMessage('errorMessage')" class="text-red-500 hover:text-red-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Registration Form -->
+        <div id="successMessage" class="mb-6 hidden animate-slide-in">
+            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded-lg p-4 flex items-start">
+                <i class="fas fa-check-circle text-green-500 mt-0.5 mr-3"></i>
+                <div class="flex-1">
+                    <p class="text-green-700 dark:text-green-300 font-medium" id="successText">Account created successfully!</p>
+                    <p class="text-green-600 dark:text-green-400 text-sm mt-1">Redirecting to dashboard...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire d'inscription -->
         <form id="registerForm" class="space-y-6">
-            <!-- Username Field -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-user mr-2 text-purple-600"></i>Username
-                </label>
-                <div class="relative">
-                    <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" 
-                           id="username"
-                           name="username"
-                           placeholder="Choose a username"
-                           class="input-field pl-10"
-                           required
-                           autocomplete="username"
-                           minlength="3"
-                           maxlength="30"
-                           pattern="[a-zA-Z0-9_]+">
+            <!-- Row: Username et Email -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Champ Username -->
+                <div class="group">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-all group-focus-within:text-purple-600">
+                        <i class="fas fa-user mr-2 text-purple-600"></i>Username
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
+                        </div>
+                        <input type="text" 
+                               id="username"
+                               name="username"
+                               placeholder="Choose a username"
+                               class="input-field pl-10 pr-10 py-3 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                               required
+                               minlength="3"
+                               maxlength="30"
+                               pattern="[a-zA-Z0-9_]+"
+                               autocomplete="username">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <i class="fas fa-check-circle text-green-500 hidden" id="usernameValid"></i>
+                            <i class="fas fa-times-circle text-red-500 hidden" id="usernameInvalid"></i>
+                            <i class="fas fa-spinner fa-spin text-gray-400 hidden" id="usernameSpinner"></i>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <p class="text-xs text-gray-500" id="usernameHint">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            3-30 characters, letters, numbers, underscores
+                        </p>
+                        <span class="text-xs font-medium" id="usernameCount">0/30</span>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    3-30 characters, letters, numbers, underscores only
-                </p>
+
+                <!-- Champ Email -->
+                <div class="group">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-all group-focus-within:text-purple-600">
+                        <i class="fas fa-envelope mr-2 text-purple-600"></i>Email
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
+                        </div>
+                        <input type="email" 
+                               id="email"
+                               name="email"
+                               placeholder="your@email.com"
+                               class="input-field pl-10 pr-10 py-3 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                               required
+                               autocomplete="email">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <i class="fas fa-check-circle text-green-500 hidden" id="emailValid"></i>
+                            <i class="fas fa-times-circle text-red-500 hidden" id="emailInvalid"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1" id="emailHint">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Enter a valid email address
+                    </p>
+                </div>
             </div>
 
-            <!-- Email Field -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-envelope mr-2 text-purple-600"></i>Email
-                </label>
-                <div class="relative">
-                    <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                    <input type="email" 
-                           id="email"
-                           name="email"
-                           placeholder="Enter your email"
-                           class="input-field pl-10"
-                           required
-                           autocomplete="email">
-                </div>
-            </div>
-
-            <!-- Password Field -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <!-- Champ Password -->
+            <div class="group">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-all group-focus-within:text-purple-600">
                     <i class="fas fa-lock mr-2 text-purple-600"></i>Password
                 </label>
                 <div class="relative">
-                    <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
+                    </div>
                     <input type="password" 
                            id="password"
                            name="password"
-                           placeholder="Create a password"
-                           class="input-field pl-10 pr-12"
+                           placeholder="Create a strong password"
+                           class="input-field pl-10 pr-12 py-3 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                            required
                            autocomplete="new-password">
-                    <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                    <button type="button" 
+                            onclick="togglePasswordVisibility('password', 'togglePasswordIcon')"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-purple-600 transition-colors focus:outline-none">
+                        <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                    </button>
                 </div>
                 
-                <!-- Password strength indicator -->
-                <div class="strength-bar-container mt-2">
-                    <div class="strength-bar" id="strengthBar"></div>
+                <!-- Force du mot de passe -->
+                <div class="mt-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Password strength</span>
+                        <span class="text-xs font-medium" id="strengthText">Too weak</span>
+                    </div>
+                    <div class="flex gap-1 h-1.5">
+                        <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-red-500 transition-all duration-300" id="strength1" style="width: 0%"></div>
+                        </div>
+                        <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-orange-500 transition-all duration-300" id="strength2" style="width: 0%"></div>
+                        </div>
+                        <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-yellow-500 transition-all duration-300" id="strength3" style="width: 0%"></div>
+                        </div>
+                        <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-500 transition-all duration-300" id="strength4" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
-                
-                <!-- Password requirements -->
-                <div class="mt-3 space-y-1 text-sm">
-                    <div class="requirement" id="reqLength">
-                        <i class="fas fa-circle text-xs mr-2"></i>
-                        <span>At least 8 characters</span>
+
+                <!-- Exigences du mot de passe -->
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <div class="requirement text-xs" id="reqLength">
+                        <i class="fas fa-circle mr-1 text-gray-400"></i>
+                        <span>8+ characters</span>
                     </div>
-                    <div class="requirement" id="reqLower">
-                        <i class="fas fa-circle text-xs mr-2"></i>
-                        <span>At least one lowercase letter</span>
+                    <div class="requirement text-xs" id="reqLower">
+                        <i class="fas fa-circle mr-1 text-gray-400"></i>
+                        <span>Lowercase letter</span>
                     </div>
-                    <div class="requirement" id="reqUpper">
-                        <i class="fas fa-circle text-xs mr-2"></i>
-                        <span>At least one uppercase letter</span>
+                    <div class="requirement text-xs" id="reqUpper">
+                        <i class="fas fa-circle mr-1 text-gray-400"></i>
+                        <span>Uppercase letter</span>
                     </div>
-                    <div class="requirement" id="reqNumber">
-                        <i class="fas fa-circle text-xs mr-2"></i>
-                        <span>At least one number</span>
+                    <div class="requirement text-xs" id="reqNumber">
+                        <i class="fas fa-circle mr-1 text-gray-400"></i>
+                        <span>Number</span>
                     </div>
-                    <div class="requirement" id="reqSpecial">
-                        <i class="fas fa-circle text-xs mr-2"></i>
-                        <span>At least one special character (!@#$%^&*)</span>
+                    <div class="requirement text-xs" id="reqSpecial">
+                        <i class="fas fa-circle mr-1 text-gray-400"></i>
+                        <span>Special character</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Confirm Password Field -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <!-- Champ Confirm Password -->
+            <div class="group">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-all group-focus-within:text-purple-600">
                     <i class="fas fa-lock mr-2 text-purple-600"></i>Confirm Password
                 </label>
                 <div class="relative">
-                    <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
+                    </div>
                     <input type="password" 
                            id="confirmPassword"
                            name="confirm_password"
                            placeholder="Confirm your password"
-                           class="input-field pl-10 pr-12"
+                           class="input-field pl-10 pr-12 py-3 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                            required
                            autocomplete="new-password">
-                    <i class="fas fa-check-circle absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 hidden" id="confirmSuccess"></i>
-                    <i class="fas fa-times-circle absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 hidden" id="confirmError"></i>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <i class="fas fa-check-circle text-green-500 hidden" id="confirmValid"></i>
+                        <i class="fas fa-times-circle text-red-500 hidden" id="confirmInvalid"></i>
+                    </div>
                 </div>
-                <p class="text-xs mt-1" id="confirmMessage"></p>
+                <p class="text-xs text-gray-500 mt-1" id="confirmHint">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Passwords must match
+                </p>
             </div>
 
-            <!-- Terms and Conditions -->
-            <div>
-                <label class="checkbox-container">
-                    <input type="checkbox" name="terms" id="terms" required class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+            <!-- Options supplémentaires -->
+            <div class="space-y-3">
+                <!-- Newsletter -->
+                <label class="flex items-center space-x-3 cursor-pointer group">
+                    <input type="checkbox" 
+                           id="newsletter"
+                           class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2 transition-all cursor-pointer">
+                    <span class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-purple-600 transition-colors">
+                        <i class="far fa-newspaper mr-1"></i>
+                        Subscribe to newsletter for updates and new packages
+                    </span>
+                </label>
+
+                <!-- Terms and Conditions -->
+                <label class="flex items-start space-x-3 cursor-pointer group">
+                    <input type="checkbox" 
+                           id="terms"
+                           class="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2 transition-all cursor-pointer mt-0.5"
+                           required>
+                    <span class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-purple-600 transition-colors">
+                        <i class="fas fa-file-contract mr-1"></i>
                         I agree to the 
-                        <a href="/terms" class="text-purple-600 hover:text-purple-700">Terms of Service</a>
+                        <a href="/terms" class="text-purple-600 hover:text-purple-700 hover:underline" target="_blank">Terms of Service</a>
                         and 
-                        <a href="/privacy" class="text-purple-600 hover:text-purple-700">Privacy Policy</a>
+                        <a href="/privacy" class="text-purple-600 hover:text-purple-700 hover:underline" target="_blank">Privacy Policy</a>
                     </span>
                 </label>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Bouton d'inscription -->
             <button type="submit" 
-                    class="btn-primary w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center space-x-2"
+                    class="btn-primary w-full py-4 px-6 rounded-xl text-white font-semibold flex items-center justify-center space-x-3 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     id="submitBtn"
                     disabled>
-                <span class="btn-text">Create Account</span>
+                <span class="btn-text flex items-center">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Create Account
+                </span>
                 <span class="btn-loader hidden">
-                    <i class="fas fa-spinner fa-spin"></i>
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 </span>
             </button>
         </form>
 
-        <!-- Divider -->
+        <!-- Séparateur -->
         <div class="relative my-8">
             <div class="absolute inset-0 flex items-center">
                 <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-                <span class="px-4 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
+                <span class="px-4 bg-white dark:bg-gray-800 text-gray-500">Or sign up with</span>
             </div>
         </div>
 
-        <!-- Social Login -->
+        <!-- Boutons de connexion sociale -->
         <div class="grid grid-cols-3 gap-3">
-            <button class="social-btn github" onclick="socialLogin('github')">
-                <i class="fab fa-github text-gray-800 dark:text-white text-xl"></i>
+            <button onclick="socialRegister('github')" 
+                    class="social-btn github flex items-center justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-300 transform hover:scale-105 group">
+                <i class="fab fa-github text-2xl text-gray-800 dark:text-white group-hover:text-purple-600 transition-colors"></i>
             </button>
-            <button class="social-btn discord" onclick="socialLogin('discord')">
-                <i class="fab fa-discord text-indigo-600 text-xl"></i>
+            <button onclick="socialRegister('discord')" 
+                    class="social-btn discord flex items-center justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all duration-300 transform hover:scale-105 group">
+                <i class="fab fa-discord text-2xl text-indigo-600 group-hover:text-indigo-700 transition-colors"></i>
             </button>
-            <button class="social-btn google" onclick="socialLogin('google')">
-                <i class="fab fa-google text-red-500 text-xl"></i>
+            <button onclick="socialRegister('google')" 
+                    class="social-btn google flex items-center justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 transform hover:scale-105 group">
+                <i class="fab fa-google text-2xl text-red-500 group-hover:text-red-600 transition-colors"></i>
             </button>
         </div>
 
-        <!-- Login Link -->
+        <!-- Lien vers login -->
         <p class="text-center text-gray-600 dark:text-gray-400 mt-6">
             Already have an account? 
-            <a href="/login" class="text-purple-600 hover:text-purple-700 font-semibold transition">
+            <a href="/login" class="text-purple-600 hover:text-purple-700 font-semibold hover:underline transition-all inline-flex items-center">
                 Sign in
+                <i class="fas fa-arrow-right ml-1 text-sm"></i>
             </a>
         </p>
+
+        <!-- Badge de sécurité -->
+        <div class="mt-4 text-center">
+            <span class="inline-flex items-center px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
+                <i class="fas fa-shield-alt mr-1"></i>
+                256-bit encryption
+            </span>
+        </div>
     </div>
 </div>
 
 <style>
-/* Form inputs */
-.input-field {
-    width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    background: white;
+/* Animations personnalisées */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
 }
 
-@media (prefers-color-scheme: dark) {
-    .input-field {
-        background: rgba(30, 41, 59, 0.9);
-        border-color: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-    .input-field::placeholder {
-        color: rgba(255, 255, 255, 0.5);
-    }
+.animate-float {
+    animation: float 3s ease-in-out infinite;
 }
 
-.input-field:focus {
-    outline: none;
-    border-color: #8B5CF6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-}
-
-.input-field.error {
-    border-color: #EF4444;
-}
-
-.input-field.valid {
-    border-color: #10B981;
-}
-
-/* Password visibility toggle */
-.password-toggle {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9CA3AF;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.password-toggle:hover {
-    color: #8B5CF6;
-}
-
-/* Password strength indicator */
-.strength-bar-container {
-    width: 100%;
-    height: 4px;
-    background: #e5e7eb;
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.strength-bar {
-    height: 100%;
-    width: 0;
-    transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.strength-0 { width: 0%; background: #EF4444; }
-.strength-1 { width: 25%; background: #F59E0B; }
-.strength-2 { width: 50%; background: #FCD34D; }
-.strength-3 { width: 75%; background: #10B981; }
-.strength-4 { width: 100%; background: #10B981; }
-
-/* Password requirements */
-.requirement {
-    display: flex;
-    align-items: center;
-    color: #6B7280;
-    transition: color 0.3s ease;
-}
-
-.requirement.met {
-    color: #10B981;
-}
-
-.requirement i {
-    font-size: 0.75rem;
-    transition: color 0.3s ease;
-}
-
-.requirement.met i {
-    color: #10B981;
-}
-
-.requirement.met i.fa-circle {
-    display: none;
-}
-
-.requirement.met i.fa-check-circle {
-    display: inline-block;
-}
-
-.requirement i.fa-check-circle {
-    display: none;
-}
-
-/* Error/Success messages */
-.error-message {
-    background: rgba(239, 68, 68, 0.1);
-    border-left: 4px solid #EF4444;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.success-message {
-    background: rgba(16, 185, 129, 0.1);
-    border-left: 4px solid #10B981;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Social buttons */
-.social-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    background: white;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-@media (prefers-color-scheme: dark) {
-    .social-btn {
-        background: rgba(30, 41, 59, 0.9);
-        border-color: rgba(255, 255, 255, 0.1);
-    }
-}
-
-.social-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.social-btn.github:hover {
-    background: #24292e;
-    border-color: #24292e;
-}
-
-.social-btn.github:hover i {
-    color: white !important;
-}
-
-.social-btn.discord:hover {
-    background: #5865F2;
-    border-color: #5865F2;
-}
-
-.social-btn.discord:hover i {
-    color: white !important;
-}
-
-.social-btn.google:hover {
-    background: #DB4437;
-    border-color: #DB4437;
-}
-
-.social-btn.google:hover i {
-    color: white !important;
-}
-
-/* Checkbox container */
-.checkbox-container {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-/* Animations */
 @keyframes slideIn {
     from {
         opacity: 0;
@@ -401,14 +338,123 @@
     }
 }
 
-.error-message:not(.hidden),
-.success-message:not(.hidden) {
+.animate-slide-in {
     animation: slideIn 0.3s ease-out;
 }
 
-/* Loading spinner */
-.btn-loader {
-    display: inline-block;
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+/* Style des inputs */
+.input-field {
+    transition: all 0.3s ease;
+}
+
+.input-field:focus {
+    outline: none;
+}
+
+.input-field.error {
+    border-color: #EF4444 !important;
+    background-color: #FEF2F2;
+}
+
+.input-field.valid {
+    border-color: #10B981 !important;
+    background-color: #F0FDF4;
+}
+
+.input-field:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Style des exigences */
+.requirement {
+    display: flex;
+    align-items: center;
+    color: #6B7280;
+    transition: all 0.3s ease;
+}
+
+.requirement.met {
+    color: #10B981;
+}
+
+.requirement.met i {
+    color: #10B981;
+}
+
+.requirement i {
+    transition: all 0.3s ease;
+}
+
+/* Style des boutons sociaux */
+.social-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.social-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.social-btn:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* Tooltip personnalisé */
+.tooltip {
+    position: relative;
+}
+
+.tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: #1F2937;
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+/* Mode sombre support */
+@media (prefers-color-scheme: dark) {
+    .input-field {
+        background-color: #1F2937;
+        border-color: #374151;
+        color: white;
+    }
+    
+    .input-field::placeholder {
+        color: #9CA3AF;
+    }
 }
 
 /* Responsive */
@@ -416,235 +462,398 @@
     .glass-card {
         padding: 1.5rem !important;
     }
+    
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    .social-btn {
+        padding: 0.75rem !important;
+    }
 }
 </style>
 
 <script>
-// Password visibility toggle
-const togglePassword = document.getElementById('togglePassword');
-const passwordInput = document.getElementById('password');
+// Configuration
+const API_URL = '/v5.2';
 
-togglePassword.addEventListener('click', function() {
-    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-    passwordInput.setAttribute('type', type);
-    this.classList.toggle('fa-eye');
-    this.classList.toggle('fa-eye-slash');
+// Éléments DOM
+const form = document.getElementById('registerForm');
+const usernameInput = document.getElementById('username');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+const confirmInput = document.getElementById('confirmPassword');
+const termsCheck = document.getElementById('terms');
+const newsletterCheck = document.getElementById('newsletter');
+const submitBtn = document.getElementById('submitBtn');
+const progressBar = document.getElementById('progressBar');
+const completionPercentage = document.getElementById('completionPercentage');
+
+// Icônes de validation
+const usernameValid = document.getElementById('usernameValid');
+const usernameInvalid = document.getElementById('usernameInvalid');
+const usernameSpinner = document.getElementById('usernameSpinner');
+const emailValid = document.getElementById('emailValid');
+const emailInvalid = document.getElementById('emailInvalid');
+const confirmValid = document.getElementById('confirmValid');
+const confirmInvalid = document.getElementById('confirmInvalid');
+
+// Compteurs
+const usernameCount = document.getElementById('usernameCount');
+
+// ============================================================================
+// VALIDATION EN TEMPS RÉEL
+// ============================================================================
+
+// Username validation
+let usernameTimeout;
+usernameInput.addEventListener('input', () => {
+    const username = usernameInput.value;
+    usernameCount.textContent = `${username.length}/30`;
+    
+    clearTimeout(usernameTimeout);
+    usernameSpinner.classList.remove('hidden');
+    usernameValid.classList.add('hidden');
+    usernameInvalid.classList.add('hidden');
+    
+    usernameTimeout = setTimeout(() => {
+        validateUsername();
+    }, 500);
 });
 
-// Password strength checker
-const strengthBar = document.getElementById('strengthBar');
-const reqLength = document.getElementById('reqLength');
-const reqLower = document.getElementById('reqLower');
-const reqUpper = document.getElementById('reqUpper');
-const reqNumber = document.getElementById('reqNumber');
-const reqSpecial = document.getElementById('reqSpecial');
-const confirmInput = document.getElementById('confirmPassword');
-const confirmSuccess = document.getElementById('confirmSuccess');
-const confirmError = document.getElementById('confirmError');
-const confirmMessage = document.getElementById('confirmMessage');
-const submitBtn = document.getElementById('submitBtn');
-const termsCheck = document.getElementById('terms');
-
-passwordInput.addEventListener('input', checkPasswordStrength);
-confirmInput.addEventListener('input', checkPasswordMatch);
-termsCheck.addEventListener('change', validateForm);
-
-function checkPasswordStrength() {
-    const password = passwordInput.value;
-    let strength = 0;
+async function validateUsername() {
+    const username = usernameInput.value;
+    const isValid = username.length >= 3 && username.length <= 30 && /^[a-zA-Z0-9_]+$/.test(username);
     
-    // Check length
-    if (password.length >= 8) {
-        strength++;
-        reqLength.classList.add('met');
-        reqLength.querySelector('i').className = 'fas fa-check-circle text-xs mr-2';
+    usernameSpinner.classList.add('hidden');
+    
+    if (username.length > 0) {
+        if (isValid) {
+            // Vérifier la disponibilité (simulé)
+            usernameValid.classList.remove('hidden');
+            usernameInvalid.classList.add('hidden');
+            usernameInput.classList.add('valid');
+            usernameInput.classList.remove('error');
+            document.getElementById('usernameHint').innerHTML = '<i class="fas fa-check-circle text-green-500 mr-1"></i> Username available';
+        } else {
+            usernameValid.classList.add('hidden');
+            usernameInvalid.classList.remove('hidden');
+            usernameInput.classList.add('error');
+            usernameInput.classList.remove('valid');
+            document.getElementById('usernameHint').innerHTML = '<i class="fas fa-exclamation-circle text-red-500 mr-1"></i> Invalid username format';
+        }
     } else {
-        reqLength.classList.remove('met');
-        reqLength.querySelector('i').className = 'fas fa-circle text-xs mr-2';
+        usernameValid.classList.add('hidden');
+        usernameInvalid.classList.add('hidden');
+        usernameInput.classList.remove('valid', 'error');
+        document.getElementById('usernameHint').innerHTML = '<i class="fas fa-info-circle mr-1"></i> 3-30 characters, letters, numbers, underscores';
     }
     
-    // Check lowercase
-    if (/[a-z]/.test(password)) {
-        strength++;
-        reqLower.classList.add('met');
-        reqLower.querySelector('i').className = 'fas fa-check-circle text-xs mr-2';
-    } else {
-        reqLower.classList.remove('met');
-        reqLower.querySelector('i').className = 'fas fa-circle text-xs mr-2';
-    }
-    
-    // Check uppercase
-    if (/[A-Z]/.test(password)) {
-        strength++;
-        reqUpper.classList.add('met');
-        reqUpper.querySelector('i').className = 'fas fa-check-circle text-xs mr-2';
-    } else {
-        reqUpper.classList.remove('met');
-        reqUpper.querySelector('i').className = 'fas fa-circle text-xs mr-2';
-    }
-    
-    // Check number
-    if (/[0-9]/.test(password)) {
-        strength++;
-        reqNumber.classList.add('met');
-        reqNumber.querySelector('i').className = 'fas fa-check-circle text-xs mr-2';
-    } else {
-        reqNumber.classList.remove('met');
-        reqNumber.querySelector('i').className = 'fas fa-circle text-xs mr-2';
-    }
-    
-    // Check special character
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-        strength++;
-        reqSpecial.classList.add('met');
-        reqSpecial.querySelector('i').className = 'fas fa-check-circle text-xs mr-2';
-    } else {
-        reqSpecial.classList.remove('met');
-        reqSpecial.querySelector('i').className = 'fas fa-circle text-xs mr-2';
-    }
-    
-    // Update strength bar
-    strengthBar.className = `strength-bar strength-${strength}`;
-    
-    // Revalidate form
-    validateForm();
+    updateProgress();
 }
 
-function checkPasswordMatch() {
+// Email validation
+emailInput.addEventListener('input', validateEmail);
+
+function validateEmail() {
+    const email = emailInput.value;
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    
+    if (email.length > 0) {
+        if (isValid) {
+            emailValid.classList.remove('hidden');
+            emailInvalid.classList.add('hidden');
+            emailInput.classList.add('valid');
+            emailInput.classList.remove('error');
+            document.getElementById('emailHint').innerHTML = '<i class="fas fa-check-circle text-green-500 mr-1"></i> Valid email';
+        } else {
+            emailValid.classList.add('hidden');
+            emailInvalid.classList.remove('hidden');
+            emailInput.classList.add('error');
+            emailInput.classList.remove('valid');
+            document.getElementById('emailHint').innerHTML = '<i class="fas fa-exclamation-circle text-red-500 mr-1"></i> Invalid email format';
+        }
+    } else {
+        emailValid.classList.add('hidden');
+        emailInvalid.classList.add('hidden');
+        emailInput.classList.remove('valid', 'error');
+        document.getElementById('emailHint').innerHTML = '<i class="fas fa-info-circle mr-1"></i> Enter a valid email address';
+    }
+    
+    updateProgress();
+}
+
+// Password validation
+passwordInput.addEventListener('input', () => {
+    validatePassword();
+    validateConfirm();
+    updateProgress();
+});
+
+function validatePassword() {
+    const password = passwordInput.value;
+    
+    // Vérifier les exigences
+    const hasLength = password.length >= 8;
+    const hasLower = /[a-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    // Mettre à jour les indicateurs
+    updateRequirement('reqLength', hasLength);
+    updateRequirement('reqLower', hasLower);
+    updateRequirement('reqUpper', hasUpper);
+    updateRequirement('reqNumber', hasNumber);
+    updateRequirement('reqSpecial', hasSpecial);
+    
+    // Calculer la force
+    const strength = [hasLength, hasLower, hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
+    
+    // Mettre à jour la barre de force
+    const strengths = ['strength1', 'strength2', 'strength3', 'strength4'];
+    const strengthLevels = [0, 25, 50, 75, 100];
+    const strengthTexts = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    
+    strengths.forEach((id, index) => {
+        const bar = document.getElementById(id);
+        if (index < strength) {
+            bar.style.width = '100%';
+        } else {
+            bar.style.width = '0%';
+        }
+    });
+    
+    document.getElementById('strengthText').textContent = strengthTexts[strength];
+    document.getElementById('strengthText').className = `text-xs font-medium ${getStrengthColor(strength)}`;
+    
+    if (strength >= 4) {
+        passwordInput.classList.add('valid');
+        passwordInput.classList.remove('error');
+    } else if (password.length > 0) {
+        passwordInput.classList.add('error');
+        passwordInput.classList.remove('valid');
+    } else {
+        passwordInput.classList.remove('valid', 'error');
+    }
+}
+
+function updateRequirement(id, met) {
+    const el = document.getElementById(id);
+    if (met) {
+        el.classList.add('met');
+        el.querySelector('i').className = 'fas fa-check-circle mr-1 text-green-500';
+    } else {
+        el.classList.remove('met');
+        el.querySelector('i').className = 'fas fa-circle mr-1 text-gray-400';
+    }
+}
+
+function getStrengthColor(strength) {
+    switch(strength) {
+        case 0: return 'text-red-500';
+        case 1: return 'text-orange-500';
+        case 2: return 'text-yellow-500';
+        case 3: return 'text-green-400';
+        case 4: return 'text-green-600';
+        default: return 'text-gray-500';
+    }
+}
+
+// Confirm password validation
+confirmInput.addEventListener('input', () => {
+    validateConfirm();
+    updateProgress();
+});
+
+function validateConfirm() {
     const password = passwordInput.value;
     const confirm = confirmInput.value;
     
-    if (confirm.length === 0) {
-        confirmSuccess.classList.add('hidden');
-        confirmError.classList.add('hidden');
-        confirmMessage.textContent = '';
-    } else if (password === confirm) {
-        confirmSuccess.classList.remove('hidden');
-        confirmError.classList.add('hidden');
-        confirmMessage.textContent = '✓ Passwords match';
-        confirmMessage.classList.add('text-green-500');
-        confirmMessage.classList.remove('text-red-500');
+    if (confirm.length > 0) {
+        if (password === confirm) {
+            confirmValid.classList.remove('hidden');
+            confirmInvalid.classList.add('hidden');
+            confirmInput.classList.add('valid');
+            confirmInput.classList.remove('error');
+            document.getElementById('confirmHint').innerHTML = '<i class="fas fa-check-circle text-green-500 mr-1"></i> Passwords match';
+        } else {
+            confirmValid.classList.add('hidden');
+            confirmInvalid.classList.remove('hidden');
+            confirmInput.classList.add('error');
+            confirmInput.classList.remove('valid');
+            document.getElementById('confirmHint').innerHTML = '<i class="fas fa-exclamation-circle text-red-500 mr-1"></i> Passwords do not match';
+        }
     } else {
-        confirmSuccess.classList.add('hidden');
-        confirmError.classList.remove('hidden');
-        confirmMessage.textContent = '✗ Passwords do not match';
-        confirmMessage.classList.add('text-red-500');
-        confirmMessage.classList.remove('text-green-500');
+        confirmValid.classList.add('hidden');
+        confirmInvalid.classList.add('hidden');
+        confirmInput.classList.remove('valid', 'error');
+        document.getElementById('confirmHint').innerHTML = '<i class="fas fa-info-circle mr-1"></i> Passwords must match';
     }
-    
-    validateForm();
 }
 
-function validateForm() {
+// Terms validation
+termsCheck.addEventListener('change', updateProgress);
+
+// ============================================================================
+// BARRE DE PROGRESSION
+// ============================================================================
+
+function updateProgress() {
+    const fields = [
+        usernameInput.value.length >= 3,
+        emailInput.value.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value),
+        validatePasswordStrength() >= 4,
+        passwordInput.value === confirmInput.value && confirmInput.value.length > 0,
+        termsCheck.checked
+    ];
+    
+    const completed = fields.filter(Boolean).length;
+    const percentage = (completed / fields.length) * 100;
+    
+    progressBar.style.width = `${percentage}%`;
+    completionPercentage.textContent = `${Math.round(percentage)}%`;
+    
+    // Activer/désactiver le bouton
+    submitBtn.disabled = completed < fields.length;
+}
+
+function validatePasswordStrength() {
     const password = passwordInput.value;
-    const confirm = confirmInput.value;
-    const terms = termsCheck.checked;
-    
-    // Check if all requirements are met
-    const requirementsMet = 
-        password.length >= 8 &&
-        /[a-z]/.test(password) &&
-        /[A-Z]/.test(password) &&
-        /[0-9]/.test(password) &&
-        /[!@#$%^&*(),.?":{}|<>]/.test(password) &&
-        password === confirm &&
-        terms;
-    
-    submitBtn.disabled = !requirementsMet;
+    return [
+        password.length >= 8,
+        /[a-z]/.test(password),
+        /[A-Z]/.test(password),
+        /[0-9]/.test(password),
+        /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    ].filter(Boolean).length;
 }
 
-// Form submission
-document.getElementById('registerForm').addEventListener('submit', async function(e) {
+// ============================================================================
+// UTILITAIRES
+// ============================================================================
+
+function togglePasswordVisibility(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function closeMessage(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+function showError(title, detail) {
+    document.getElementById('errorText').textContent = title;
+    document.getElementById('errorDetail').textContent = detail;
+    document.getElementById('errorMessage').classList.remove('hidden');
+    document.getElementById('successMessage').classList.add('hidden');
+    
+    setTimeout(() => {
+        document.getElementById('errorMessage').classList.add('hidden');
+    }, 5000);
+}
+
+function showSuccess(message) {
+    document.getElementById('successText').textContent = message;
+    document.getElementById('successMessage').classList.remove('hidden');
+    document.getElementById('errorMessage').classList.add('hidden');
+}
+
+function socialRegister(provider) {
+    showError(`${provider} registration coming soon!`, 'This feature is under development');
+}
+
+// ============================================================================
+// SOUMISSION DU FORMULAIRE
+// ============================================================================
+
+form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const submitBtn = document.getElementById('submitBtn');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoader = submitBtn.querySelector('.btn-loader');
-    const errorMsg = document.getElementById('errorMessage');
-    const successMsg = document.getElementById('successMessage');
-    const errorText = document.getElementById('errorText');
-    const successText = document.getElementById('successText');
+    if (!termsCheck.checked) {
+        showError('Terms required', 'You must accept the Terms of Service and Privacy Policy');
+        termsCheck.parentElement.classList.add('animate-shake');
+        setTimeout(() => termsCheck.parentElement.classList.remove('animate-shake'), 500);
+        return;
+    }
     
-    // Hide previous messages
-    errorMsg.classList.add('hidden');
-    successMsg.classList.add('hidden');
-    
-    // Show loading state
-    btnText.classList.add('hidden');
-    btnLoader.classList.remove('hidden');
+    // Désactiver le bouton
     submitBtn.disabled = true;
+    submitBtn.querySelector('.btn-text').classList.add('hidden');
+    submitBtn.querySelector('.btn-loader').classList.remove('hidden');
     
-    const username = document.getElementById('username').value;
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const formData = {
+        username: usernameInput.value,
+        email: emailInput.value,
+        password: passwordInput.value,
+        newsletter: newsletterCheck.checked
+    };
     
     try {
-        const response = await fetch('/v5.2/auth/register', {
+        const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify(formData)
         });
         
         const data = await response.json();
         
         if (data.success) {
-            // Store token
             localStorage.setItem('zarch_token', data.token);
             localStorage.setItem('zarch_user', JSON.stringify(data.user));
             
-            // Show success message
-            successText.textContent = 'Account created successfully! Redirecting...';
-            successMsg.classList.remove('hidden');
+            document.cookie = `zarch_token=${data.token}; path=/; max-age=86400; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`;
             
-            // Redirect to dashboard
+            showSuccess('Account created successfully!');
+            
+            submitBtn.classList.add('bg-green-500');
+            submitBtn.classList.remove('from-purple-600', 'to-pink-600');
+            
             setTimeout(() => {
                 window.location.href = '/dashboard';
             }, 1500);
         } else {
-            // Show error message
-            errorText.textContent = data.error || 'Registration failed';
-            errorMsg.classList.remove('hidden');
+            showError('Registration failed', data.error || 'Please try again');
             
-            // Reset button
-            btnText.classList.remove('hidden');
-            btnLoader.classList.add('hidden');
             submitBtn.disabled = false;
+            submitBtn.querySelector('.btn-text').classList.remove('hidden');
+            submitBtn.querySelector('.btn-loader').classList.add('hidden');
+            submitBtn.classList.remove('bg-green-500');
+            submitBtn.classList.add('from-purple-600', 'to-pink-600');
         }
     } catch (error) {
         console.error('Registration error:', error);
+        showError('Connection Error', 'Unable to reach the server');
         
-        // Show error message
-        errorText.textContent = 'Network error. Please try again.';
-        errorMsg.classList.remove('hidden');
-        
-        // Reset button
-        btnText.classList.remove('hidden');
-        btnLoader.classList.add('hidden');
         submitBtn.disabled = false;
+        submitBtn.querySelector('.btn-text').classList.remove('hidden');
+        submitBtn.querySelector('.btn-loader').classList.add('hidden');
     }
 });
 
-// Social login
-function socialLogin(provider) {
-    const errorMsg = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
-    
-    errorText.textContent = `${provider} login coming soon!`;
-    errorMsg.classList.remove('hidden');
-    
-    setTimeout(() => {
-        errorMsg.classList.add('hidden');
-    }, 3000);
+// ============================================================================
+// INITIALISATION
+// ============================================================================
+
+// Vérifier si déjà connecté
+if (localStorage.getItem('zarch_token')) {
+    window.location.href = '/dashboard';
 }
 
-// Check if already logged in
-(function() {
-    const token = localStorage.getItem('zarch_token');
-    if (token) {
-        window.location.href = '/dashboard';
-    }
-})();
+// Focus automatique
+usernameInput.focus();
 </script>
 {% endblock %}
