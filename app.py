@@ -1125,7 +1125,7 @@ def base_page():
 # ROUTES COMMUNAUTÉ
 # ============================================================================
 
-@app.route('/edit/community')
+@app.route('/community')
 def edit_community_page():
     """Page d'édition de la communauté (admin seulement)"""
     user = session.get('user')
@@ -1183,6 +1183,104 @@ def edit_community_page():
         app.logger.error(f"Edit community error: {e}")
         flash('Error loading community data', 'error')
         return redirect('/dashboard')
+@app.route('/package/download/<scope>/<name>/<version>/<release>/<arch>')
+@rate_limit()
+def download_package(scope, name, version, release, arch):
+    """Télécharge un fichier package en utilisant tous les identifiants."""
+    try:
+        filename = f"{name}-{version}-{release}-{arch}.tar.bool"
+        pkg_path = f"packages/{scope}/{name}/{filename}"
+        
+        app.logger.info(f"📥 Download requested: {pkg_path}")
+        
+        # Vérifier d'abord si le package existe dans la base de données
+        db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+        package_found = None
+        
+        if isinstance(db, dict) and 'packages' in db:
+            for pkg in db['packages']:
+                if (pkg['name'] == name and 
+                    pkg['version'] == version and 
+                    pkg.get('release') == release and 
+                    pkg.get('arch') == arch):
+                    package_found = pkg
+                    break
+        
+        if not package_found:
+            app.logger.warning(f"Package metadata not found in database: {name} {version}")
+            # On continue quand même, le fichier pourrait exister sans métadonnées
+        
+        # Lire le contenu binaire depuis GitHub
+        file_content = GitHubManager.read_from_github(pkg_path, binary=True)
+        
+        if file_content is None:
+            app.logger.error(f"❌ Package file not found: {pkg_path}")
+            
+            # Chercher des fichiers similaires pour aider l'utilisateur
+            similar_files = []
+            base_path = f"packages/{scope}/{name}/"
+            # Logique pour lister les fichiers similaires (optionnel)
+            
+            flash(f'Package file not found: {filename}', 'error')
+            return render_template('package.html',
+                                 package=package_found or {'name': name, 'version': version, 'release': release, 'arch': arch, 'scope': scope},
+                                 error=f"File {filename} not found on server",
+                                 similar_files=similar_files), 404
+        
+        # ✅ Incrémenter le compteur de téléchargements (version asynchrone)
+        if package_found:
+            try:
+                # Mise à jour asynchrone pour ne pas bloquer le téléchargement
+                import threading
+                def increment_download():
+                    try:
+                        package_found['downloads'] = package_found.get('downloads', 0) + 1
+                        GitHubManager.save_to_github('database/zenv_hub.json', db, 
+                                                    f"Increment download count for {name} v{version}")
+                        app.logger.info(f"✅ Download count incremented for {name}")
+                    except Exception as e:
+                        app.logger.error(f"Failed to increment download count: {e}")
+                
+                # Lancer dans un thread séparé
+                thread = threading.Thread(target=increment_download)
+                thread.daemon = True
+                thread.start()
+                
+            except Exception as e:
+                app.logger.error(f"Failed to start download counter thread: {e}")
+        
+        # 📊 Statistiques de téléchargement (optionnel)
+        app.logger.info(f"✅ Download successful: {filename} ({len(file_content)} bytes)")
+        
+        # Envoyer le fichier
+        response = make_response(file_content)
+        response.headers.set('Content-Type', 'application/gzip')
+        response.headers.set('Content-Disposition', f'attachment; filename={filename}')
+        response.headers.set('Content-Length', str(len(file_content)))
+        response.headers.set('X-Download-Count', str(package_found.get('downloads', 0) + 1 if package_found else 0))
+        
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"🔥 Download error: {str(e)}")
+        flash(f'Error downloading package: {str(e)}', 'error')
+        
+        # En cas d'erreur, essayer de récupérer les infos du package pour afficher une page
+        try:
+            db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+            package_info = None
+            if isinstance(db, dict) and 'packages' in db:
+                for pkg in db['packages']:
+                    if pkg['name'] == name:
+                        package_info = pkg
+                        break
+            
+            return render_template('package.html',
+                                 package=package_info or {'name': name, 'version': version, 'release': release, 'arch': arch, 'scope': scope},
+                                 error=f"Download failed: {str(e)}"), 500
+        except:
+            return render_template('error.html', error=str(e)), 500
+
 # ============================================================================
 # GESTION DES ERREURS
 # ============================================================================
