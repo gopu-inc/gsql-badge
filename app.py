@@ -999,30 +999,45 @@ def upload_page():
 
 @app.route('/dashboard')
 def dashboard_page():
-    """Dashboard utilisateur"""
+    """Dashboard utilisateur avec statistiques réelles"""
     user = session.get('user')
     if not user:
         flash('Please login to access the dashboard', 'info')
         return redirect('/login')
     
     try:
+        # Récupérer la base de données des packages
         db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
         if not isinstance(db, dict):
             db = {'packages': []}
         
-        packages = db.get('packages', [])
-        user_packages = [p for p in packages if p.get('author') == user.get('username')]
+        # Filtrer les packages de l'utilisateur
+        username = user.get('username')
+        user_packages = [p for p in db.get('packages', []) if p.get('author') == username]
         
+        # Calculer les statistiques
+        total_packages = len(user_packages)
+        total_downloads = sum(p.get('downloads', 0) for p in user_packages)
+        
+        # Date d'inscription (à adapter selon ta structure)
+        member_since = user.get('created_at', '2026')[:10] if user.get('created_at') else '2026'
+        
+        # Statistiques pour l'affichage
         stats = {
-            'packages': len(user_packages),
-            'downloads': sum(p.get('downloads', 0) for p in user_packages),
-            'member_since': user.get('created_at', '2026')[:10] if user.get('created_at') else '2026'
+            'packages': total_packages,
+            'downloads': total_downloads,
+            'member_since': member_since
         }
         
+        # Données pour les graphiques (exemple)
         chart_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-        chart_data = [10, 20, 15, 25, 30, 35]
+        chart_data = [10, 20, 15, 25, 30, 35]  # À remplacer par des données réelles
+        
         popular_labels = ['apkm', 'other', 'test']
         popular_data = [60, 25, 15]
+        
+        # Vérifier si l'utilisateur est admin
+        is_admin = username in ['admin', 'gopu-inc', 'mauricio']
         
         return render_template('dashboard.html',
                              user=user,
@@ -1032,6 +1047,7 @@ def dashboard_page():
                              chart_data=chart_data,
                              popular_labels=popular_labels,
                              popular_data=popular_data,
+                             is_admin=is_admin,
                              now=datetime.now())
     
     except Exception as e:
@@ -1045,6 +1061,7 @@ def dashboard_page():
                              chart_data=[0,0,0,0,0,0],
                              popular_labels=['apkm', 'other', 'test'],
                              popular_data=[0,0,0],
+                             is_admin=False,
                              now=datetime.now())
 
 @app.route('/login')
