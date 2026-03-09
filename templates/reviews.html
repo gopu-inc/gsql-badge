@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- En-tête -->
+    <div class="flex items-center gap-4 mb-8">
+        <a href="/package/{{ package.name }}" class="text-purple-600 hover:text-purple-700">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-3xl font-bold">{{ package.name }} - Reviews</h1>
+    </div>
+
+    <!-- Note moyenne -->
+    <div class="glass-card rounded-2xl p-6 mb-8 text-center">
+        <div class="text-5xl font-bold text-purple-600 mb-2">{{ "%.1f"|format(reviews.average) }}</div>
+        <div class="flex justify-center gap-1 text-2xl mb-2">
+            {% for i in range(5) %}
+                {% if i < reviews.average|int %}
+                    <i class="fas fa-star text-yellow-400"></i>
+                {% elif i < reviews.average|round(0, 'ceil') %}
+                    <i class="fas fa-star-half-alt text-yellow-400"></i>
+                {% else %}
+                    <i class="far fa-star text-yellow-400"></i>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <p class="text-gray-600 dark:text-gray-400">Based on {{ reviews.reviews|length }} reviews</p>
+    </div>
+
+    <!-- Formulaire d'ajout -->
+    {% if session.user %}
+    <div class="glass-card rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Add Your Review</h2>
+        <form id="reviewForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Rating</label>
+                <div class="flex gap-2 text-2xl" id="ratingStars">
+                    {% for i in range(1, 6) %}
+                    <i class="far fa-star cursor-pointer hover:text-yellow-400 rating-star" data-rating="{{ i }}"></i>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="rating" required>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">Comment (optional)</label>
+                <textarea name="comment" rows="3" 
+                          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                          placeholder="Share your experience..."></textarea>
+            </div>
+            
+            <button type="submit" 
+                    class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all">
+                Submit Review
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Liste des reviews -->
+    <div class="space-y-4">
+        {% for review in reviews.reviews %}
+        <div class="glass-card rounded-xl p-6">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <a href="/@{{ review.username }}" class="font-semibold hover:text-purple-600">
+                        {{ review.username }}
+                    </a>
+                    <div class="flex gap-1 text-sm mt-1">
+                        {% for i in range(5) %}
+                            {% if i < review.rating %}
+                                <i class="fas fa-star text-yellow-400"></i>
+                            {% else %}
+                                <i class="far fa-star text-yellow-400"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <span class="text-sm text-gray-500">{{ review.created_at[:10] }}</span>
+            </div>
+            {% if review.comment %}
+            <p class="text-gray-600 dark:text-gray-400">{{ review.comment }}</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <p class="text-center text-gray-500 py-8">No reviews yet. Be the first!</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+// Gestion des étoiles
+const stars = document.querySelectorAll('.rating-star');
+const ratingInput = document.getElementById('rating');
+
+stars.forEach(star => {
+    star.addEventListener('mouseenter', function() {
+        const rating = this.dataset.rating;
+        highlightStars(rating);
+    });
+    
+    star.addEventListener('mouseleave', function() {
+        const current = ratingInput.value || 0;
+        highlightStars(current);
+    });
+    
+    star.addEventListener('click', function() {
+        const rating = this.dataset.rating;
+        ratingInput.value = rating;
+        highlightStars(rating);
+    });
+});
+
+function highlightStars(rating) {
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.remove('far');
+            star.classList.add('fas');
+        } else {
+            star.classList.remove('fas');
+            star.classList.add('far');
+        }
+    });
+}
+
+// Soumission du formulaire
+document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!ratingInput.value) {
+        alert('Please select a rating');
+        return;
+    }
+    
+    const formData = {
+        rating: parseInt(ratingInput.value),
+        comment: document.querySelector('textarea[name="comment"]').value
+    };
+    
+    const token = localStorage.getItem('zarch_token');
+    
+    const response = await fetch('/api/v1/package/{{ package.name }}/review', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        location.reload();
+    } else {
+        alert(data.error || 'Failed to submit review');
+    }
+});
+</script>
+{% endblock %}
