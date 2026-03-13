@@ -1047,6 +1047,7 @@ def register():
     """Inscription utilisateur"""
     try:
         data = request.get_json()
+        # Utiliser UserCreate, pas UserInDB !
         validated = UserCreate(**data)
         
         # Vérifier si l'utilisateur existe déjà
@@ -1056,7 +1057,7 @@ def register():
         if UserManager.get_by_email(validated.email):
             return jsonify({'error': 'Email already exists'}), 400
         
-        # Créer l'utilisateur
+        # Créer l'utilisateur avec les données validées
         user_data = validated.model_dump()
         user_data['email_verification_token'] = SecurityUtils.generate_verification_token()
         
@@ -1083,15 +1084,20 @@ def register():
             }
         }), 201
         
+    except ValidationError as e:
+        app.logger.error(f"Register validation error: {e}")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         app.logger.error(f"Register error: {e}")
         return jsonify({'error': str(e)}), 400
+
 
 @app.route('/v6/auth/login', methods=['POST'])
 def login():
     """Connexion utilisateur"""
     try:
         data = request.get_json()
+        # Utiliser UserLogin, pas UserInDB !
         validated = UserLogin(**data)
         
         user = UserManager.get_by_username(validated.username)
@@ -1125,9 +1131,13 @@ def login():
             }
         }), 200
         
+    except ValidationError as e:
+        app.logger.error(f"Login validation error: {e}")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         app.logger.error(f"Login error: {e}")
         return jsonify({'error': str(e)}), 400
+
 
 @app.route('/v6/auth/verify', methods=['GET'])
 @token_required
