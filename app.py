@@ -1687,18 +1687,41 @@ def profile_page(username):
                          badges=badges)
 
 @app.route('/dashboard')
-@token_required
 def dashboard_page():
-    """Dashboard utilisateur"""
-    user = UserManager.get_by_username(g.user.username)
-    packages = PackageManager.get_by_author(g.user.username)
-    badges = BadgeManager.get_user_badges(g.user.username)
+    """Dashboard utilisateur - accepte token dans header ou URL"""
+    token = None
+    
+    # 1. Chercher dans les headers
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header[7:]
+    
+    # 2. Chercher dans l'URL (pour les liens directs)
+    if not token:
+        token = request.args.get('token')
+    
+    # 3. Chercher dans les cookies (si tu utilises des cookies)
+    if not token:
+        token = request.cookies.get('zarch_token')
+    
+    if not token:
+        return jsonify({'error': 'Token missing'}), 401
+    
+    # Valider le token
+    user_data = TokenManager.validate_token(token)
+    if not user_data:
+        return jsonify({'error': 'Invalid or expired token'}), 401
+    
+    # Récupérer l'utilisateur
+    user = UserManager.get_by_username(user_data.username)
+    packages = PackageManager.get_by_author(user_data.username)
+    badges = BadgeManager.get_user_badges(user_data.username)
     
     return render_template('dashboard.html',
                          user=user,
                          packages=packages,
                          badges=badges)
-
+    
 @app.route('/login')
 def login_page():
     """Page de connexion"""
