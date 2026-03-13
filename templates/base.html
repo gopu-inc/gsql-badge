@@ -7,9 +7,9 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="{% block title %}Zarch Hub - APKM Package Registry{% endblock %}">
-    <meta property="og:description" content="{% block description %}The ultimate package registry for APKM - Alpine Package Manager{% endblock %}">
-    <meta property="og:image" content="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png">
+    <meta property="og:title" content="{% block og_title %}Zarch Hub - APKM Package Registry{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}The ultimate package registry for APKM - Alpine Package Manager{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png{% endblock %}">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -20,7 +20,7 @@
     <meta name="discord:guild_id" content="W2xN49q9h">
     
     <!-- Icons -->
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/favicon-32.png">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png">
     
     <!-- Fonts -->
@@ -37,7 +37,8 @@
     <!-- AOS -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
-    <title>{% block title %}Zarch Hub{% endblock %}</title>
+    <!-- Title - UNE SEULE FOIS ! -->
+    <title>{% block title %}Zarch Hub - APKM Package Registry{% endblock %}</title>
     
     <style>
         :root {
@@ -151,8 +152,9 @@
             <div class="flex justify-between items-center h-16">
                 <!-- Logo -->
                 <a href="/" class="flex items-center space-x-3 group">
-                    <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/image-1.png" 
-                         alt="Zarch Hub" class="h-8 sm:h-10 w-auto rounded-xl group-hover:scale-105 transition-transform">
+                    <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png" 
+                         alt="Zarch Hub" 
+                         class="h-8 sm:h-10 w-auto rounded-xl group-hover:scale-105 transition-transform">
                     <span class="text-lg sm:text-xl font-bold">
                         <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Zarch</span>
                         <span class="text-gray-900 dark:text-white">Hub</span>
