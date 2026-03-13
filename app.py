@@ -807,6 +807,10 @@ class BadgeManager:
             return cls.save_user_badges(username, badges)
         return False
 
+# ============================================================================
+# GESTIONNAIRE DES TOKENS (VERSION CORRIGÉE)
+# ============================================================================
+
 class TokenManager:
     """Gestionnaire des tokens JWT (100% GitHub)"""
     
@@ -815,7 +819,17 @@ class TokenManager:
     @classmethod
     def get_all(cls) -> List[TokenInDB]:
         data = GitHubManager.read_json(cls.DB_PATH, {'tokens': []})
-        return [TokenInDB(**t) for t in data.get('tokens', [])]
+        tokens = []
+        for t in data.get('tokens', []):
+            try:
+                # S'assurer que expires_at existe
+                if 'expires_at' not in t:
+                    # Token ancien format, lui donner une date par défaut
+                    t['expires_at'] = (datetime.now() + timedelta(days=30)).isoformat()
+                tokens.append(TokenInDB(**t))
+            except Exception as e:
+                app.logger.warning(f"Failed to parse token: {e}")
+        return tokens
     
     @classmethod
     def save_all(cls, tokens: List[TokenInDB]) -> bool:
@@ -850,7 +864,9 @@ class TokenManager:
             token=token_str,
             username=username,
             role=role,
-            expires_at=expires,
+            created_at=now,
+            expires_at=expires,  # ← Toujours fournir une date
+            active=True,
             user_agent=user_agent,
             ip_address=ip
         )
@@ -872,7 +888,8 @@ class TokenManager:
             tokens = cls.get_all()
             for t in tokens:
                 if t.token == token_str and t.active:
-                    if datetime.now() < t.expires_at:
+                    # Vérifier l'expiration
+                    if t.expires_at and t.expires_at > datetime.now():
                         # Mettre à jour last_used
                         t.last_used = datetime.now()
                         cls.save_all(tokens)
@@ -880,8 +897,8 @@ class TokenManager:
                         return TokenData(
                             username=payload['username'],
                             role=UserRole(payload['role']),
-                            exp=datetime.fromtimestamp(payload['exp']),
-                            iat=datetime.fromtimestamp(payload['iat'])
+                            exp=t.expires_at,
+                            iat=t.created_at
                         )
             return None
             
@@ -906,9 +923,17 @@ class TokenManager:
         """Nettoie les tokens expirés"""
         tokens = cls.get_all()
         now = datetime.now()
-        tokens = [t for t in tokens if t.expires_at > now]
-        return cls.save_all(tokens)
-
+        
+        # Garder les tokens actifs non expirés
+        active_tokens = []
+        for t in tokens:
+            if t.active and t.expires_at and t.expires_at > now:
+                active_tokens.append(t)
+            elif not t.expires_at:
+                # Token sans date d'expiration (le traiter comme expiré)
+                app.logger.info(f"Removing token without expiry for {t.username}")
+        
+        return cls.save_all(active_tokens)
 # ============================================================================
 # UTILITAIRES DE SÉCURITÉ
 # ============================================================================
