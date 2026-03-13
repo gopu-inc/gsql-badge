@@ -1765,10 +1765,6 @@ def init_github_structure():
     app.logger.info("🔧 Initializing GitHub structure...")
     folders = [
         'database',
-        'database/packages.json',
-        'database/package.json',
-        'database/user.json',
-        'database/users.json',
         'packages/public',
         'packages/private',
         'packages/global',
