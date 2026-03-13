@@ -1739,12 +1739,13 @@ def init_github_structure():
     for folder in folders:
         GitHubManager.write_json(f"{folder}/.gitkeep", {}, "Init structure")
 
-@app.before_first_request
+# Au niveau du module, après la définition des classes
 def startup():
     """Initialisation au démarrage"""
-    init_github_structure()
-    # Nettoyer les tokens expirés
-    TokenManager.cleanup_expired()
+    with app.app_context():
+        init_github_structure()
+        TokenManager.cleanup_expired()
+startup()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
