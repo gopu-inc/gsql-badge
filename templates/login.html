@@ -1,585 +1,139 @@
 {% extends "base.html" %}
 
-{% block og_title %}Login - Zarch Hub{% endblock %}
-{% block og_description %}Sign in to your Zarch Hub account to manage and publish packages. Support for Discord OAuth2 and traditional login.{% endblock %}
-{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/login-preview.png{% endblock %}
-
-{% block twitter_title %}Login - Zarch Hub{% endblock %}
-{% block twitter_description %}Access your Zarch Hub dashboard and manage packages{% endblock %}
-
 {% block title %}Login - Zarch Hub{% endblock %}
-
-{% block extra_head %}
-<style>
-    /* Animations supplémentaires */
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .animate-slide-in {
-        animation: slideIn 0.3s ease-out;
-    }
-    
-    @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-    }
-    
-    .animate-float {
-        animation: float 3s ease-in-out infinite;
-    }
-    
-    /* Style pour le bouton Discord */
-    .btn-discord {
-        background: #5865F2;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-discord:hover {
-        background: #4752C4;
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px -5px rgba(88, 101, 242, 0.5);
-    }
-    
-    /* Loading spinner */
-    .spinner {
-        border: 3px solid rgba(139, 92, 246, 0.1);
-        border-top-color: #8B5CF6;
-        border-radius: 50%;
-        width: 24px;
-        height: 24px;
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-</style>
-{% endblock %}
 
 {% block content %}
 <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-    <!-- Carte de connexion principale -->
-    <div class="glass-card rounded-3xl p-6 sm:p-8 md:p-12 max-w-md w-full relative overflow-hidden" data-aos="fade-up">
-        <!-- Éléments décoratifs animés -->
+    <div class="glass-card rounded-3xl p-8 md:p-12 max-w-md w-full relative overflow-hidden" data-aos="fade-up">
         <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-purple-600/10 to-pink-600/10 rounded-full blur-3xl -mr-24 -mt-24 animate-pulse"></div>
         <div class="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-600/10 to-cyan-600/10 rounded-full blur-3xl -ml-24 -mb-24 animate-pulse animation-delay-2000"></div>
         
-        <!-- Header avec logo animé -->
-        <div class="text-center mb-6 sm:mb-8 relative">
-            <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-3 sm:mb-4 transform hover:scale-110 transition-transform duration-300 shadow-lg animate-float">
-                <i class="fas fa-cubes text-white text-2xl sm:text-3xl"></i>
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-4 animate-float">
+                <i class="fas fa-cubes text-white text-3xl"></i>
             </div>
-            <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-1 sm:mb-2">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                 Welcome Back
             </h1>
-            <p class="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Sign in to continue to Zarch Hub
-            </p>
+            <p class="text-gray-600 dark:text-gray-400">Sign in to continue to Zarch Hub</p>
         </div>
 
-        <!-- Messages d'alerte -->
-        <div id="errorMessage" class="mb-4 sm:mb-6 hidden animate-slide-in">
-            <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-3 sm:p-4 flex items-start">
-                <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-2 sm:mr-3 text-sm sm:text-base"></i>
-                <div class="flex-1">
-                    <p class="text-red-700 dark:text-red-300 font-medium text-sm sm:text-base" id="errorText">Authentication failed</p>
-                    <p class="text-red-600 dark:text-red-400 text-xs sm:text-sm mt-1" id="errorDetail"></p>
-                </div>
-                <button onclick="closeMessage('errorMessage')" class="text-red-500 hover:text-red-700">
-                    <i class="fas fa-times"></i>
-                </button>
+        <div id="errorMessage" class="mb-4 hidden animate-slide-in">
+            <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-3">
+                <p class="text-red-700 dark:text-red-300 text-sm" id="errorText"></p>
             </div>
         </div>
 
-        <div id="successMessage" class="mb-4 sm:mb-6 hidden animate-slide-in">
-            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded-lg p-3 sm:p-4 flex items-start">
-                <i class="fas fa-check-circle text-green-500 mt-0.5 mr-2 sm:mr-3 text-sm sm:text-base"></i>
-                <div class="flex-1">
-                    <p class="text-green-700 dark:text-green-300 font-medium text-sm sm:text-base" id="successText">Login successful!</p>
-                    <p class="text-green-600 dark:text-green-400 text-xs sm:text-sm mt-1">Redirecting to dashboard...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- BOUTONS SOCIAUX - DISCORD EN PRIORITÉ -->
-        <div class="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-            <!-- Discord Login Button (Principal) -->
-            <a href="{{ url_for('auth_discord') }}" 
-               class="btn-discord w-full py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-white font-semibold flex items-center justify-center space-x-2 sm:space-x-3 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group relative overflow-hidden">
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <i class="fab fa-discord text-xl sm:text-2xl relative z-10"></i>
-                <span class="relative z-10 text-sm sm:text-base">Continue with Discord</span>
-            </a>
-
-            <!-- Autres options sociales (secondaires) -->
-            <div class="grid grid-cols-2 gap-2 sm:gap-3">
-                <!-- GitHub (placeholder) -->
-                <button onclick="socialLogin('github')" 
-                        class="social-btn github flex items-center justify-center p-2 sm:p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 group">
-                    <i class="fab fa-github text-xl sm:text-2xl text-gray-800 dark:text-white group-hover:text-gray-900 transition-colors"></i>
-                    <span class="sr-only">GitHub</span>
-                </button>
-                
-                <!-- Google (placeholder) -->
-                <button onclick="socialLogin('google')" 
-                        class="social-btn google flex items-center justify-center p-2 sm:p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 transform hover:scale-105 group">
-                    <i class="fab fa-google text-xl sm:text-2xl text-red-500 group-hover:text-red-600 transition-colors"></i>
-                    <span class="sr-only">Google</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Séparateur "Or continue with" -->
-        <div class="relative my-6 sm:my-8">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
-            </div>
-            <div class="relative flex justify-center text-xs sm:text-sm">
-                <span class="px-3 sm:px-4 bg-white dark:bg-gray-800 text-gray-500">Or continue with email</span>
-            </div>
-        </div>
-
-        <!-- Formulaire de connexion traditionnel -->
-        <form id="loginForm" class="space-y-4 sm:space-y-6">
-            <!-- Champ Username -->
-            <div class="group">
-                <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2 transition-all group-focus-within:text-purple-600">
-                    <i class="fas fa-user mr-1 sm:mr-2 text-purple-600"></i>Username or Email
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <i class="fas fa-user mr-2 text-purple-600"></i>Username
                 </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-user text-gray-400 group-focus-within:text-purple-600 transition-colors text-sm"></i>
-                    </div>
-                    <input type="text" 
-                           id="username"
-                           name="username"
-                           value="mauricio"
-                           placeholder="Enter your username"
-                           class="input-field pl-9 sm:pl-10 pr-10 py-2 sm:py-3 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm sm:text-base"
-                           required
-                           autocomplete="username"
-                           autofocus>
-                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                        <i class="fas fa-check-circle text-green-500 hidden text-sm" id="usernameValidIcon"></i>
-                        <i class="fas fa-times-circle text-red-500 hidden text-sm" id="usernameInvalidIcon"></i>
-                    </div>
-                </div>
+                <input type="text" id="username" value="mauricio" required
+                       class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition bg-white dark:bg-gray-800">
             </div>
 
-            <!-- Champ Password -->
-            <div class="group">
-                <label class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2 transition-all group-focus-within:text-purple-600">
-                    <i class="fas fa-lock mr-1 sm:mr-2 text-purple-600"></i>Password
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <i class="fas fa-lock mr-2 text-purple-600"></i>Password
                 </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-lock text-gray-400 group-focus-within:text-purple-600 transition-colors text-sm"></i>
-                    </div>
-                    <input type="password" 
-                           id="password"
-                           name="password"
-                           value="Test123!"
-                           placeholder="Enter your password"
-                           class="input-field pl-9 sm:pl-10 pr-12 py-2 sm:py-3 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all duration-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm sm:text-base"
-                           required
-                           autocomplete="current-password">
-                    <button type="button" 
-                            onclick="togglePasswordVisibility()"
-                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-purple-600 transition-colors focus:outline-none">
-                        <i class="fas fa-eye text-sm" id="togglePasswordIcon"></i>
-                    </button>
-                </div>
+                <input type="password" id="password" value="Test123!" required
+                       class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition bg-white dark:bg-gray-800">
             </div>
 
-            <!-- Options de connexion -->
-            <div class="flex items-center justify-between flex-wrap gap-2">
-                <label class="flex items-center space-x-2 cursor-pointer group">
-                    <input type="checkbox" 
-                           id="rememberMe"
-                           class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 focus:ring-2 transition-all cursor-pointer">
-                    <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 group-hover:text-purple-600 transition-colors">
-                        Remember me
-                    </span>
+            <div class="flex items-center justify-between">
+                <label class="flex items-center">
+                    <input type="checkbox" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
                 </label>
-                <a href="/forgot-password" class="text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:underline transition-all">
-                    Forgot password?
-                </a>
+                <a href="/forgot-password" class="text-sm text-purple-600 hover:text-purple-700">Forgot password?</a>
             </div>
 
-            <!-- Bouton de connexion -->
             <button type="submit" 
-                    class="btn-primary w-full py-3 sm:py-4 px-4 sm:px-6 rounded-xl text-white font-semibold flex items-center justify-center space-x-2 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm sm:text-base"
+                    class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition transform hover:scale-105"
                     id="submitBtn">
-                <span class="btn-text flex items-center">
-                    <i class="fas fa-sign-in-alt mr-2"></i>
-                    Sign In
-                </span>
-                <span class="btn-loader hidden">
-                    <div class="spinner"></div>
-                </span>
+                <span class="btn-text">Sign In</span>
+                <span class="btn-loader hidden"><i class="fas fa-spinner fa-spin"></i></span>
             </button>
         </form>
 
-        <!-- Lien vers inscription -->
-        <p class="text-center text-gray-600 dark:text-gray-400 mt-4 sm:mt-6 text-xs sm:text-sm">
-            Don't have an account? 
-            <a href="/register" class="text-purple-600 hover:text-purple-700 font-semibold hover:underline transition-all inline-flex items-center">
-                Create one now
-                <i class="fas fa-arrow-right ml-1 text-xs"></i>
-            </a>
-        </p>
-
-        <!-- Badge de démo et sécurité -->
-        <div class="mt-4 sm:mt-6 flex flex-wrap gap-2 justify-center">
-            <span class="inline-flex items-center px-2 sm:px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">
-                <i class="fas fa-flask mr-1"></i>
-                Demo: mauricio / Test123!
-            </span>
-            <span class="inline-flex items-center px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
-                <i class="fas fa-shield-alt mr-1"></i>
-                Discord OAuth2
-            </span>
+        <div class="relative my-8">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-4 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
+            </div>
         </div>
+
+        <div class="grid grid-cols-3 gap-3">
+            <a href="/auth/discord" class="flex justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition group">
+                <i class="fab fa-discord text-2xl text-indigo-600"></i>
+            </a>
+            <button onclick="socialLogin('github')" class="flex justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-900 hover:bg-gray-50 transition group">
+                <i class="fab fa-github text-2xl text-gray-800 dark:text-white"></i>
+            </button>
+            <button onclick="socialLogin('google')" class="flex justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-500 hover:bg-red-50 transition group">
+                <i class="fab fa-google text-2xl text-red-500"></i>
+            </button>
+        </div>
+
+        <p class="text-center text-gray-600 dark:text-gray-400 mt-6">
+            Don't have an account? 
+            <a href="/register" class="text-purple-600 hover:text-purple-700 font-semibold">Create one now</a>
+        </p>
     </div>
 </div>
 
 <script>
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-const API_URL = '/v5.2';
-
-// Éléments DOM
-const form = document.getElementById('loginForm');
-const usernameInput = document.getElementById('username');
-const passwordInput = document.getElementById('password');
-const submitBtn = document.getElementById('submitBtn');
-const btnText = submitBtn.querySelector('.btn-text');
-const btnLoader = submitBtn.querySelector('.btn-loader');
-const errorMessage = document.getElementById('errorMessage');
-const errorText = document.getElementById('errorText');
-const errorDetail = document.getElementById('errorDetail');
-const successMessage = document.getElementById('successMessage');
-const usernameValidIcon = document.getElementById('usernameValidIcon');
-const usernameInvalidIcon = document.getElementById('usernameInvalidIcon');
-
-// ============================================================================
-// VALIDATION EN TEMPS RÉEL
-// ============================================================================
-
-usernameInput.addEventListener('input', validateUsername);
-passwordInput.addEventListener('input', validatePassword);
-
-function validateUsername() {
-    const username = usernameInput.value;
-    const isValid = username.length >= 3;
-    
-    if (username.length > 0) {
-        if (isValid) {
-            usernameInput.classList.add('valid');
-            usernameInput.classList.remove('error');
-            usernameValidIcon.classList.remove('hidden');
-            usernameInvalidIcon.classList.add('hidden');
-        } else {
-            usernameInput.classList.add('error');
-            usernameInput.classList.remove('valid');
-            usernameValidIcon.classList.add('hidden');
-            usernameInvalidIcon.classList.remove('hidden');
-        }
-    } else {
-        usernameInput.classList.remove('valid', 'error');
-        usernameValidIcon.classList.add('hidden');
-        usernameInvalidIcon.classList.add('hidden');
-    }
-    
-    return isValid;
-}
-
-function validatePassword() {
-    const password = passwordInput.value;
-    const isValid = password.length >= 8;
-    
-    if (password.length > 0) {
-        if (isValid) {
-            passwordInput.classList.add('valid');
-            passwordInput.classList.remove('error');
-        } else {
-            passwordInput.classList.add('error');
-            passwordInput.classList.remove('valid');
-        }
-    } else {
-        passwordInput.classList.remove('valid', 'error');
-    }
-    
-    return isValid;
-}
-
-// ============================================================================
-// UTILITAIRES
-// ============================================================================
-
-function togglePasswordVisibility() {
-    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-    passwordInput.setAttribute('type', type);
-    
-    const icon = document.getElementById('togglePasswordIcon');
-    icon.classList.toggle('fa-eye');
-    icon.classList.toggle('fa-eye-slash');
-}
-
-function closeMessage(id) {
-    document.getElementById(id).classList.add('hidden');
-}
-
-function showError(title, detail = '') {
-    errorText.textContent = title;
-    errorDetail.textContent = detail;
-    errorMessage.classList.remove('hidden');
-    successMessage.classList.add('hidden');
-    
-    setTimeout(() => {
-        errorMessage.classList.add('hidden');
-    }, 5000);
-}
-
-function showSuccess(message) {
-    successMessage.querySelector('#successText').textContent = message;
-    successMessage.classList.remove('hidden');
-    errorMessage.classList.add('hidden');
-}
-
-function resetMessages() {
-    errorMessage.classList.add('hidden');
-    successMessage.classList.add('hidden');
-}
-
-// ============================================================================
-// SOCIAL LOGIN (PLACEHOLDER)
-// ============================================================================
-
-function socialLogin(provider) {
-    if (provider === 'github') {
-        showError('GitHub Login', 'GitHub authentication coming soon!');
-    } else if (provider === 'google') {
-        showError('Google Login', 'Google authentication coming soon!');
-    }
-    
-    // Animation sur le bouton
-    const btn = event.currentTarget;
-    btn.classList.add('scale-95');
-    setTimeout(() => btn.classList.remove('scale-95'), 200);
-}
-
-// ============================================================================
-// SOUMISSION DU FORMULAIRE
-// ============================================================================
-
-form.addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const isUsernameValid = validateUsername();
-    const isPasswordValid = validatePassword();
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoader = submitBtn.querySelector('.btn-loader');
+    const errorMsg = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
     
-    if (!isUsernameValid || !isPasswordValid) {
-        showError('Validation Error', 'Please check your username and password');
-        return;
-    }
-    
-    // Désactiver le bouton
     btnText.classList.add('hidden');
     btnLoader.classList.remove('hidden');
     submitBtn.disabled = true;
+    errorMsg.classList.add('hidden');
     
-    resetMessages();
-    
-    const username = usernameInput.value;
-    const password = passwordInput.value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
     
     try {
-        const response = await fetch(`${API_URL}/auth/login`, {
+        const res = await fetch('/v6/auth/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
         
-        const data = await response.json();
+        const data = await res.json();
         
-        if (data.success && data.token) {
-            // Stocker le token
+        if (data.success) {
             localStorage.setItem('zarch_token', data.token);
             localStorage.setItem('zarch_user', JSON.stringify(data.user));
-            
-            // Cookie pour le middleware
-            document.cookie = `zarch_token=${data.token}; path=/; max-age=86400; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`;
-            
-            showSuccess('Login successful!');
-            
-            // Animation de succès
-            submitBtn.classList.add('bg-green-500');
-            submitBtn.classList.remove('from-purple-600', 'to-pink-600');
-            
-            // Redirection
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 1000);
+            window.location.href = '/dashboard';
         } else {
-            showError('Authentication Failed', data.error || 'Invalid username or password');
-            
-            // Réactiver le bouton
+            errorText.textContent = data.error || 'Login failed';
+            errorMsg.classList.remove('hidden');
             btnText.classList.remove('hidden');
             btnLoader.classList.add('hidden');
             submitBtn.disabled = false;
-            submitBtn.classList.remove('bg-green-500');
-            submitBtn.classList.add('from-purple-600', 'to-pink-600');
         }
-    } catch (error) {
-        console.error('Login error:', error);
-        showError('Connection Error', 'Unable to reach the server. Please check your internet connection.');
-        
+    } catch (err) {
+        errorText.textContent = 'Network error';
+        errorMsg.classList.remove('hidden');
         btnText.classList.remove('hidden');
         btnLoader.classList.add('hidden');
         submitBtn.disabled = false;
     }
 });
 
-// ============================================================================
-// VÉRIFICATION D'AUTHENTIFICATION EXISTANTE
-// ============================================================================
-
-(async function checkAuth() {
-    const token = localStorage.getItem('zarch_token');
-    if (token) {
-        try {
-            const response = await fetch(`${API_URL}/auth/verify`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.valid) {
-                // Silencieusement rediriger
-                window.location.href = '/dashboard';
-            }
-        } catch (error) {
-            // Token invalide, nettoyer
-            localStorage.removeItem('zarch_token');
-            localStorage.removeItem('zarch_user');
-        }
-    }
-})();
-
-// ============================================================================
-// RACCOURCIS CLAVIER
-// ============================================================================
-
-document.addEventListener('keydown', (e) => {
-    // Ctrl/Cmd + D pour les credentials de démo
-    if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        e.preventDefault();
-        usernameInput.value = 'mauricio';
-        passwordInput.value = 'Test123!';
-        validateUsername();
-        validatePassword();
-        showSuccess('Demo credentials loaded!');
-    }
-});
-
-// Focus automatique
-usernameInput.focus();
+function socialLogin(provider) {
+    alert(`${provider} login coming soon!`);
+}
 </script>
-
-<style>
-/* Styles supplémentaires pour les inputs */
-.input-field {
-    transition: all 0.3s ease;
-}
-
-.input-field:focus {
-    outline: none;
-}
-
-.input-field.error {
-    border-color: #EF4444 !important;
-    background-color: #FEF2F2;
-}
-
-.input-field.valid {
-    border-color: #10B981 !important;
-    background-color: #F0FDF4;
-}
-
-/* Animation delays */
-.animation-delay-2000 {
-    animation-delay: 2s;
-}
-
-/* Style pour le bouton Discord */
-.btn-discord {
-    background: #5865F2;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-discord:hover {
-    background: #4752C4;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(88, 101, 242, 0.5);
-}
-
-.btn-discord::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-}
-
-.btn-discord:active::after {
-    width: 300px;
-    height: 300px;
-}
-
-/* Mode sombre support */
-@media (prefers-color-scheme: dark) {
-    .input-field {
-        background-color: #1F2937;
-        border-color: #374151;
-        color: white;
-    }
-    
-    .input-field::placeholder {
-        color: #9CA3AF;
-    }
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .glass-card {
-        padding: 1.5rem !important;
-    }
-    
-    .social-btn {
-        padding: 0.6rem !important;
-    }
-    
-    .btn-discord {
-        padding: 0.75rem !important;
-    }
-}
-</style>
 {% endblock %}
