@@ -1,125 +1,6 @@
 {% extends "base.html" %}
 
-{% block og_title %}Zarch Hub - The Ultimate APKM Package Registry{% endblock %}
-{% block og_description %}Discover, share, and manage Alpine Linux packages with Zarch Hub. Secure, fast, and community-driven package registry for APKM.{% endblock %}
-{% block og_image %}https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/og-image.png{% endblock %}
-{% block og_image_alt %}Zarch Hub - Package Registry for Alpine Linux{% endblock %}
-
-{% block twitter_title %}Zarch Hub - APKM Package Registry{% endblock %}
-{% block twitter_description %}The ultimate package registry for Alpine Linux packages. Browse, download, and publish with ease.{% endblock %}
-
-{% block title %}Zarch Hub - APKM Package Registry{% endblock %}
-
-{% block extra_head %}
-<!-- Meta tags supplémentaires pour SEO -->
-<meta name="keywords" content="apkm, alpine linux, package manager, zarch hub, linux packages, alpine repository">
-<meta name="author" content="Gopu.inc">
-<meta name="robots" content="index, follow">
-<link rel="canonical" href="https://gsql-badge.onrender.com">
-
-<!-- JSON-LD Structured Data -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Zarch Hub",
-  "url": "https://gsql-badge.onrender.com",
-  "description": "The ultimate package registry for APKM - Alpine Package Manager",
-  "author": {
-    "@type": "Organization",
-    "name": "Gopu.inc",
-    "email": "ceoseshell@gmail.com"
-  },
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": {
-      "@type": "EntryPoint",
-      "urlTemplate": "https://gsql-badge.onrender.com/packages?q={search_term_string}"
-    },
-    "query-input": "required name=search_term_string"
-  }
-}
-</script>
-
-<!-- Preconnect pour les ressources externes -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
-
-<!-- Styles additionnels -->
-<style>
-  /* Animations personnalisées */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-  }
-  
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
-  }
-  
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
-  
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-  
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
-  
-  /* Effet de glassmorphism amélioré */
-  .glass-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .dark .glass-card {
-    background: rgba(30, 41, 59, 0.95);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  /* Gradient text */
-  .gradient-text {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  /* Hero section avec overlay */
-  .hero-section {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .hero-section::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 50%);
-    animation: rotate 30s linear infinite;
-  }
-  
-  @keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-</style>
-{% endblock %}
+{% block title %}Zarch Hub - The Ultimate APKM Package Registry{% endblock %}
 
 {% block content %}
 <!-- =========================================================================
@@ -133,77 +14,75 @@
         <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
     </div>
 
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-        <div class="text-center" data-aos="fade-up">
-            <!-- Badge "Now in Beta" -->
-            <div class="inline-flex items-center px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-sm font-medium mb-6 sm:mb-8 animate-float">
-                <i class="fas fa-rocket mr-2"></i>
-                <span>🚀 Now in Beta - Join the Revolution!</span>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center" data-aos="fade-up">
+        <!-- Badge "Now in Beta" -->
+        <div class="inline-flex items-center px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-sm font-medium mb-6 sm:mb-8 animate-float">
+            <i class="fas fa-rocket mr-2"></i>
+            <span>🚀 Now in Beta - Join the Revolution!</span>
+        </div>
+
+        <!-- Titre principal -->
+        <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
+            <span class="gradient-text">Zarch Hub</span>
+        </h1>
+
+        <!-- Sous-titre -->
+        <p class="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
+            The ultimate package registry for 
+            <span class="font-bold text-purple-600 dark:text-purple-400">APKM</span> - 
+            Alpine Package Manager
+        </p>
+
+        <!-- Barre de recherche -->
+        <div class="max-w-2xl mx-auto px-4 mb-8 sm:mb-12">
+            <form action="/packages" method="get" class="relative group">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
+                <input type="text" 
+                       name="q" 
+                       placeholder="Search packages... (e.g., apkm, bool, apsm)" 
+                       class="w-full pl-12 pr-32 py-3 sm:py-4 rounded-2xl glass-card text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-900/50 transition-all duration-300 shadow-lg"
+                       value="{{ request.args.get('q', '') }}">
+                <button type="submit" 
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg text-sm sm:text-base">
+                    Search
+                </button>
+            </form>
+
+            <!-- Tags populaires -->
+            <div class="flex flex-wrap gap-2 justify-center mt-4 text-xs sm:text-sm">
+                <span class="text-gray-500 dark:text-gray-400">Popular:</span>
+                <a href="/packages?q=apkm" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
+                    apkm
+                </a>
+                <a href="/packages?q=bool" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
+                    bool
+                </a>
+                <a href="/packages?q=apsm" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
+                    apsm
+                </a>
+                <a href="/packages?q=alpine" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
+                    alpine
+                </a>
             </div>
+        </div>
 
-            <!-- Titre principal -->
-            <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
-                <span class="gradient-text">Zarch Hub</span>
-            </h1>
-
-            <!-- Sous-titre -->
-            <p class="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-                The ultimate package registry for 
-                <span class="font-bold text-purple-600 dark:text-purple-400">APKM</span> - 
-                Alpine Package Manager
-            </p>
-
-            <!-- Barre de recherche -->
-            <div class="max-w-2xl mx-auto px-4 mb-8 sm:mb-12">
-                <form action="/packages" method="get" class="relative group">
-                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
-                    <input type="text" 
-                           name="q" 
-                           placeholder="Search packages... (e.g., apkm, bool, apsm)" 
-                           class="w-full pl-12 pr-32 py-3 sm:py-4 rounded-2xl glass-card text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-900/50 transition-all duration-300 shadow-lg"
-                           value="{{ request.args.get('q', '') }}">
-                    <button type="submit" 
-                            class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg text-sm sm:text-base">
-                        Search
-                    </button>
-                </form>
-
-                <!-- Tags populaires -->
-                <div class="flex flex-wrap gap-2 justify-center mt-4 text-xs sm:text-sm">
-                    <span class="text-gray-500 dark:text-gray-400">Popular:</span>
-                    <a href="/packages?q=apkm" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                        apkm
-                    </a>
-                    <a href="/packages?q=bool" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                        bool
-                    </a>
-                    <a href="/packages?q=apsm" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                        apsm
-                    </a>
-                    <a href="/packages?q=alpine" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                        alpine
-                    </a>
-                </div>
+        <!-- Statistiques -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto px-4">
+            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
+                <div class="text-xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{{ total_packages }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Packages</div>
             </div>
-
-            <!-- Statistiques -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto px-4">
-                <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                    <div class="text-xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{{ total_packages|default('0') }}</div>
-                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Packages</div>
-                </div>
-                <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                    <div class="text-xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{{ total_downloads|default('0') }}</div>
-                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Downloads</div>
-                </div>
-                <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                    <div class="text-xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{{ total_authors|default('0') }}</div>
-                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Authors</div>
-                </div>
-                <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                    <div class="text-xl sm:text-3xl font-bold text-pink-600 dark:text-pink-400">2026</div>
-                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Founded</div>
-                </div>
+            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
+                <div class="text-xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{{ total_downloads }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Downloads</div>
+            </div>
+            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
+                <div class="text-xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{{ total_authors }}</div>
+                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Authors</div>
+            </div>
+            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
+                <div class="text-xl sm:text-3xl font-bold text-pink-600 dark:text-pink-400">2026</div>
+                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Founded</div>
             </div>
         </div>
     </div>
@@ -355,11 +234,10 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {% for pkg in packages %}
         <a href="/package/{{ pkg.name }}" 
-           class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group"
+           class="glass-card rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group"
            data-aos="fade-up" 
            data-aos-delay="{{ loop.index * 50 }}">
             
-            <!-- En-tête avec scope -->
             <div class="flex items-start justify-between mb-3 sm:mb-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center">
@@ -367,7 +245,7 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-sm sm:text-base truncate max-w-[120px] sm:max-w-[150px]">{{ pkg.name }}</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">by {{ pkg.author }}</p>
+                        <p class="text-xs text-gray-500">by <span data-author="{{ pkg.author }}">{{ pkg.author }}</span></p>
                     </div>
                 </div>
                 <span class="text-xs px-2 py-1 rounded-full 
@@ -381,12 +259,10 @@
                 </span>
             </div>
 
-            <!-- Description -->
             <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-4 line-clamp-2">
                 {{ pkg.description or 'No description provided' }}
             </p>
 
-            <!-- Métadonnées -->
             <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
                 <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
@@ -394,7 +270,6 @@
             </div>
         </a>
         {% else %}
-        <!-- Message si pas de packages -->
         <div class="col-span-full text-center py-8 sm:py-12">
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-box-open text-2xl sm:text-3xl text-gray-400"></i>
@@ -442,7 +317,6 @@
             </a>
         </div>
 
-        <!-- Badges de confiance -->
         <div class="flex flex-wrap justify-center gap-4 sm:gap-6 mt-6 sm:mt-8 text-xs sm:text-sm text-gray-500">
             <div class="flex items-center">
                 <i class="fas fa-check-circle text-green-500 mr-2"></i>
@@ -459,20 +333,4 @@
         </div>
     </div>
 </div>
-
-<!-- Script pour AOS (si utilisé dans base.html) -->
-{% if not request.cookies.get('aos-disabled') %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof AOS !== 'undefined') {
-            AOS.init({
-                duration: 800,
-                once: true,
-                offset: 100,
-                disable: window.innerWidth < 640 // Désactiver sur mobile si trop lent
-            });
-        }
-    });
-</script>
-{% endif %}
 {% endblock %}
