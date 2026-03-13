@@ -1739,7 +1739,6 @@ def init_github_structure():
     for folder in folders:
         GitHubManager.write_json(f"{folder}/.gitkeep", {}, "Init structure")
 
-# Au niveau du module, après la définition des classes
 def startup():
     """Initialisation au démarrage"""
     with app.app_context():
