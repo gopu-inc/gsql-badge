@@ -37,7 +37,7 @@ import markupsafe
 from markupsafe import escape
 
 # Pydantic v2
-from pydantic import BaseModel, Field, validator, ConfigDict, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic.networks import EmailStr, HttpUrl
 
 # Logging structuré
@@ -126,8 +126,9 @@ class UserBase(BaseModel):
     
     @field_validator('username')
     def validate_username(cls, v):
-        if v.lower() in ['admin', 'root', 'system', 'anonymous']:
-            raise ValueError('Username not allowed')
+        forbidden = ['admin', 'root', 'system', 'anonymous', 'null', 'undefined']
+        if v.lower() in forbidden:
+            raise ValueError(f'Username "{v}" is not allowed')
         return v
 
 class UserCreate(UserBase):
@@ -136,9 +137,9 @@ class UserCreate(UserBase):
     @field_validator('password')
     def validate_password(cls, v):
         if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain uppercase')
+            raise ValueError('Password must contain uppercase letter')
         if not any(c.islower() for c in v):
-            raise ValueError('Password must contain lowercase')
+            raise ValueError('Password must contain lowercase letter')
         if not any(c.isdigit() for c in v):
             raise ValueError('Password must contain number')
         return v
@@ -160,6 +161,8 @@ class UserInDB(UserBase):
     discord_token: Optional[str] = None
     discord_refresh_token: Optional[str] = None
     discord_token_expires: Optional[datetime] = None
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 # ============================================================================
 # MODÈLES PACKAGE
@@ -207,6 +210,8 @@ class PackageInDB(PackageManifest):
     file_path: Optional[str] = None
     file_size: Optional[int] = None
     file_sha256: Optional[str] = None
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 # ============================================================================
 # MODÈLES REVIEW
@@ -230,6 +235,8 @@ class ReviewInDB(ReviewBase):
     helpful_count: int = 0
     reported: bool = False
     verified_purchase: bool = False
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 # ============================================================================
 # MODÈLES BADGE
@@ -250,39 +257,8 @@ class BadgeInDB(BadgeBase):
     created_at: datetime = Field(default_factory=datetime.now)
     usage_count: int = 0
     public: bool = True
-
-# ============================================================================
-# MODÈLES COMMUNAUTÉ
-# ============================================================================
-
-class CommentBase(BaseModel):
-    content: str = Field(..., max_length=2000)
-
-class CommentInDB(CommentBase):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    package_id: str
-    author_id: str
-    author_username: str
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    parent_id: Optional[str] = None
-    helpful_count: int = 0
-
-class ForumTopicBase(BaseModel):
-    title: str = Field(..., max_length=200)
-    content: str = Field(..., max_length=10000)
-    category: str = Field(..., pattern="^(general|packages|help|showcase|security|offtopic)$")
-
-class ForumTopicInDB(ForumTopicBase):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    author_id: str
-    author_username: str
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-    views: int = 0
-    replies_count: int = 0
-    pinned: bool = False
-    locked: bool = False
+    
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 # ============================================================================
 # MODÈLES TOKEN
@@ -299,17 +275,14 @@ class TokenInDB(BaseModel):
     username: str
     role: UserRole = UserRole.USER
     created_at: datetime = Field(default_factory=datetime.now)
-    expires_at: Optional[datetime] = None  # ← Rendre optionnel
+    expires_at: datetime
     active: bool = True
     last_used: Optional[datetime] = None
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
     
-    @field_validator('expires_at', mode='before')
-    def set_default_expiry(cls, v):
-        if v is None:
-            return datetime.now() + timedelta(days=30)
-        return v
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
 # ============================================================================
 # INITIALISATION FLASK
 # ============================================================================
@@ -347,6 +320,7 @@ class GitHubManager:
     @staticmethod
     def get_headers():
         if not Config.GITHUB_TOKEN:
+            app.logger.error("GITHUB_TOKEN is not set")
             raise ValueError("GITHUB_TOKEN is required")
         return {
             'Authorization': f'token {Config.GITHUB_TOKEN}',
@@ -375,13 +349,14 @@ class GitHubManager:
             if resp.status_code == 200:
                 return resp.json()
             if resp.status_code == 404:
+                app.logger.info(f"File not found: {path}, using default")
                 return default
                 
             app.logger.error(f"GitHub read error {resp.status_code}: {path}")
             return default
             
         except Exception as e:
-            app.logger.error(f"GitHub exception: {e}")
+            app.logger.error(f"GitHub read exception: {e}")
             return default
     
     @staticmethod
@@ -521,28 +496,6 @@ class GitHubManager:
         except Exception as e:
             app.logger.error(f"Delete exception: {e}")
             return False
-    
-    @staticmethod
-    def list_dir(path: str) -> List[str]:
-        """Liste le contenu d'un dossier GitHub"""
-        try:
-            headers = GitHubManager.get_headers()
-            headers['Accept'] = 'application/vnd.github.v3+json'
-            
-            resp = requests.get(
-                GitHubManager.get_api_url(path),
-                headers=headers,
-                params={'ref': Config.GITHUB_BRANCH},
-                timeout=30
-            )
-            
-            if resp.status_code == 200:
-                return [item['name'] for item in resp.json() if item['type'] == 'file']
-            return []
-            
-        except Exception as e:
-            app.logger.error(f"List dir exception: {e}")
-            return []
 
 # ============================================================================
 # GESTIONNAIRES SPÉCIALISÉS
@@ -556,7 +509,13 @@ class UserManager:
     @classmethod
     def get_all(cls) -> List[UserInDB]:
         data = GitHubManager.read_json(cls.DB_PATH, {'users': []})
-        return [UserInDB(**u) for u in data.get('users', [])]
+        users = []
+        for u in data.get('users', []):
+            try:
+                users.append(UserInDB(**u))
+            except Exception as e:
+                app.logger.warning(f"Failed to parse user: {e}")
+        return users
     
     @classmethod
     def save_all(cls, users: List[UserInDB]) -> bool:
@@ -617,7 +576,8 @@ class UserManager:
         for i, u in enumerate(users):
             if u.username == username:
                 for key, value in updates.items():
-                    setattr(users[i], key, value)
+                    if hasattr(users[i], key):
+                        setattr(users[i], key, value)
                 users[i].updated_at = datetime.now()
                 if cls.save_all(users):
                     return users[i]
@@ -646,7 +606,13 @@ class PackageManager:
     @classmethod
     def get_all(cls) -> List[PackageInDB]:
         data = GitHubManager.read_json(cls.DB_PATH, {'packages': []})
-        return [PackageInDB(**p) for p in data.get('packages', [])]
+        packages = []
+        for p in data.get('packages', []):
+            try:
+                packages.append(PackageInDB(**p))
+            except Exception as e:
+                app.logger.warning(f"Failed to parse package: {e}")
+        return packages
     
     @classmethod
     def save_all(cls, packages: List[PackageInDB]) -> bool:
@@ -701,7 +667,8 @@ class PackageManager:
         for i, p in enumerate(packages):
             if p.id == package_id:
                 for key, value in updates.items():
-                    setattr(packages[i], key, value)
+                    if hasattr(packages[i], key):
+                        setattr(packages[i], key, value)
                 packages[i].updated_at = datetime.now()
                 if cls.save_all(packages):
                     return packages[i]
@@ -712,10 +679,6 @@ class PackageManager:
         packages = cls.get_all()
         new_packages = [p for p in packages if p.id != package_id]
         if len(new_packages) < len(packages):
-            # Supprimer aussi le fichier binaire
-            package = cls.get_by_name(package_id)  # À améliorer
-            if package and package.file_path:
-                GitHubManager.delete(package.file_path, f"Delete package {package.name}")
             return cls.save_all(new_packages)
         return False
     
@@ -738,7 +701,13 @@ class ReviewManager:
     @classmethod
     def get_by_package(cls, package_name: str) -> List[ReviewInDB]:
         data = GitHubManager.read_json(cls.get_path(package_name), {'reviews': []})
-        return [ReviewInDB(**r) for r in data.get('reviews', [])]
+        reviews = []
+        for r in data.get('reviews', []):
+            try:
+                reviews.append(ReviewInDB(**r))
+            except Exception as e:
+                app.logger.warning(f"Failed to parse review: {e}")
+        return reviews
     
     @classmethod
     def save_for_package(cls, package_name: str, reviews: List[ReviewInDB]) -> bool:
@@ -778,7 +747,13 @@ class BadgeManager:
     @classmethod
     def get_user_badges(cls, username: str) -> Dict[str, BadgeInDB]:
         data = GitHubManager.read_json(cls.get_path(username), {})
-        return {name: BadgeInDB(**b) for name, b in data.items()}
+        badges = {}
+        for name, b in data.items():
+            try:
+                badges[name] = BadgeInDB(**b)
+            except Exception as e:
+                app.logger.warning(f"Failed to parse badge: {e}")
+        return badges
     
     @classmethod
     def save_user_badges(cls, username: str, badges: Dict[str, BadgeInDB]) -> bool:
@@ -807,10 +782,6 @@ class BadgeManager:
             return cls.save_user_badges(username, badges)
         return False
 
-# ============================================================================
-# GESTIONNAIRE DES TOKENS (VERSION CORRIGÉE)
-# ============================================================================
-
 class TokenManager:
     """Gestionnaire des tokens JWT (100% GitHub)"""
     
@@ -837,7 +808,7 @@ class TokenManager:
         return GitHubManager.write_json(cls.DB_PATH, data, "Tokens update")
     
     @classmethod
-    def create_token(cls, username: str, role: UserRole, user_agent: str = None, ip: str = None) -> str:
+    def create_token(cls, username: str, role: UserRole, user_agent: str = None, ip: str = None) -> Optional[str]:
         """Crée un token JWT et le stocke sur GitHub"""
         tokens = cls.get_all()
         
@@ -853,8 +824,8 @@ class TokenManager:
         payload = {
             'username': username,
             'role': role.value,
-            'iat': now,
-            'exp': expires
+            'iat': int(now.timestamp()),
+            'exp': int(expires.timestamp())
         }
         
         token_str = jwt.encode(payload, Config.JWT_SECRET, algorithm='HS256')
@@ -865,7 +836,7 @@ class TokenManager:
             username=username,
             role=role,
             created_at=now,
-            expires_at=expires,  # ← Toujours fournir une date
+            expires_at=expires,
             active=True,
             user_agent=user_agent,
             ip_address=ip
@@ -929,11 +900,9 @@ class TokenManager:
         for t in tokens:
             if t.active and t.expires_at and t.expires_at > now:
                 active_tokens.append(t)
-            elif not t.expires_at:
-                # Token sans date d'expiration (le traiter comme expiré)
-                app.logger.info(f"Removing token without expiry for {t.username}")
         
         return cls.save_all(active_tokens)
+
 # ============================================================================
 # UTILITAIRES DE SÉCURITÉ
 # ============================================================================
@@ -1047,7 +1016,9 @@ def register():
     """Inscription utilisateur"""
     try:
         data = request.get_json()
-        # Utiliser UserCreate, pas UserInDB !
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
         validated = UserCreate(**data)
         
         # Vérifier si l'utilisateur existe déjà
@@ -1057,7 +1028,7 @@ def register():
         if UserManager.get_by_email(validated.email):
             return jsonify({'error': 'Email already exists'}), 400
         
-        # Créer l'utilisateur avec les données validées
+        # Créer l'utilisateur
         user_data = validated.model_dump()
         user_data['email_verification_token'] = SecurityUtils.generate_verification_token()
         
@@ -1073,6 +1044,9 @@ def register():
             request.remote_addr
         )
         
+        if not token:
+            return jsonify({'error': 'Failed to create token'}), 500
+        
         return jsonify({
             'success': True,
             'token': token,
@@ -1084,20 +1058,18 @@ def register():
             }
         }), 201
         
-    except ValidationError as e:
-        app.logger.error(f"Register validation error: {e}")
-        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        app.logger.error(f"Register error: {e}")
+        app.logger.error(f"Register error: {str(e)}")
         return jsonify({'error': str(e)}), 400
-
 
 @app.route('/v6/auth/login', methods=['POST'])
 def login():
     """Connexion utilisateur"""
     try:
         data = request.get_json()
-        # Utiliser UserLogin, pas UserInDB !
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
         validated = UserLogin(**data)
         
         user = UserManager.get_by_username(validated.username)
@@ -1118,6 +1090,9 @@ def login():
             request.remote_addr
         )
         
+        if not token:
+            return jsonify({'error': 'Failed to create token'}), 500
+        
         return jsonify({
             'success': True,
             'token': token,
@@ -1131,13 +1106,9 @@ def login():
             }
         }), 200
         
-    except ValidationError as e:
-        app.logger.error(f"Login validation error: {e}")
-        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        app.logger.error(f"Login error: {e}")
+        app.logger.error(f"Login error: {str(e)}")
         return jsonify({'error': str(e)}), 400
-
 
 @app.route('/v6/auth/verify', methods=['GET'])
 @token_required
@@ -1260,9 +1231,11 @@ def create_package():
     """Crée un nouveau package"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
         
         # Ajouter les infos d'auteur
-        data['author_id'] = g.user.username  # À améliorer avec l'ID réel
+        data['author_id'] = g.user.username
         data['author_username'] = g.user.username
         
         package = PackageManager.create(data)
@@ -1285,12 +1258,15 @@ def upload_package_file(name):
     release = request.form.get('release', 'r0')
     arch = request.form.get('arch', 'x86_64')
     
+    if not version:
+        return jsonify({'error': 'Version is required'}), 400
+    
     if 'file' not in request.files:
         return jsonify({'error': 'No file'}), 400
     
     file = request.files['file']
     if not file.filename.endswith('.tar.bool'):
-        return jsonify({'error': 'Invalid file type'}), 400
+        return jsonify({'error': 'Invalid file type, must be .tar.bool'}), 400
     
     # Vérifier que le package existe
     package = PackageManager.get_by_name(name, version)
@@ -1395,6 +1371,8 @@ def add_review(name):
     """Ajoute une review à un package"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
         
         package = PackageManager.get_by_name(name)
         if not package:
@@ -1446,6 +1424,9 @@ def create_badge():
     """Crée un badge personnalisé"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
         data['author_id'] = g.user.username
         data['author_username'] = g.user.username
         
@@ -1606,23 +1587,6 @@ def get_stats():
     }), 200
 
 # ============================================================================
-# ROUTES COMMUNAUTÉ (à implémenter)
-# ============================================================================
-
-@app.route('/v6/community/forum', methods=['GET'])
-def get_forum_topics():
-    """Liste les sujets du forum"""
-    # À implémenter avec un fichier forum.json
-    return jsonify({'topics': []}), 200
-
-@app.route('/v6/community/forum', methods=['POST'])
-@token_required
-def create_forum_topic():
-    """Crée un sujet de forum"""
-    # À implémenter
-    return jsonify({'success': True}), 201
-
-# ============================================================================
 # ROUTES WEB
 # ============================================================================
 
@@ -1745,6 +1709,17 @@ def register_page():
     """Page d'inscription"""
     return render_template('register.html')
 
+@app.route('/docs')
+def docs_page():
+    """Page de documentation"""
+    return render_template('docs.html')
+
+@app.route('/upload')
+@token_required
+def upload_page():
+    """Page d'upload"""
+    return render_template('upload.html')
+
 # ============================================================================
 # GESTION DES ERREURS
 # ============================================================================
@@ -1764,7 +1739,7 @@ def internal_error(e):
 
 def init_github_structure():
     """Initialise la structure de dossiers sur GitHub"""
-    # Créer les dossiers nécessaires via des fichiers .gitkeep
+    app.logger.info("🔧 Initializing GitHub structure...")
     folders = [
         'database',
         'packages/public',
@@ -1777,14 +1752,27 @@ def init_github_structure():
     ]
     
     for folder in folders:
-        GitHubManager.write_json(f"{folder}/.gitkeep", {}, "Init structure")
+        try:
+            # Créer un fichier .gitkeep pour initialiser le dossier
+            GitHubManager.write_json(f"{folder}/.gitkeep", {"init": True}, f"Init {folder}")
+            app.logger.info(f"  ✅ Created {folder}")
+        except Exception as e:
+            app.logger.warning(f"  ⚠️  Warning: {folder} - {e}")
+    
+    app.logger.info("✅ GitHub structure initialized")
 
-def startup():
-    """Initialisation au démarrage"""
-    with app.app_context():
+# Initialisation au démarrage
+with app.app_context():
+    try:
         init_github_structure()
         TokenManager.cleanup_expired()
-startup()
+        app.logger.info("🚀 Server initialized successfully")
+    except Exception as e:
+        app.logger.error(f"Initialization error: {e}")
+
+# ============================================================================
+# DÉMARRAGE
+# ============================================================================
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
