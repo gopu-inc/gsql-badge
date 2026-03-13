@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Zarch Package Registry v5.2 - Production Edition
-Sécurité renforcée, API versionnée, Cookies sécurisés
-Stockage GitHub préservé
+Zarch Package Registry v6.0 - Enterprise Edition
+100% GitHub Storage • No Local State • Full Pydantic Validation
 """
 
 import os
@@ -23,6 +22,8 @@ import logging.handlers
 from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse, urlencode, quote
+from typing import Optional, List, Dict, Any, Union
+from enum import Enum
 
 # Flask et extensions
 from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort
@@ -30,19 +31,14 @@ from flask_cors import CORS
 
 # Sécurité avancée
 import ssl
-import cryptography
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from itsdangerous import URLSafeTimedSerializer  # Uniquement celui-ci
-import jwt  # Pour les JWT
+import jwt
 import bleach
 import markupsafe
 from markupsafe import escape
-import pydantic
-from pydantic import BaseModel, validator, ValidationError
-import paramiko
-import OpenSSL
+
+# Pydantic v2
+from pydantic import BaseModel, Field, validator, ConfigDict, field_validator
+from pydantic.networks import EmailStr, HttpUrl
 
 # Logging structuré
 from pythonjsonlogger import jsonlogger
@@ -50,11 +46,9 @@ from pythonjsonlogger import jsonlogger
 # Variables d'environnement
 from dotenv import load_dotenv
 
-from datetime import datetime, timedelta
 # Markdown
 import markdown
 from markdown.extensions import extra, codehilite, toc, tables
-
 
 # ============================================================================
 # CHARGEMENT DES VARIABLES D'ENVIRONNEMENT
@@ -63,72 +57,270 @@ from markdown.extensions import extra, codehilite, toc, tables
 load_dotenv()
 
 # ============================================================================
-# CONFIGURATION DE SÉCURITÉ
+# CONFIGURATION
 # ============================================================================
 
-class SecurityConfig:
-    # Clés de chiffrement
-    FERNET_KEY = os.environ.get('FERNET_KEY', Fernet.generate_key().decode())
-    JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
-    APP_SECRET = os.environ.get('APP_SECRET', secrets.token_hex(32))
-    COOKIE_SECRET = os.environ.get('COOKIE_SECRET', secrets.token_hex(32))
+class Config:
+    """Configuration centrale - Tout vient des variables d'environnement"""
     
-    # GitHub (inchangé)
-    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "")
+    # GitHub
+    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
     GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/gsql-badge")
-    GITHUB_USERNAME = os.environ.get('GITHUB_USERNAME', "gopu-inc")
     GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package-data")
     
-    # Paramètres de sécurité
-    SESSION_TIMEOUT = int(os.environ.get('SESSION_TIMEOUT', 360020312888))  # 1 heure
-    TOKEN_EXPIRY = int(os.environ.get('TOKEN_EXPIRY', 604800888888888))  # 7 jours
+    # Sécurité
+    JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
+    APP_SECRET = os.environ.get('APP_SECRET', secrets.token_hex(32))
+    
+    # Discord OAuth
+    DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID')
+    DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
+    DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', 'https://gsql-badge.onrender.com/auth/discord/callback')
+    DISCORD_API_ENDPOINT = os.environ.get('DISCORD_API_ENDPOINT', 'https://discord.com/api/v10')
+    
+    # Paramètres
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 100 * 1024 * 1024))  # 100MB
-    RATE_LIMIT = int(os.environ.get('RATE_LIMIT', 210087))  # Requêtes par minute
-    COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'False').lower() == 'true'
-    COOKIE_SAMESITE = os.environ.get('COOKIE_SAMESITE', 'Lax')
+    TOKEN_EXPIRY_DAYS = int(os.environ.get('TOKEN_EXPIRY_DAYS', 30))
+    SESSION_TIMEOUT_HOURS = int(os.environ.get('SESSION_TIMEOUT_HOURS', 24))
+    
+    # Validation
+    REQUIRED_GITHUB_TOKEN: bool = True
 
-DISCORD_CLIENT_ID = os.environ.get('DISCORD_CLIENT_ID', '1467542922139537469')
-DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
-DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', 'https://gsql-badge.onrender.com/auth/discord/callback')
-DISCORD_API_ENDPOINT = os.environ.get('DISCORD_API_ENDPOINT', 'https://discord.com/api/v10')
-DISCORD_SCOPE = 'identify email guilds'
+# ============================================================================
+# MODÈLES PYDANTIC COMPLETS
+# ============================================================================
+
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+    MODERATOR = "moderator"
+    VERIFIED = "verified"
+
+class PackageScope(str, Enum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    GLOBAL = "global"
+
+class BadgeStyle(str, Enum):
+    FLAT = "flat"
+    PLASTIC = "plastic"
+    FLAT_SQUARE = "flat-square"
+    FOR_THE_BADGE = "for-the-badge"
+
+# ============================================================================
+# MODÈLES UTILISATEUR
+# ============================================================================
+
+class UserBase(BaseModel):
+    username: str = Field(..., min_length=3, max_length=30, pattern="^[a-zA-Z0-9_]+$")
+    email: EmailStr
+    role: UserRole = UserRole.USER
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[HttpUrl] = None
+    website: Optional[HttpUrl] = None
+    github: Optional[str] = None
+    twitter: Optional[str] = None
+    discord_id: Optional[str] = None
+    discord_username: Optional[str] = None
+    discord_avatar: Optional[str] = None
+    
+    @field_validator('username')
+    def validate_username(cls, v):
+        if v.lower() in ['admin', 'root', 'system', 'anonymous']:
+            raise ValueError('Username not allowed')
+        return v
+
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=8)
+    
+    @field_validator('password')
+    def validate_password(cls, v):
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain uppercase')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain lowercase')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain number')
+        return v
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserInDB(UserBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    password_hash: str
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    last_login: Optional[datetime] = None
+    email_verified: bool = False
+    email_verification_token: Optional[str] = None
+    reset_password_token: Optional[str] = None
+    reset_password_expires: Optional[datetime] = None
+    discord_token: Optional[str] = None
+    discord_refresh_token: Optional[str] = None
+    discord_token_expires: Optional[datetime] = None
+
+# ============================================================================
+# MODÈLES PACKAGE
+# ============================================================================
+
+class Dependency(BaseModel):
+    name: str
+    version: str
+    optional: bool = False
+
+class PackageMetadata(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    version: str = Field(..., pattern="^\\d+\\.\\d+\\.\\d+$")
+    release: str = Field("r0", pattern="^r\\d+$")
+    arch: str = Field("x86_64")
+    description: Optional[str] = Field(None, max_length=500)
+    license: Optional[str] = None
+    homepage: Optional[HttpUrl] = None
+    repository: Optional[HttpUrl] = None
+    keywords: List[str] = Field(default_factory=list)
+    dependencies: List[Dependency] = Field(default_factory=list)
+    build_dependencies: List[Dependency] = Field(default_factory=list)
+
+class PackageManifest(PackageMetadata):
+    maintainer: str
+    maintainer_email: Optional[EmailStr] = None
+    readme: Optional[str] = None
+    changelog: Optional[str] = None
+    badges: Dict[str, Any] = Field(default_factory=dict)
+    signature: Optional[str] = None
+    sha256: Optional[str] = None
+    size: Optional[int] = None
+
+class PackageInDB(PackageManifest):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    author_id: str
+    author_username: str
+    scope: PackageScope = PackageScope.PUBLIC
+    downloads: int = 0
+    stars: int = 0
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    published_at: Optional[datetime] = None
+    verified: bool = False
+    file_path: Optional[str] = None
+    file_size: Optional[int] = None
+    file_sha256: Optional[str] = None
+
+# ============================================================================
+# MODÈLES REVIEW
+# ============================================================================
+
+class ReviewBase(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+    title: Optional[str] = Field(None, max_length=100)
+    comment: Optional[str] = Field(None, max_length=2000)
+    pros: Optional[str] = Field(None, max_length=500)
+    cons: Optional[str] = Field(None, max_length=500)
+
+class ReviewInDB(ReviewBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    package_id: str
+    package_name: str
+    author_id: str
+    author_username: str
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    helpful_count: int = 0
+    reported: bool = False
+    verified_purchase: bool = False
+
+# ============================================================================
+# MODÈLES BADGE
+# ============================================================================
+
+class BadgeBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50, pattern="^[a-z0-9-]+$")
+    label: str = Field(..., max_length=30)
+    value: str = Field(..., max_length=50)
+    color: str = Field("blue", pattern="^(blue|green|red|orange|yellow|purple|pink|gray)$")
+    style: BadgeStyle = BadgeStyle.FLAT
+    description: Optional[str] = Field(None, max_length=200)
+
+class BadgeInDB(BadgeBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    author_id: str
+    author_username: str
+    created_at: datetime = Field(default_factory=datetime.now)
+    usage_count: int = 0
+    public: bool = True
+
+# ============================================================================
+# MODÈLES COMMUNAUTÉ
+# ============================================================================
+
+class CommentBase(BaseModel):
+    content: str = Field(..., max_length=2000)
+
+class CommentInDB(CommentBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    package_id: str
+    author_id: str
+    author_username: str
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    parent_id: Optional[str] = None
+    helpful_count: int = 0
+
+class ForumTopicBase(BaseModel):
+    title: str = Field(..., max_length=200)
+    content: str = Field(..., max_length=10000)
+    category: str = Field(..., pattern="^(general|packages|help|showcase|security|offtopic)$")
+
+class ForumTopicInDB(ForumTopicBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    author_id: str
+    author_username: str
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    views: int = 0
+    replies_count: int = 0
+    pinned: bool = False
+    locked: bool = False
+
+# ============================================================================
+# MODÈLES TOKEN
+# ============================================================================
+
+class TokenData(BaseModel):
+    username: str
+    role: UserRole = UserRole.USER
+    exp: datetime
+    iat: datetime
+
+class TokenInDB(BaseModel):
+    token: str
+    username: str
+    role: UserRole = UserRole.USER
+    created_at: datetime = Field(default_factory=datetime.now)
+    expires_at: datetime
+    active: bool = True
+    last_used: Optional[datetime] = None
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+
 # ============================================================================
 # INITIALISATION FLASK
 # ============================================================================
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+app.config['SECRET_KEY'] = Config.APP_SECRET
+app.config['MAX_CONTENT_LENGTH'] = Config.MAX_CONTENT_LENGTH
+app.config['JSON_SORT_KEYS'] = True
 
-# Configuration de l'application
-app.config.update(
-    SECRET_KEY=SecurityConfig.APP_SECRET,
-    MAX_CONTENT_LENGTH=SecurityConfig.MAX_CONTENT_LENGTH,
-    JSON_SORT_KEYS=True,
-    SESSION_TYPE='filesystem',
-    SESSION_PERMANENT=True,
-    PERMANENT_SESSION_LIFETIME=timedelta(seconds=SecurityConfig.SESSION_TIMEOUT),
-    SESSION_COOKIE_SECURE=SecurityConfig.COOKIE_SECURE,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE=SecurityConfig.COOKIE_SAMESITE,
-    SESSION_COOKIE_NAME='zarch_session'
-)
-
-# CORS configuration
+# CORS
 CORS(app, resources={
     r"/api/*": {"origins": "*"},
-    r"/v5.2/*": {"origins": "*"}
+    r"/v6/*": {"origins": "*"}
 })
 
-# Initialisation du chiffreur Fernet
-fernet = Fernet(SecurityConfig.FERNET_KEY.encode())
-
-# Plus besoin de token_serializer, on utilise PyJWT directement
-# La ligne suivante est à SUPPRIMER :
-# token_serializer = TimedJSONWebSignatureSerializer(SecurityConfig.JWT_SECRET, expires_in=3600)
-
-# ============================================================================
-# CONFIGURATION DES LOGS
-# ============================================================================
-
+# Logging
 log_handler = logging.handlers.RotatingFileHandler(
     'zarch_security.log', maxBytes=10485760, backupCount=10
 )
@@ -137,335 +329,557 @@ log_formatter = jsonlogger.JsonFormatter(
 )
 log_handler.setFormatter(log_formatter)
 log_handler.setLevel(logging.INFO)
-
 app.logger.addHandler(log_handler)
 app.logger.setLevel(logging.INFO)
 
 # ============================================================================
-# MODÈLES PYDANTIC (Validation des données)
-# ============================================================================
-def generate_pkce():
-    """Génère un code verifier et challenge PKCE"""
-    code_verifier = secrets.token_urlsafe(64)
-    code_challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(code_verifier.encode()).digest()
-    ).decode().rstrip('=')
-    return code_verifier, code_challenge
-
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
-    
-    @validator('username')
-    def validate_username(cls, v):
-        if not v or len(v) < 3:
-            raise ValueError('Username must be at least 3 characters')
-        if not v.isalnum() and '_' not in v:
-            raise ValueError('Username can only contain letters, numbers and underscores')
-        return v
-    
-    @validator('password')
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters')
-        return v
-
-class UserRegister(BaseModel):
-    username: str
-    email: str
-    password: str
-    
-    @validator('username')
-    def validate_username(cls, v):
-        if not v or len(v) < 3:
-            raise ValueError('Username must be at least 3 characters')
-        return v
-    
-    @validator('email')
-    def validate_email(cls, v):
-        if '@' not in v or '.' not in v:
-            raise ValueError('Invalid email format')
-        return v
-    
-    @validator('password')
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters')
-        if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one number')
-        return v
-
-class PackageUpload(BaseModel):
-    name: str
-    version: str
-    scope: str = 'public'
-    release: str = 'r0'
-    arch: str = 'x86_64'
-    
-    @validator('name')
-    def validate_name(cls, v):
-        if not v or len(v) < 1:
-            raise ValueError('Package name is required')
-        return v
-    
-    @validator('version')
-    def validate_version(cls, v):
-        if not v:
-            raise ValueError('Version is required')
-        return v
-# ============================================================================
-# GESTION DES COOKIES SÉCURISÉS (VERSION CORRIGÉE)
-# ============================================================================
-
-class CookieManager:
-    @staticmethod
-    def set_secure_cookie(response, name, value, max_age=3600):
-        """Définit un cookie sécurisé avec chiffrement"""
-        try:
-            # S'assurer que la valeur est une chaîne
-            if not isinstance(value, str):
-                value = str(value)
-            
-            # Chiffrer la valeur
-            encrypted = fernet.encrypt(value.encode()).decode()
-            
-            # Définir le cookie avec les bons paramètres
-            response.set_cookie(
-                name,
-                encrypted,
-                max_age=max_age,
-                secure=SecurityConfig.COOKIE_SECURE,
-                httponly=True,
-                samesite=SecurityConfig.COOKIE_SAMESITE,
-                path='/'
-            )
-            app.logger.info(f"Cookie {name} set successfully")
-            return response
-        except Exception as e:
-            app.logger.error(f"Failed to set cookie {name}: {e}")
-            return response
-    
-    @staticmethod
-    def get_secure_cookie(request, name):
-        """Récupère et déchiffre un cookie"""
-        encrypted = request.cookies.get(name)
-        if not encrypted:
-            app.logger.debug(f"Cookie {name} not found")
-            return None
-        
-        try:
-            # Nettoyer la valeur (enlever les espaces éventuels)
-            encrypted = encrypted.strip()
-            
-            # Déchiffrer
-            decrypted = fernet.decrypt(encrypted.encode()).decode()
-            app.logger.debug(f"Cookie {name} decrypted successfully")
-            return decrypted
-        except Exception as e:
-            app.logger.warning(f"Failed to decrypt cookie {name}: {e}")
-            return None
-    
-    @staticmethod
-    def delete_secure_cookie(response, name):
-        """Supprime un cookie"""
-        response.set_cookie(name, '', expires=0, path='/')
-        app.logger.info(f"Cookie {name} deleted")
-        return response
-
-# ============================================================================
-# CACHE & PERFORMANCE
-# ============================================================================
-
-class CacheManager:
-    _cache = {}
-    _ttl = 60  # Cache court (1 min)
-    
-    @staticmethod
-    def get(key):
-        data = CacheManager._cache.get(key)
-        if data:
-            value, timestamp = data
-            if datetime.now().timestamp() - timestamp < CacheManager._ttl:
-                return value
-            else:
-                del CacheManager._cache[key]
-        return None
-    
-    @staticmethod
-    def set(key, value):
-        CacheManager._cache[key] = (value, datetime.now().timestamp())
-    
-    @staticmethod
-    def invalidate(pattern):
-        keys = [k for k in CacheManager._cache.keys() if pattern in k]
-        for k in keys:
-            del CacheManager._cache[k]
-
-# ============================================================================
-# GITHUB MANAGER (INCHANGÉ - PRÉSERVÉ)
+# GITHUB MANAGER (100% STOCKAGE)
 # ============================================================================
 
 class GitHubManager:
+    """Gestionnaire 100% GitHub - Pas de stockage local"""
+    
     @staticmethod
     def get_headers():
+        if not Config.GITHUB_TOKEN:
+            raise ValueError("GITHUB_TOKEN is required")
         return {
-            'Authorization': f'token {SecurityConfig.GITHUB_TOKEN}',
+            'Authorization': f'token {Config.GITHUB_TOKEN}',
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'Zarch-Server/5.2'
+            'User-Agent': 'Zarch-Server/6.0'
         }
     
     @staticmethod
     def get_api_url(path=""):
-        return f'https://api.github.com/repos/{SecurityConfig.GITHUB_REPO}/contents/{path.lstrip("/")}'
+        return f'https://api.github.com/repos/{Config.GITHUB_REPO}/contents/{path.lstrip("/")}'
     
     @staticmethod
-    def read_from_github(path, default=None, use_cache=True, binary=False):
-        cache_key = f"github:{path}:{binary}"
-        if use_cache and not binary:
-            cached = CacheManager.get(cache_key)
-            if cached is not None: return cached
-        
+    def read_json(path: str, default: Any = None) -> Any:
+        """Lit un fichier JSON depuis GitHub"""
         try:
             headers = GitHubManager.get_headers()
             headers['Accept'] = 'application/vnd.github.v3.raw'
             
             resp = requests.get(
-                GitHubManager.get_api_url(path), 
-                headers=headers, 
-                params={'ref': SecurityConfig.GITHUB_BRANCH},
-                timeout=45,
-                stream=True 
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                params={'ref': Config.GITHUB_BRANCH},
+                timeout=30
             )
             
             if resp.status_code == 200:
-                if binary:
-                    return resp.content 
-                
-                text_content = resp.text
-                try:
-                    result = json.loads(text_content)
-                except json.JSONDecodeError:
-                    result = text_content
-                
-                if use_cache:
-                    CacheManager.set(cache_key, result)
-                return result
-            
+                return resp.json()
             if resp.status_code == 404:
                 return default
                 
-            app.logger.warning(f"GitHub Error {resp.status_code} reading {path}")
+            app.logger.error(f"GitHub read error {resp.status_code}: {path}")
             return default
-
+            
         except Exception as e:
-            app.logger.error(f"Read exception {path}: {e}")
+            app.logger.error(f"GitHub exception: {e}")
             return default
     
     @staticmethod
-    def save_to_github(path, content, message="Update"):
+    def read_binary(path: str) -> Optional[bytes]:
+        """Lit un fichier binaire depuis GitHub"""
         try:
             headers = GitHubManager.get_headers()
-            headers['Accept'] = 'application/vnd.github.v3+json'
+            headers['Accept'] = 'application/vnd.github.v3.raw'
             
+            resp = requests.get(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                params={'ref': Config.GITHUB_BRANCH},
+                timeout=30,
+                stream=True
+            )
+            
+            if resp.status_code == 200:
+                return resp.content
+            return None
+            
+        except Exception as e:
+            app.logger.error(f"Binary read exception: {e}")
+            return None
+    
+    @staticmethod
+    def write_json(path: str, data: Any, message: str = "Update") -> bool:
+        """Écrit un fichier JSON sur GitHub"""
+        try:
+            headers = GitHubManager.get_headers()
+            
+            # Récupérer le SHA si le fichier existe
             sha = None
             check_resp = requests.get(
-                GitHubManager.get_api_url(path), 
-                headers=headers, 
-                params={'ref': SecurityConfig.GITHUB_BRANCH}
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                params={'ref': Config.GITHUB_BRANCH}
             )
             if check_resp.status_code == 200:
                 sha = check_resp.json().get('sha')
             
-            if isinstance(content, (dict, list)):
-                content_bytes = json.dumps(content, indent=2).encode('utf-8')
-            elif isinstance(content, str):
-                content_bytes = content.encode('utf-8')
-            else:
-                content_bytes = content
+            # Préparer le contenu
+            content_bytes = json.dumps(data, indent=2, default=str).encode('utf-8')
             
-            data = {
+            payload = {
                 'message': f'[ZARCH] {message}',
                 'content': base64.b64encode(content_bytes).decode('utf-8'),
-                'branch': SecurityConfig.GITHUB_BRANCH
+                'branch': Config.GITHUB_BRANCH
             }
-            if sha: data['sha'] = sha
+            if sha:
+                payload['sha'] = sha
             
-            r = requests.put(GitHubManager.get_api_url(path), headers=headers, json=data)
+            resp = requests.put(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                json=payload
+            )
             
-            if r.status_code in [200, 201]:
-                CacheManager.invalidate(f"github:{path}")
+            if resp.status_code in [200, 201]:
+                app.logger.info(f"✅ Written to GitHub: {path}")
                 return True
             
-            app.logger.error(f"Save Error {r.status_code}: {r.text}")
+            app.logger.error(f"❌ Write failed {resp.status_code}: {resp.text}")
             return False
+            
         except Exception as e:
-            app.logger.error(f"Save Exception {path}: {e}")
+            app.logger.error(f"Write exception: {e}")
             return False
+    
+    @staticmethod
+    def write_binary(path: str, data: bytes, message: str = "Upload binary") -> bool:
+        """Écrit un fichier binaire sur GitHub"""
+        try:
+            headers = GitHubManager.get_headers()
+            
+            # Récupérer le SHA si le fichier existe
+            sha = None
+            check_resp = requests.get(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                params={'ref': Config.GITHUB_BRANCH}
+            )
+            if check_resp.status_code == 200:
+                sha = check_resp.json().get('sha')
+            
+            payload = {
+                'message': f'[ZARCH] {message}',
+                'content': base64.b64encode(data).decode('utf-8'),
+                'branch': Config.GITHUB_BRANCH
+            }
+            if sha:
+                payload['sha'] = sha
+            
+            resp = requests.put(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                json=payload
+            )
+            
+            return resp.status_code in [200, 201]
+            
+        except Exception as e:
+            app.logger.error(f"Binary write exception: {e}")
+            return False
+    
+    @staticmethod
+    def delete(path: str, message: str = "Delete") -> bool:
+        """Supprime un fichier de GitHub"""
+        try:
+            headers = GitHubManager.get_headers()
+            
+            # Récupérer le SHA
+            check_resp = requests.get(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                params={'ref': Config.GITHUB_BRANCH}
+            )
+            if check_resp.status_code != 200:
+                return False
+            
+            sha = check_resp.json().get('sha')
+            
+            payload = {
+                'message': f'[ZARCH] {message}',
+                'sha': sha,
+                'branch': Config.GITHUB_BRANCH
+            }
+            
+            resp = requests.delete(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                json=payload
+            )
+            
+            return resp.status_code == 200
+            
+        except Exception as e:
+            app.logger.error(f"Delete exception: {e}")
+            return False
+    
+    @staticmethod
+    def list_dir(path: str) -> List[str]:
+        """Liste le contenu d'un dossier GitHub"""
+        try:
+            headers = GitHubManager.get_headers()
+            headers['Accept'] = 'application/vnd.github.v3+json'
+            
+            resp = requests.get(
+                GitHubManager.get_api_url(path),
+                headers=headers,
+                params={'ref': Config.GITHUB_BRANCH},
+                timeout=30
+            )
+            
+            if resp.status_code == 200:
+                return [item['name'] for item in resp.json() if item['type'] == 'file']
+            return []
+            
+        except Exception as e:
+            app.logger.error(f"List dir exception: {e}")
+            return []
+
 # ============================================================================
-# SÉCURITÉ & AUTH AVANCÉE (VERSION CORRIGÉE AVEC PyJWT)
+# GESTIONNAIRES SPÉCIALISÉS
 # ============================================================================
 
-class SecurityUtils:
-    @staticmethod
-    def hash_password(password):
-        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+class UserManager:
+    """Gestionnaire des utilisateurs"""
     
-    @staticmethod
-    def check_password(password, hashed):
-        try:
-            return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-        except:
+    DB_PATH = "database/users.json"
+    
+    @classmethod
+    def get_all(cls) -> List[UserInDB]:
+        data = GitHubManager.read_json(cls.DB_PATH, {'users': []})
+        return [UserInDB(**u) for u in data.get('users', [])]
+    
+    @classmethod
+    def save_all(cls, users: List[UserInDB]) -> bool:
+        data = {'users': [u.model_dump(mode='json') for u in users]}
+        return GitHubManager.write_json(cls.DB_PATH, data, "Users update")
+    
+    @classmethod
+    def get_by_username(cls, username: str) -> Optional[UserInDB]:
+        users = cls.get_all()
+        for u in users:
+            if u.username == username:
+                return u
+        return None
+    
+    @classmethod
+    def get_by_email(cls, email: str) -> Optional[UserInDB]:
+        users = cls.get_all()
+        for u in users:
+            if u.email == email:
+                return u
+        return None
+    
+    @classmethod
+    def get_by_discord_id(cls, discord_id: str) -> Optional[UserInDB]:
+        users = cls.get_all()
+        for u in users:
+            if u.discord_id == discord_id:
+                return u
+        return None
+    
+    @classmethod
+    def create(cls, user_data: dict) -> Optional[UserInDB]:
+        users = cls.get_all()
+        
+        # Vérifier unicité
+        if any(u.username == user_data['username'] for u in users):
+            return None
+        if any(u.email == user_data['email'] for u in users):
+            return None
+        
+        # Hasher le mot de passe
+        if 'password' in user_data:
+            password = user_data.pop('password')
+            user_data['password_hash'] = bcrypt.hashpw(
+                password.encode(), bcrypt.gensalt()
+            ).decode()
+        
+        user = UserInDB(**user_data)
+        users.append(user)
+        
+        if cls.save_all(users):
+            return user
+        return None
+    
+    @classmethod
+    def update(cls, username: str, updates: dict) -> Optional[UserInDB]:
+        users = cls.get_all()
+        for i, u in enumerate(users):
+            if u.username == username:
+                for key, value in updates.items():
+                    setattr(users[i], key, value)
+                users[i].updated_at = datetime.now()
+                if cls.save_all(users):
+                    return users[i]
+        return None
+    
+    @classmethod
+    def delete(cls, username: str) -> bool:
+        users = cls.get_all()
+        new_users = [u for u in users if u.username != username]
+        if len(new_users) < len(users):
+            return cls.save_all(new_users)
+        return False
+    
+    @classmethod
+    def verify_password(cls, username: str, password: str) -> bool:
+        user = cls.get_by_username(username)
+        if not user:
             return False
+        return bcrypt.checkpw(password.encode(), user.password_hash.encode())
+
+class PackageManager:
+    """Gestionnaire des packages"""
     
-    @staticmethod
-    def generate_token(username, role="user"):
-        """Génère un token JWT signé avec PyJWT"""
+    DB_PATH = "database/packages.json"
+    
+    @classmethod
+    def get_all(cls) -> List[PackageInDB]:
+        data = GitHubManager.read_json(cls.DB_PATH, {'packages': []})
+        return [PackageInDB(**p) for p in data.get('packages', [])]
+    
+    @classmethod
+    def save_all(cls, packages: List[PackageInDB]) -> bool:
+        data = {'packages': [p.model_dump(mode='json') for p in packages]}
+        return GitHubManager.write_json(cls.DB_PATH, data, "Packages update")
+    
+    @classmethod
+    def get_by_name(cls, name: str, version: Optional[str] = None) -> Optional[PackageInDB]:
+        packages = cls.get_all()
+        for p in packages:
+            if p.name == name:
+                if version is None or p.version == version:
+                    return p
+        return None
+    
+    @classmethod
+    def get_by_author(cls, author_id: str) -> List[PackageInDB]:
+        packages = cls.get_all()
+        return [p for p in packages if p.author_id == author_id]
+    
+    @classmethod
+    def search(cls, query: str) -> List[PackageInDB]:
+        packages = cls.get_all()
+        query = query.lower()
+        results = []
+        for p in packages:
+            if (query in p.name.lower() or 
+                (p.description and query in p.description.lower()) or
+                query in p.author_username.lower()):
+                results.append(p)
+        return results
+    
+    @classmethod
+    def create(cls, package_data: dict) -> Optional[PackageInDB]:
+        packages = cls.get_all()
+        
+        # Vérifier si existe déjà
+        existing = cls.get_by_name(package_data['name'], package_data['version'])
+        if existing:
+            return None
+        
+        package = PackageInDB(**package_data)
+        packages.append(package)
+        
+        if cls.save_all(packages):
+            return package
+        return None
+    
+    @classmethod
+    def update(cls, package_id: str, updates: dict) -> Optional[PackageInDB]:
+        packages = cls.get_all()
+        for i, p in enumerate(packages):
+            if p.id == package_id:
+                for key, value in updates.items():
+                    setattr(packages[i], key, value)
+                packages[i].updated_at = datetime.now()
+                if cls.save_all(packages):
+                    return packages[i]
+        return None
+    
+    @classmethod
+    def delete(cls, package_id: str) -> bool:
+        packages = cls.get_all()
+        new_packages = [p for p in packages if p.id != package_id]
+        if len(new_packages) < len(packages):
+            # Supprimer aussi le fichier binaire
+            package = cls.get_by_name(package_id)  # À améliorer
+            if package and package.file_path:
+                GitHubManager.delete(package.file_path, f"Delete package {package.name}")
+            return cls.save_all(new_packages)
+        return False
+    
+    @classmethod
+    def increment_downloads(cls, name: str, version: str) -> bool:
+        packages = cls.get_all()
+        for i, p in enumerate(packages):
+            if p.name == name and p.version == version:
+                packages[i].downloads += 1
+                return cls.save_all(packages)
+        return False
+
+class ReviewManager:
+    """Gestionnaire des reviews"""
+    
+    @classmethod
+    def get_path(cls, package_name: str) -> str:
+        return f"reviews/{package_name}.json"
+    
+    @classmethod
+    def get_by_package(cls, package_name: str) -> List[ReviewInDB]:
+        data = GitHubManager.read_json(cls.get_path(package_name), {'reviews': []})
+        return [ReviewInDB(**r) for r in data.get('reviews', [])]
+    
+    @classmethod
+    def save_for_package(cls, package_name: str, reviews: List[ReviewInDB]) -> bool:
+        data = {'reviews': [r.model_dump(mode='json') for r in reviews]}
+        return GitHubManager.write_json(cls.get_path(package_name), data, f"Reviews for {package_name}")
+    
+    @classmethod
+    def add_review(cls, package_name: str, review_data: dict) -> Optional[ReviewInDB]:
+        reviews = cls.get_by_package(package_name)
+        
+        # Vérifier si l'utilisateur a déjà reviewé
+        for r in reviews:
+            if r.author_id == review_data['author_id']:
+                return None
+        
+        review = ReviewInDB(**review_data)
+        reviews.append(review)
+        
+        if cls.save_for_package(package_name, reviews):
+            return review
+        return None
+    
+    @classmethod
+    def get_average(cls, package_name: str) -> float:
+        reviews = cls.get_by_package(package_name)
+        if not reviews:
+            return 0.0
+        return sum(r.rating for r in reviews) / len(reviews)
+
+class BadgeManager:
+    """Gestionnaire des badges personnalisés"""
+    
+    @classmethod
+    def get_path(cls, username: str) -> str:
+        return f"badges/{username}/badges.json"
+    
+    @classmethod
+    def get_user_badges(cls, username: str) -> Dict[str, BadgeInDB]:
+        data = GitHubManager.read_json(cls.get_path(username), {})
+        return {name: BadgeInDB(**b) for name, b in data.items()}
+    
+    @classmethod
+    def save_user_badges(cls, username: str, badges: Dict[str, BadgeInDB]) -> bool:
+        data = {name: b.model_dump(mode='json') for name, b in badges.items()}
+        return GitHubManager.write_json(cls.get_path(username), data, f"Badges for {username}")
+    
+    @classmethod
+    def create_badge(cls, username: str, badge_data: dict) -> Optional[BadgeInDB]:
+        badges = cls.get_user_badges(username)
+        
+        if badge_data['name'] in badges:
+            return None
+        
+        badge = BadgeInDB(**badge_data)
+        badges[badge.name] = badge
+        
+        if cls.save_user_badges(username, badges):
+            return badge
+        return None
+    
+    @classmethod
+    def increment_usage(cls, username: str, badge_name: str) -> bool:
+        badges = cls.get_user_badges(username)
+        if badge_name in badges:
+            badges[badge_name].usage_count += 1
+            return cls.save_user_badges(username, badges)
+        return False
+
+class TokenManager:
+    """Gestionnaire des tokens JWT (100% GitHub)"""
+    
+    DB_PATH = "tokens/tokens.json"
+    
+    @classmethod
+    def get_all(cls) -> List[TokenInDB]:
+        data = GitHubManager.read_json(cls.DB_PATH, {'tokens': []})
+        return [TokenInDB(**t) for t in data.get('tokens', [])]
+    
+    @classmethod
+    def save_all(cls, tokens: List[TokenInDB]) -> bool:
+        data = {'tokens': [t.model_dump(mode='json') for t in tokens]}
+        return GitHubManager.write_json(cls.DB_PATH, data, "Tokens update")
+    
+    @classmethod
+    def create_token(cls, username: str, role: UserRole, user_agent: str = None, ip: str = None) -> str:
+        """Crée un token JWT et le stocke sur GitHub"""
+        tokens = cls.get_all()
+        
+        # Désactiver les anciens tokens du même utilisateur
+        for t in tokens:
+            if t.username == username and t.active:
+                t.active = False
+        
+        # Créer le payload JWT
+        now = datetime.now()
+        expires = now + timedelta(days=Config.TOKEN_EXPIRY_DAYS)
+        
         payload = {
             'username': username,
-            'role': role,
-            'iat': datetime.utcnow(),
-            'exp': datetime.utcnow() + timedelta(seconds=SecurityConfig.TOKEN_EXPIRY)
+            'role': role.value,
+            'iat': now,
+            'exp': expires
         }
-        token = jwt.encode(payload, SecurityConfig.JWT_SECRET, algorithm='HS256')
         
-        # Sauvegarde dans GitHub
-        tokens_db = GitHubManager.read_from_github('tokens/tokens.json', {'tokens': []})
-        if isinstance(tokens_db, dict) and 'tokens' in tokens_db:
-            tokens_db['tokens'] = [t for t in tokens_db['tokens'] if t['username'] != username]
-            tokens_db['tokens'].append({
-                'token': token,
-                'username': username,
-                'role': role,
-                'created_at': datetime.now().isoformat(),
-                'active': True
-            })
-            GitHubManager.save_to_github('tokens/tokens.json', tokens_db, f"Token {username}")
+        token_str = jwt.encode(payload, Config.JWT_SECRET, algorithm='HS256')
         
-        return token
+        # Stocker dans GitHub
+        token = TokenInDB(
+            token=token_str,
+            username=username,
+            role=role,
+            expires_at=expires,
+            user_agent=user_agent,
+            ip_address=ip
+        )
+        
+        tokens.append(token)
+        
+        if cls.save_all(tokens):
+            return token_str
+        return None
     
-    @staticmethod
-    def validate_token(token):
-        """Valide un token JWT avec PyJWT"""
+    @classmethod
+    def validate_token(cls, token_str: str) -> Optional[TokenData]:
+        """Valide un token"""
         try:
-            payload = jwt.decode(token, SecurityConfig.JWT_SECRET, algorithms=['HS256'])
-            username = payload.get('username')
+            # Vérifier JWT
+            payload = jwt.decode(token_str, Config.JWT_SECRET, algorithms=['HS256'])
             
-            # Vérification supplémentaire dans GitHub
-            tokens_db = GitHubManager.read_from_github('tokens/tokens.json', {'tokens': []})
-            if isinstance(tokens_db, dict):
-                for t in tokens_db.get('tokens', []):
-                    if t.get('token') == token and t.get('active', True):
-                        return {
-                            'username': username,
-                            'role': t.get('role'),
-                            'token': token
-                        }
+            # Vérifier dans GitHub
+            tokens = cls.get_all()
+            for t in tokens:
+                if t.token == token_str and t.active:
+                    if datetime.now() < t.expires_at:
+                        # Mettre à jour last_used
+                        t.last_used = datetime.now()
+                        cls.save_all(tokens)
+                        
+                        return TokenData(
+                            username=payload['username'],
+                            role=UserRole(payload['role']),
+                            exp=datetime.fromtimestamp(payload['exp']),
+                            iat=datetime.fromtimestamp(payload['iat'])
+                        )
             return None
+            
         except jwt.ExpiredSignatureError:
             app.logger.warning("Token expired")
             return None
@@ -473,9 +887,30 @@ class SecurityUtils:
             app.logger.warning(f"Invalid token: {e}")
             return None
     
+    @classmethod
+    def revoke_user_tokens(cls, username: str) -> bool:
+        """Révoque tous les tokens d'un utilisateur"""
+        tokens = cls.get_all()
+        for t in tokens:
+            if t.username == username:
+                t.active = False
+        return cls.save_all(tokens)
+    
+    @classmethod
+    def cleanup_expired(cls) -> bool:
+        """Nettoie les tokens expirés"""
+        tokens = cls.get_all()
+        now = datetime.now()
+        tokens = [t for t in tokens if t.expires_at > now]
+        return cls.save_all(tokens)
+
+# ============================================================================
+# UTILITAIRES DE SÉCURITÉ
+# ============================================================================
+
+class SecurityUtils:
     @staticmethod
-    def sanitize_html(content):
-        """Nettoie le HTML pour éviter les XSS"""
+    def sanitize_html(content: str) -> str:
         return bleach.clean(
             content,
             tags=['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -485,117 +920,47 @@ class SecurityUtils:
         )
     
     @staticmethod
-    def escape_text(text):
-        """Échappe le texte pour éviter l'injection"""
+    def escape_text(text: str) -> str:
         return escape(str(text))
+    
+    @staticmethod
+    def generate_verification_token() -> str:
+        return secrets.token_urlsafe(32)
+    
+    @staticmethod
+    def hash_email(email: str) -> str:
+        return hashlib.sha256(email.encode()).hexdigest()
 
 # ============================================================================
-# MARKDOWN RENDERER POUR README
+# MARKDOWN RENDERER
 # ============================================================================
 
 class MarkdownRenderer:
     @staticmethod
-    def render(text):
-        """Convertit le markdown en HTML sécurisé"""
+    def render(text: str) -> str:
         if not text:
             return "<p>No documentation available.</p>"
         
-        # Extensions markdown
-        extensions = [
-            'extra',
-            'codehilite',
-            'toc',
-            'tables',
-            'fenced_code',
-            'sane_lists'
-        ]
-        
-        # Conversion
+        extensions = ['extra', 'codehilite', 'toc', 'tables', 'fenced_code']
         html = markdown.markdown(text, extensions=extensions)
-        
-        # Nettoyage sécurité
-        html = SecurityUtils.sanitize_html(html)
-        
-        # Ajout du style GitHub
-        return f'''
-        <div class="markdown-body">
-            {html}
-        </div>
-        '''
+        return SecurityUtils.sanitize_html(html)
     
     @staticmethod
-    def extract_from_tar(tar_path):
-        """Extrait le README d'un fichier .tar.bool"""
+    def extract_from_tar(tar_path: str) -> Optional[str]:
         try:
             with tarfile.open(tar_path, 'r:*') as tar:
-                # Chercher README.md ou README
+                # Chercher README
                 for member in tar.getmembers():
                     name = member.name.lower()
-                    if 'readme' in name and (name.endswith('.md') or '.txt' in name or name == 'readme'):
+                    if 'readme' in name and (name.endswith('.md') or name.endswith('.txt')):
                         content = tar.extractfile(member).read().decode('utf-8', errors='ignore')
                         return content
-                    
-                    # Chercher dans doc/docs
-                    if 'doc' in name or 'docs' in name:
-                        try:
-                            f = tar.extractfile(member)
-                            if f:
-                                content = f.read().decode('utf-8', errors='ignore')
-                                if '# ' in content or 'README' in content:
-                                    return content
-                        except:
-                            pass
         except Exception as e:
             app.logger.error(f"Error extracting README: {e}")
-        
         return None
 
 # ============================================================================
-# MIDDLEWARE DE SÉCURITÉ
-# ============================================================================
-
-@app.before_request
-def before_request():
-    """Middleware exécuté avant chaque requête"""
-    # Audit logging
-    app.logger.info('Request', extra={
-        'method': request.method,
-        'path': request.path,
-        'ip': request.remote_addr,
-        'user_agent': request.user_agent.string
-    })
-    
-    # Rate limiting simple
-    g.request_time = datetime.now()
-    
-    # Vérification du token dans les cookies
-    if not session.get('user'):
-        token = CookieManager.get_secure_cookie(request, 'zarch_token')
-        if token:
-            user = SecurityUtils.validate_token(token)
-            if user:
-                session['user'] = user
-
-@app.after_request
-def after_request(response):
-    """Middleware exécuté après chaque requête"""
-    # Ajout des headers de sécurité
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:;"
-    
-    # Audit logging
-    app.logger.info('Response', extra={
-        'status': response.status_code,
-        'duration': (datetime.now() - g.request_time).total_seconds()
-    })
-    
-    return response
-
-# ============================================================================
-# DÉCORATEURS DE SÉCURITÉ
+# DÉCORATEURS
 # ============================================================================
 
 def token_required(f):
@@ -603,1721 +968,795 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         
-        # Vérifier dans headers
-        if 'Authorization' in request.headers:
-            parts = request.headers['Authorization'].split(" ")
-            if len(parts) > 1:
-                token = parts[1]
-        
-        # Vérifier dans cookies
-        if not token:
-            token = CookieManager.get_secure_cookie(request, 'zarch_token')
+        # Chercher dans headers
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
         
         if not token:
             return jsonify({'error': 'Token missing'}), 401
         
-        user = SecurityUtils.validate_token(token)
-        if not user:
-            return jsonify({'error': 'Invalid token'}), 401
+        token_data = TokenManager.validate_token(token)
+        if not token_data:
+            return jsonify({'error': 'Invalid or expired token'}), 401
         
-        g.user = user
+        g.user = token_data
         return f(*args, **kwargs)
+    
     return decorated
 
-def rate_limit(limit=SecurityConfig.RATE_LIMIT, per=60):
-    """Décorateur de rate limiting"""
-    def decorator(f):
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            # Implémentation simplifiée
-            return f(*args, **kwargs)
-        return decorated
-    return decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+        
+        if not token:
+            return jsonify({'error': 'Token missing'}), 401
+        
+        token_data = TokenManager.validate_token(token)
+        if not token_data:
+            return jsonify({'error': 'Invalid token'}), 401
+        
+        if token_data.role != UserRole.ADMIN:
+            return jsonify({'error': 'Admin required'}), 403
+        
+        g.user = token_data
+        return f(*args, **kwargs)
+    
+    return decorated
 
 # ============================================================================
-# ROUTES API VERSIONNÉES (/v5.2/)
+# ROUTES AUTH
 # ============================================================================
 
-@app.route('/v5.2/auth/login', methods=['POST'])
-@rate_limit()
-def api_v52_login():
-    """Login avec validation Pydantic"""
+@app.route('/v6/auth/register', methods=['POST'])
+def register():
+    """Inscription utilisateur"""
+    try:
+        data = request.get_json()
+        validated = UserCreate(**data)
+        
+        # Vérifier si l'utilisateur existe déjà
+        if UserManager.get_by_username(validated.username):
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        if UserManager.get_by_email(validated.email):
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        # Créer l'utilisateur
+        user_data = validated.model_dump()
+        user_data['email_verification_token'] = SecurityUtils.generate_verification_token()
+        
+        user = UserManager.create(user_data)
+        if not user:
+            return jsonify({'error': 'Failed to create user'}), 500
+        
+        # Créer token
+        token = TokenManager.create_token(
+            user.username, 
+            user.role,
+            request.headers.get('User-Agent'),
+            request.remote_addr
+        )
+        
+        return jsonify({
+            'success': True,
+            'token': token,
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'role': user.role.value,
+                'created_at': user.created_at.isoformat()
+            }
+        }), 201
+        
+    except Exception as e:
+        app.logger.error(f"Register error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/v6/auth/login', methods=['POST'])
+def login():
+    """Connexion utilisateur"""
     try:
         data = request.get_json()
         validated = UserLogin(**data)
         
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        user = next((u for u in db.get('users', []) if u['username'] == validated.username), None)
+        user = UserManager.get_by_username(validated.username)
+        if not user:
+            return jsonify({'error': 'Invalid credentials'}), 401
         
-        valid = False
-        if user:
-            if SecurityUtils.check_password(validated.password, user['password']):
-                valid = True
+        if not UserManager.verify_password(validated.username, validated.password):
+            return jsonify({'error': 'Invalid credentials'}), 401
         
-        if valid:
-            token = SecurityUtils.generate_token(validated.username, user.get('role', 'user'))
-            
-            # Session
-            session['user'] = user
-            session['token'] = token
-            session.permanent = True
-            
-            # Cookie sécurisé
-            response = jsonify({
-                'success': True,
-                'token': token,
-                'user': {
-                    'username': user['username'],
-                    'role': user.get('role', 'user'),
-                    'created_at': user.get('created_at')
-                }
-            })
-            
-            CookieManager.set_secure_cookie(response, 'zarch_token', token, SecurityConfig.TOKEN_EXPIRY)
-            
-            return response
+        # Mettre à jour last_login
+        UserManager.update(user.username, {'last_login': datetime.now()})
         
-        return jsonify({'error': 'Invalid credentials'}), 401
-        
-    except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/v5.2/auth/register', methods=['POST'])
-@rate_limit()
-def api_v52_register():
-    """Register avec validation Pydantic"""
-    try:
-        data = request.get_json()
-        validated = UserRegister(**data)
-        
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        if any(u['username'] == validated.username for u in db.get('users', [])):
-            return jsonify({'error': 'User already exists'}), 400
-        
-        hashed = SecurityUtils.hash_password(validated.password)
-        new_user = {
-            'id': str(uuid.uuid4()),
-            'username': validated.username,
-            'email': validated.email,
-            'password': hashed,
-            'role': 'user',
-            'created_at': datetime.now().isoformat()
-        }
-        
-        db['users'].append(new_user)
-        if GitHubManager.save_to_github('database/users.json', db, f"Reg {validated.username}"):
-            token = SecurityUtils.generate_token(validated.username)
-            
-            # Session
-            session['user'] = new_user
-            session['token'] = token
-            session.permanent = True
-            
-            # Cookie sécurisé
-            response = jsonify({
-                'success': True,
-                'token': token,
-                'user': {
-                    'username': validated.username,
-                    'role': 'user',
-                    'created_at': new_user['created_at']
-                }
-            })
-            
-            CookieManager.set_secure_cookie(response, 'zarch_token', token, SecurityConfig.TOKEN_EXPIRY)
-            
-            return response
-            
-        return jsonify({'error': 'Save failed'}), 500
-        
-    except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
-# =============================================
-# ROUTES DISCORD OAUTH2
-# ============================================================================
-
-@app.route('/auth/discord')
-def auth_discord():
-    """Redirige vers Discord pour l'authentification"""
-    # Générer PKCE pour sécurité
-    code_verifier, code_challenge = generate_pkce()
-    
-    # Stocker le verifier en session pour vérification later
-    session['discord_code_verifier'] = code_verifier
-    session['discord_state'] = secrets.token_urlsafe(16)
-    
-    # Paramètres OAuth2
-    params = {
-        'client_id': DISCORD_CLIENT_ID,
-        'redirect_uri': DISCORD_REDIRECT_URI,
-        'response_type': 'code',
-        'scope': DISCORD_SCOPE,
-        'state': session['discord_state'],
-        'code_challenge': code_challenge,
-        'code_challenge_method': 'S256',
-        'prompt': 'consent'  # Force la demande de consentement
-    }
-    
-    auth_url = f"{DISCORD_API_ENDPOINT}/oauth2/authorize?{urlencode(params)}"
-    return redirect(auth_url)
-
-@app.route('/auth/discord/callback')
-def auth_discord_callback():
-    """Callback après authentification Discord"""
-    # Vérifier les paramètres
-    code = request.args.get('code')
-    state = request.args.get('state')
-    error = request.args.get('error')
-    
-    if error:
-        app.logger.error(f"Discord auth error: {error}")
-        flash(f'Discord authentication failed: {error}', 'error')
-        return redirect('/login')
-    
-    # Vérifier l'état pour prévenir CSRF
-    if not state or state != session.get('discord_state'):
-        app.logger.error("Invalid state parameter")
-        flash('Invalid authentication state', 'error')
-        return redirect('/login')
-    
-    if not code:
-        app.logger.error("No code received")
-        flash('No authorization code received', 'error')
-        return redirect('/login')
-    
-    # Récupérer le code verifier
-    code_verifier = session.get('discord_code_verifier')
-    if not code_verifier:
-        app.logger.error("No code verifier found")
-        flash('Invalid session', 'error')
-        return redirect('/login')
-    
-    try:
-        # Échanger le code contre un token
-        token_data = {
-            'client_id': DISCORD_CLIENT_ID,
-            'client_secret': DISCORD_CLIENT_SECRET,
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': DISCORD_REDIRECT_URI,
-            'code_verifier': code_verifier
-        }
-        
-        token_response = requests.post(
-            f"{DISCORD_API_ENDPOINT}/oauth2/token",
-            data=token_data,
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+        # Créer token
+        token = TokenManager.create_token(
+            user.username,
+            user.role,
+            request.headers.get('User-Agent'),
+            request.remote_addr
         )
         
-        if token_response.status_code != 200:
-            app.logger.error(f"Token exchange failed: {token_response.text}")
-            flash('Failed to get access token', 'error')
-            return redirect('/login')
-        
-        tokens = token_response.json()
-        access_token = tokens.get('access_token')
-        refresh_token = tokens.get('refresh_token')
-        expires_in = tokens.get('expires_in', 604800)
-        
-        # Récupérer les informations de l'utilisateur Discord
-        user_response = requests.get(
-            f"{DISCORD_API_ENDPOINT}/users/@me",
-            headers={'Authorization': f'Bearer {access_token}'}
-        )
-        
-        if user_response.status_code != 200:
-            app.logger.error(f"Failed to get user info: {user_response.text}")
-            flash('Failed to get user information', 'error')
-            return redirect('/login')
-        
-        discord_user = user_response.json()
-        
-        # Récupérer l'email (nécessite scope email)
-        email = discord_user.get('email')
-        
-        # Vérifier si l'utilisateur existe déjà dans notre DB
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        
-        # Chercher l'utilisateur par Discord ID
-        existing_user = None
-        for u in db.get('users', []):
-            if u.get('discord_id') == discord_user['id']:
-                existing_user = u
-                break
-            elif u.get('email') == email and email:
-                # Lier le compte Discord à l'utilisateur existant
-                u['discord_id'] = discord_user['id']
-                u['discord_avatar'] = f"https://cdn.discordapp.com/avatars/{discord_user['id']}/{discord_user['avatar']}.png" if discord_user.get('avatar') else None
-                u['discord_username'] = discord_user['username']
-                existing_user = u
-                break
-        
-        if existing_user:
-            # Mettre à jour les informations
-            existing_user['last_login'] = datetime.now().isoformat()
-            existing_user['discord_token'] = access_token
-            existing_user['discord_refresh_token'] = refresh_token
-            existing_user['discord_token_expires'] = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
-            
-            user = existing_user
-            message = f"Welcome back, {user['username']}!"
-        else:
-            # Créer un nouvel utilisateur
-            new_user = {
-                'id': str(uuid.uuid4()),
-                'username': discord_user['username'],
-                'email': email,
-                'discord_id': discord_user['id'],
-                'discord_username': discord_user['username'],
-                'discord_avatar': f"https://cdn.discordapp.com/avatars/{discord_user['id']}/{discord_user['avatar']}.png" if discord_user.get('avatar') else None,
-                'discord_token': access_token,
-                'discord_refresh_token': refresh_token,
-                'discord_token_expires': (datetime.now() + timedelta(seconds=expires_in)).isoformat(),
-                'role': 'user',
-                'created_at': datetime.now().isoformat(),
-                'last_login': datetime.now().isoformat(),
-                'provider': 'discord'
+        return jsonify({
+            'success': True,
+            'token': token,
+            'user': {
+                'username': user.username,
+                'email': user.email,
+                'role': user.role.value,
+                'bio': user.bio,
+                'avatar': user.avatar_url,
+                'created_at': user.created_at.isoformat()
             }
-            
-            db['users'].append(new_user)
-            user = new_user
-            message = f"Welcome to Zarch Hub, {user['username']}!"
-        
-        # Sauvegarder dans GitHub
-        GitHubManager.save_to_github('database/users.json', db, f"Discord login: {user['username']}")
-        
-        # Générer notre token JWT
-        jwt_token = SecurityUtils.generate_token(user['username'], user.get('role', 'user'))
-        
-        # Créer la session
-        session['user'] = user
-        session['token'] = jwt_token
-        session.permanent = True
-        
-        # Nettoyer la session Discord
-        session.pop('discord_state', None)
-        session.pop('discord_code_verifier', None)
-        
-        # Créer la réponse avec cookie sécurisé
-        response = make_response(redirect('/dashboard'))
-        CookieManager.set_secure_cookie(response, 'zarch_token', jwt_token, SecurityConfig.TOKEN_EXPIRY)
-        
-        flash(message, 'success')
-        return response
+        }), 200
         
     except Exception as e:
-        app.logger.error(f"Discord callback error: {e}")
-        flash('An error occurred during Discord authentication', 'error')
-        return redirect('/login')
+        app.logger.error(f"Login error: {e}")
+        return jsonify({'error': str(e)}), 400
 
-@app.route('/auth/discord/refresh')
+@app.route('/v6/auth/verify', methods=['GET'])
 @token_required
-def auth_discord_refresh():
-    """Rafraîchir le token Discord"""
-    user = g.user
-    if not user.get('discord_refresh_token'):
-        return jsonify({'error': 'No refresh token'}), 400
-    
-    try:
-        refresh_data = {
-            'client_id': DISCORD_CLIENT_ID,
-            'client_secret': DISCORD_CLIENT_SECRET,
-            'grant_type': 'refresh_token',
-            'refresh_token': user['discord_refresh_token']
+def verify_token():
+    """Vérifie si le token est valide"""
+    return jsonify({
+        'valid': True,
+        'user': {
+            'username': g.user.username,
+            'role': g.user.role.value
         }
-        
-        response = requests.post(
-            f"{DISCORD_API_ENDPOINT}/oauth2/token",
-            data=refresh_data,
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
-        )
-        
-        if response.status_code == 200:
-            tokens = response.json()
-            
-            # Mettre à jour l'utilisateur
-            db = GitHubManager.read_from_github('database/users.json', {'users': []})
-            for u in db['users']:
-                if u.get('discord_id') == user.get('discord_id'):
-                    u['discord_token'] = tokens['access_token']
-                    if 'refresh_token' in tokens:
-                        u['discord_refresh_token'] = tokens['refresh_token']
-                    u['discord_token_expires'] = (datetime.now() + timedelta(seconds=tokens['expires_in'])).isoformat()
-                    break
-            
-            GitHubManager.save_to_github('database/users.json', db, f"Token refresh: {user['username']}")
-            
-            return jsonify({'success': True})
-        else:
-            return jsonify({'error': 'Failed to refresh token'}), 400
-            
-    except Exception as e:
-        app.logger.error(f"Token refresh error: {e}")
-        return jsonify({'error': str(e)}), 500
+    }), 200
 
-@app.route('/auth/discord/revoke')
+@app.route('/v6/auth/logout', methods=['POST'])
 @token_required
-def auth_discord_revoke():
-    """Révoquer l'accès Discord"""
-    user = g.user
-    if not user.get('discord_token'):
-        return jsonify({'error': 'No Discord token'}), 400
+def logout():
+    """Déconnexion (révoque le token)"""
+    auth_header = request.headers.get('Authorization')
+    token = auth_header[7:]
     
-    try:
-        # Révoquer le token
-        requests.post(
-            f"{DISCORD_API_ENDPOINT}/oauth2/token/revoke",
-            data={
-                'client_id': DISCORD_CLIENT_ID,
-                'client_secret': DISCORD_CLIENT_SECRET,
-                'token': user['discord_token']
-            },
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
-        )
-        
-        # Supprimer les infos Discord de l'utilisateur
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        for u in db['users']:
-            if u.get('discord_id') == user.get('discord_id'):
-                u.pop('discord_token', None)
-                u.pop('discord_refresh_token', None)
-                u.pop('discord_token_expires', None)
-                break
-        
-        GitHubManager.save_to_github('database/users.json', db, f"Token revoke: {user['username']}")
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        app.logger.error(f"Token revoke error: {e}")
-        return jsonify({'error': str(e)}), 500
+    # Révoquer tous les tokens de l'utilisateur
+    TokenManager.revoke_user_tokens(g.user.username)
+    
+    return jsonify({'success': True}), 200
 
 # ============================================================================
-# API ENDPOINTS POUR DISCORD
+# ROUTES PACKAGES
 # ============================================================================
 
-@app.route('/api/v1/user/discord')
-@token_required
-def api_user_discord():
-    """Récupérer les infos Discord de l'utilisateur"""
-    user = g.user
-    if not user.get('discord_id'):
-        return jsonify({'connected': False})
+@app.route('/v6/packages', methods=['GET'])
+def list_packages():
+    """Liste tous les packages avec pagination"""
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+    query = request.args.get('q', '').lower()
+    scope = request.args.get('scope', 'all')
     
-    # Vérifier si le token est expiré
-    token_expires = user.get('discord_token_expires')
-    if token_expires:
-        expires = datetime.fromisoformat(token_expires)
-        if datetime.now() > expires:
-            return jsonify({
-                'connected': True,
-                'expired': True,
-                'user': {
-                    'id': user['discord_id'],
-                    'username': user.get('discord_username'),
-                    'avatar': user.get('discord_avatar')
-                }
-            })
+    packages = PackageManager.get_all()
+    
+    # Filtrer par scope
+    if scope != 'all':
+        packages = [p for p in packages if p.scope.value == scope]
+    
+    # Recherche
+    if query:
+        packages = PackageManager.search(query)
+    
+    # Pagination
+    total = len(packages)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated = packages[start:end]
     
     return jsonify({
-        'connected': True,
-        'expired': False,
-        'user': {
-            'id': user['discord_id'],
-            'username': user.get('discord_username'),
-            'avatar': user.get('discord_avatar')
-        }
-    })
+        'packages': [{
+            'name': p.name,
+            'version': p.version,
+            'release': p.release,
+            'arch': p.arch,
+            'description': p.description,
+            'author': p.author_username,
+            'downloads': p.downloads,
+            'stars': p.stars,
+            'scope': p.scope.value,
+            'created_at': p.created_at.isoformat()
+        } for p in paginated],
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'pages': (total + per_page - 1) // per_page
+    }), 200
 
-# ============================================================================
-# MISE À JOUR DU TEMPLATE LOGIN.HTML
-# ============================================================================
-
-# Ajouter ce bloc dans la section des boutons sociaux
-"""
-<div class="grid grid-cols-3 gap-3">
-    <a href="{{ url_for('auth_discord') }}" 
-       class="social-btn discord flex items-center justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all duration-300 transform hover:scale-105 group">
-        <i class="fab fa-discord text-2xl text-indigo-600 group-hover:text-indigo-700 transition-colors"></i>
-    </a>
-    <!-- Autres boutons sociaux -->
-</div>
-"""
-
-# ============================================================================
-# GESTION DES ERREURS DISCORD
-# ============================================================================
-
-@app.errorhandler(401)
-def unauthorized_error(e):
-    """Gérer les erreurs 401"""
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'error': 'Unauthorized'}), 401
-    flash('Please login to continue', 'info')
-    return redirect('/login')
-
-# ============================================================================
-# MIDDLEWARE DE VÉRIFICATION DES TOKENS DISCORD
-# ============================================================================
-
-@app.before_request
-def check_discord_tokens():
-    """Vérifie l'expiration des tokens Discord"""
-    if session.get('user') and session['user'].get('discord_token_expires'):
-        expires = datetime.fromisoformat(session['user']['discord_token_expires'])
-        if datetime.now() > expires:
-            # Token expiré, essayer de rafraîchir en arrière-plan
-            try:
-                # Rafraîchissement asynchrone (simplifié)
-                app.logger.info(f"Discord token expired for {session['user']['username']}")
-                # Laisser le refresh endpoint gérer ça
-            except Exception as e:
-                app.logger.error(f"Token refresh failed: {e}")
-@app.route('/v5.2/package/upload/<scope>/<name>', methods=['POST'])
-@token_required
-@rate_limit()
-def api_v52_upload_package(scope, name):
-    """Upload de package avec validation"""
-    try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file'}), 400
-        
-        file = request.files['file']
-        version = request.form.get('version', '1.0.0')
-        release = request.form.get('release', 'r0')
-        arch = request.form.get('arch', 'x86_64')
-        
-        # Validation
-        validated = PackageUpload(
-            name=name,
-            version=version,
-            scope=scope,
-            release=release,
-            arch=arch
-        )
-        
-        if not file.filename.endswith('.tar.bool'):
-            return jsonify({'error': 'Invalid file type, must be .tar.bool'}), 400
-        
-        temp_dir = tempfile.mkdtemp()
-        tar_path = os.path.join(temp_dir, file.filename)
-        file.save(tar_path)
-        
-        try:
-            with open(tar_path, 'rb') as f:
-                file_content = f.read()
-            
-            sha256 = hashlib.sha256(file_content).hexdigest()
-            
-            filename = f"{name}-{version}-{release}-{arch}.tar.bool"
-            pkg_path = f"packages/{scope}/{name}/{filename}"
-            
-            if not GitHubManager.save_to_github(pkg_path, file_content, f"Pkg {name} v{version}"):
-                raise Exception("Binary upload failed")
-            
-            db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-            
-            db['packages'] = [p for p in db.get('packages', []) 
-                             if not (p['name'] == name and p['version'] == version)]
-            
-            entry = {
-                'name': name,
-                'scope': scope,
-                'version': version,
-                'release': release,
-                'arch': arch,
-                'author': g.user['username'],
-                'sha256': sha256,
-                'size': len(file_content),
-                'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat(),
-                'downloads': 0
-            }
-            db['packages'].append(entry)
-            GitHubManager.save_to_github('database/zenv_hub.json', db, f"Index {name}")
-            
-            return jsonify({'success': True, 'package': entry})
-            
-        except Exception as e:
-            app.logger.error(f"Upload error: {e}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            shutil.rmtree(temp_dir)
-            
-    except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/v5.2/package/search', methods=['GET'])
-@rate_limit()
-def api_v52_search():
-    """Recherche de packages"""
-    q = request.args.get('q', '').lower()
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    
-    results = []
-    if isinstance(db, dict) and 'packages' in db:
-        for p in db['packages']:
-            if q in p['name'].lower() or q in p.get('description', '').lower():
-                # Sanitize pour éviter les XSS
-                safe_p = {
-                    'name': SecurityUtils.escape_text(p['name']),
-                    'version': SecurityUtils.escape_text(p['version']),
-                    'author': SecurityUtils.escape_text(p['author']),
-                    'downloads': p['downloads'],
-                    'scope': p['scope']
-                }
-                results.append(safe_p)
-    
-    return jsonify({'results': results})
-
-@app.route('/v5.2/package/<name>')
-@rate_limit()
-def api_v52_package_detail(name):
-    """Détail d'un package avec README"""
+@app.route('/v6/packages/<name>', methods=['GET'])
+def get_package(name):
+    """Récupère les détails d'un package"""
     version = request.args.get('version')
     
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
-    packages = db.get('packages', [])
-    package = None
-    
-    for p in packages:
-        if p['name'] == name:
-            if version is None or p['version'] == version:
-                package = p
-                break
-    
+    package = PackageManager.get_by_name(name, version)
     if not package:
         return jsonify({'error': 'Package not found'}), 404
     
     # Chercher le README
     readme = None
-    filename = f"{name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
-    pkg_path = f"packages/{package['scope']}/{name}/{filename}"
+    if package.file_path:
+        content = GitHubManager.read_binary(package.file_path)
+        if content:
+            with tempfile.NamedTemporaryFile(suffix='.tar.bool', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            readme_text = MarkdownRenderer.extract_from_tar(tmp_path)
+            if readme_text:
+                readme = MarkdownRenderer.render(readme_text)
+            
+            os.unlink(tmp_path)
     
-    content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
-    if content:
-        # Sauvegarder temporairement pour extraction
-        temp_dir = tempfile.mkdtemp()
-        temp_path = os.path.join(temp_dir, filename)
-        with open(temp_path, 'wb') as f:
-            f.write(content)
-        
-        readme_text = MarkdownRenderer.extract_from_tar(temp_path)
-        if readme_text:
-            readme = MarkdownRenderer.render(readme_text)
-        
-        shutil.rmtree(temp_dir)
-    
-    # Package sécurisé
-    safe_package = {
-        'name': SecurityUtils.escape_text(package['name']),
-        'version': SecurityUtils.escape_text(package['version']),
-        'release': SecurityUtils.escape_text(package.get('release', 'r0')),
-        'arch': SecurityUtils.escape_text(package.get('arch', 'x86_64')),
-        'scope': package['scope'],
-        'author': SecurityUtils.escape_text(package['author']),
-        'sha256': package['sha256'],
-        'size': package['size'],
-        'downloads': package['downloads'],
-        'created_at': package['created_at']
-    }
+    # Récupérer les reviews
+    reviews = ReviewManager.get_by_package(name)
+    avg_rating = ReviewManager.get_average(name)
     
     return jsonify({
-        'package': safe_package,
-        'readme': readme
+        'package': package.model_dump(mode='json'),
+        'readme': readme,
+        'reviews': {
+            'count': len(reviews),
+            'average': avg_rating,
+            'recent': [{
+                'author': r.author_username,
+                'rating': r.rating,
+                'title': r.title,
+                'comment': r.comment,
+                'created_at': r.created_at.isoformat()
+            } for r in reviews[-5:]]
+        }
+    }), 200
+
+@app.route('/v6/packages', methods=['POST'])
+@token_required
+def create_package():
+    """Crée un nouveau package"""
+    try:
+        data = request.get_json()
+        
+        # Ajouter les infos d'auteur
+        data['author_id'] = g.user.username  # À améliorer avec l'ID réel
+        data['author_username'] = g.user.username
+        
+        package = PackageManager.create(data)
+        if not package:
+            return jsonify({'error': 'Package already exists'}), 400
+        
+        return jsonify({
+            'success': True,
+            'package': package.model_dump(mode='json')
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/v6/packages/<name>/upload', methods=['POST'])
+@token_required
+def upload_package_file(name):
+    """Upload le fichier binaire d'un package"""
+    version = request.form.get('version')
+    release = request.form.get('release', 'r0')
+    arch = request.form.get('arch', 'x86_64')
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    
+    file = request.files['file']
+    if not file.filename.endswith('.tar.bool'):
+        return jsonify({'error': 'Invalid file type'}), 400
+    
+    # Vérifier que le package existe
+    package = PackageManager.get_by_name(name, version)
+    if not package:
+        return jsonify({'error': 'Package not found'}), 404
+    
+    # Sauvegarder temporairement
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        file.save(tmp.name)
+        tmp_path = tmp.name
+    
+    # Lire le contenu
+    with open(tmp_path, 'rb') as f:
+        content = f.read()
+    
+    # Calculer SHA256
+    sha256 = hashlib.sha256(content).hexdigest()
+    size = len(content)
+    
+    # Chemin GitHub
+    filename = f"{name}-{version}-{release}-{arch}.tar.bool"
+    github_path = f"packages/{package.scope.value}/{name}/{filename}"
+    
+    # Upload sur GitHub
+    if not GitHubManager.write_binary(github_path, content, f"Upload {name} v{version}"):
+        os.unlink(tmp_path)
+        return jsonify({'error': 'Upload failed'}), 500
+    
+    # Mettre à jour le package
+    PackageManager.update(package.id, {
+        'file_path': github_path,
+        'file_size': size,
+        'file_sha256': sha256,
+        'published_at': datetime.now()
     })
+    
+    os.unlink(tmp_path)
+    
+    return jsonify({
+        'success': True,
+        'sha256': sha256,
+        'size': size,
+        'path': github_path
+    }), 200
+
+@app.route('/v6/packages/<name>/download/<version>/<release>/<arch>', methods=['GET'])
+def download_package(name, version, release, arch):
+    """Télécharge un package"""
+    package = PackageManager.get_by_name(name, version)
+    if not package:
+        return jsonify({'error': 'Package not found'}), 404
+    
+    if not package.file_path:
+        return jsonify({'error': 'Package file not found'}), 404
+    
+    # Incrémenter les téléchargements (asynchrone)
+    PackageManager.increment_downloads(name, version)
+    
+    # Récupérer le fichier
+    content = GitHubManager.read_binary(package.file_path)
+    if not content:
+        return jsonify({'error': 'File not found'}), 404
+    
+    filename = f"{name}-{version}-{release}-{arch}.tar.bool"
+    
+    response = make_response(content)
+    response.headers.set('Content-Type', 'application/gzip')
+    response.headers.set('Content-Disposition', f'attachment; filename={filename}')
+    response.headers.set('Content-Length', str(len(content)))
+    response.headers.set('X-Download-Count', str(package.downloads + 1))
+    
+    return response
 
 # ============================================================================
-# ROUTES WEB (Pages)
+# ROUTES REVIEWS
+# ============================================================================
+
+@app.route('/v6/packages/<name>/reviews', methods=['GET'])
+def get_package_reviews(name):
+    """Récupère les reviews d'un package"""
+    reviews = ReviewManager.get_by_package(name)
+    
+    return jsonify({
+        'reviews': [{
+            'id': r.id,
+            'author': r.author_username,
+            'rating': r.rating,
+            'title': r.title,
+            'comment': r.comment,
+            'pros': r.pros,
+            'cons': r.cons,
+            'helpful': r.helpful_count,
+            'created_at': r.created_at.isoformat()
+        } for r in reviews],
+        'average': ReviewManager.get_average(name),
+        'total': len(reviews)
+    }), 200
+
+@app.route('/v6/packages/<name>/reviews', methods=['POST'])
+@token_required
+def add_review(name):
+    """Ajoute une review à un package"""
+    try:
+        data = request.get_json()
+        
+        package = PackageManager.get_by_name(name)
+        if not package:
+            return jsonify({'error': 'Package not found'}), 404
+        
+        review_data = {
+            **data,
+            'package_id': package.id,
+            'package_name': name,
+            'author_id': g.user.username,
+            'author_username': g.user.username
+        }
+        
+        review = ReviewManager.add_review(name, review_data)
+        if not review:
+            return jsonify({'error': 'Already reviewed'}), 400
+        
+        return jsonify({
+            'success': True,
+            'review': review.model_dump(mode='json')
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+# ============================================================================
+# ROUTES BADGES
+# ============================================================================
+
+@app.route('/v6/badges/<username>', methods=['GET'])
+def list_user_badges(username):
+    """Liste les badges d'un utilisateur"""
+    badges = BadgeManager.get_user_badges(username)
+    
+    return jsonify({
+        'badges': [{
+            'name': name,
+            'label': b.label,
+            'value': b.value,
+            'color': b.color,
+            'style': b.style.value,
+            'usage': b.usage_count
+        } for name, b in badges.items()]
+    }), 200
+
+@app.route('/v6/badges', methods=['POST'])
+@token_required
+def create_badge():
+    """Crée un badge personnalisé"""
+    try:
+        data = request.get_json()
+        data['author_id'] = g.user.username
+        data['author_username'] = g.user.username
+        
+        badge = BadgeManager.create_badge(g.user.username, data)
+        if not badge:
+            return jsonify({'error': 'Badge already exists'}), 400
+        
+        return jsonify({
+            'success': True,
+            'badge': badge.model_dump(mode='json')
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/v6/badges/<username>/<name>/svg', methods=['GET'])
+def get_badge_svg(username, name):
+    """Génère le SVG d'un badge"""
+    badges = BadgeManager.get_user_badges(username)
+    badge = badges.get(name)
+    
+    if not badge:
+        return jsonify({'error': 'Badge not found'}), 404
+    
+    # Incrémenter l'utilisation
+    BadgeManager.increment_usage(username, name)
+    
+    # Générer SVG
+    colors = {
+        'blue': '#007ec6',
+        'green': '#4c1',
+        'red': '#e05d44',
+        'orange': '#fe7d37',
+        'yellow': '#dfb317',
+        'purple': '#9f5f9f',
+        'pink': '#ff69b4',
+        'gray': '#9f9f9f'
+    }
+    
+    hex_color = colors.get(badge.color, colors['blue'])
+    
+    # Calculer largeurs
+    label_len = len(badge.label)
+    value_len = len(badge.value)
+    label_width = max(label_len * 7 + 10, 30)
+    value_width = max(value_len * 7 + 10, 30)
+    total_width = label_width + value_width
+    
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="20" role="img">
+        <linearGradient id="s" x2="0" y2="100%">
+            <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+            <stop offset="1" stop-opacity=".1"/>
+        </linearGradient>
+        <clipPath id="r">
+            <rect width="{total_width}" height="20" rx="3" fill="#fff"/>
+        </clipPath>
+        <g clip-path="url(#r)">
+            <rect width="{label_width}" height="20" fill="#555"/>
+            <rect x="{label_width}" width="{value_width}" height="20" fill="{hex_color}"/>
+            <rect width="{total_width}" height="20" fill="url(#s)"/>
+        </g>
+        <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,sans-serif" font-size="11">
+            <text x="{label_width//2}" y="14">{badge.label}</text>
+            <text x="{label_width + value_width//2}" y="14">{badge.value}</text>
+        </g>
+    </svg>'''
+    
+    response = make_response(svg)
+    response.headers.set('Content-Type', 'image/svg+xml')
+    return response
+
+# ============================================================================
+# ROUTES UTILISATEURS
+# ============================================================================
+
+@app.route('/v6/users/<username>', methods=['GET'])
+def get_user_profile(username):
+    """Profil public d'un utilisateur"""
+    user = UserManager.get_by_username(username)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    packages = PackageManager.get_by_author(username)
+    badges = BadgeManager.get_user_badges(username)
+    
+    return jsonify({
+        'user': {
+            'username': user.username,
+            'bio': user.bio,
+            'avatar': user.avatar_url,
+            'website': user.website,
+            'github': user.github,
+            'twitter': user.twitter,
+            'created_at': user.created_at.isoformat()
+        },
+        'stats': {
+            'packages': len(packages),
+            'downloads': sum(p.downloads for p in packages),
+            'badges': len(badges)
+        },
+        'packages': [{
+            'name': p.name,
+            'version': p.version,
+            'description': p.description,
+            'downloads': p.downloads,
+            'stars': p.stars
+        } for p in packages[-10:]]
+    }), 200
+
+@app.route('/v6/users/<username>/tokens', methods=['DELETE'])
+@token_required
+def revoke_user_tokens(username):
+    """Révoque tous les tokens d'un utilisateur"""
+    if g.user.username != username and g.user.role != UserRole.ADMIN:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    TokenManager.revoke_user_tokens(username)
+    
+    return jsonify({'success': True}), 200
+
+# ============================================================================
+# ROUTES STATISTIQUES
+# ============================================================================
+
+@app.route('/v6/stats', methods=['GET'])
+def get_stats():
+    """Statistiques globales"""
+    packages = PackageManager.get_all()
+    users = UserManager.get_all()
+    
+    total_downloads = sum(p.downloads for p in packages)
+    total_stars = sum(p.stars for p in packages)
+    
+    # Top packages
+    top_packages = sorted(packages, key=lambda p: p.downloads, reverse=True)[:10]
+    
+    # Top contributeurs
+    author_stats = {}
+    for p in packages:
+        author_stats[p.author_username] = author_stats.get(p.author_username, 0) + 1
+    
+    top_authors = sorted(author_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    return jsonify({
+        'total_packages': len(packages),
+        'total_users': len(users),
+        'total_downloads': total_downloads,
+        'total_stars': total_stars,
+        'top_packages': [{
+            'name': p.name,
+            'author': p.author_username,
+            'downloads': p.downloads
+        } for p in top_packages],
+        'top_authors': [{
+            'username': a,
+            'packages': c
+        } for a, c in top_authors]
+    }), 200
+
+# ============================================================================
+# ROUTES COMMUNAUTÉ (à implémenter)
+# ============================================================================
+
+@app.route('/v6/community/forum', methods=['GET'])
+def get_forum_topics():
+    """Liste les sujets du forum"""
+    # À implémenter avec un fichier forum.json
+    return jsonify({'topics': []}), 200
+
+@app.route('/v6/community/forum', methods=['POST'])
+@token_required
+def create_forum_topic():
+    """Crée un sujet de forum"""
+    # À implémenter
+    return jsonify({'success': True}), 201
+
+# ============================================================================
+# ROUTES WEB
 # ============================================================================
 
 @app.route('/')
 def index():
     """Page d'accueil"""
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+    packages = PackageManager.get_all()
+    public_packages = [p for p in packages if p.scope == PackageScope.PUBLIC]
+    recent = sorted(public_packages, key=lambda p: p.created_at, reverse=True)[:6]
     
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
-    pkgs = db.get('packages', [])
-    
-    total_packages = len(pkgs)
-    total_downloads = sum(p.get('downloads', 0) for p in pkgs)
-    total_authors = len(set(p.get('author') for p in pkgs if p.get('author')))
-    
-    public_packages = [p for p in pkgs if p.get('scope') == 'public']
-    public_packages.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    recent_packages = public_packages[:6]
+    total_downloads = sum(p.downloads for p in packages)
+    total_authors = len(set(p.author_username for p in packages))
     
     return render_template('index.html',
-                         total_packages=total_packages,
+                         total_packages=len(packages),
                          total_downloads=total_downloads,
                          total_authors=total_authors,
-                         packages=recent_packages,
+                         packages=recent,
                          now=datetime.now())
 
-@app.route('/package/<name>/reviews')
-def package_reviews(name):
-    """Page des reviews d'un package"""
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    package = next((p for p in db.get('packages', []) if p['name'] == name), None)
+@app.route('/packages')
+def packages_page():
+    """Page des packages"""
+    page = int(request.args.get('page', 1))
+    per_page = 12
+    query = request.args.get('q', '')
     
+    packages = PackageManager.get_all()
+    
+    if query:
+        packages = PackageManager.search(query)
+    
+    packages = [p for p in packages if p.scope == PackageScope.PUBLIC]
+    
+    total = len(packages)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated = packages[start:end]
+    
+    return render_template('packages.html',
+                         packages=paginated,
+                         total_packages=total,
+                         total_downloads=sum(p.downloads for p in packages),
+                         total_authors=len(set(p.author_username for p in packages)),
+                         total_results=total,
+                         total_pages=(total + per_page - 1) // per_page,
+                         page=page,
+                         per_page=per_page,
+                         query=query)
+
+@app.route('/package/<name>')
+def package_page(name):
+    """Page de détail d'un package"""
+    version = request.args.get('version')
+    
+    package = PackageManager.get_by_name(name, version)
     if not package:
         abort(404)
     
-    # Récupérer les reviews
-    reviews_db = GitHubManager.read_from_github(f'reviews/{name}.json', {'reviews': [], 'average': 0})
-    
-    return render_template('reviews.html', package=package, reviews=reviews_db)
-
-@app.route('/api/v1/package/<name>/review', methods=['POST'])
-@token_required
-def add_review(name):
-    """Ajouter une review"""
-    user = g.user
-    data = request.get_json()
-    
-    rating = data.get('rating')
-    comment = data.get('comment', '')
-    
-    if not rating or rating < 1 or rating > 5:
-        return jsonify({'error': 'Invalid rating'}), 400
-    
-    # Sauvegarder la review
-    reviews_db = GitHubManager.read_from_github(f'reviews/{name}.json', {'reviews': [], 'average': 0})
-    
-    # Vérifier si l'utilisateur a déjà reviewé
-    for r in reviews_db['reviews']:
-        if r['username'] == user['username']:
-            return jsonify({'error': 'Already reviewed'}), 400
-    
-    review = {
-        'username': user['username'],
-        'rating': rating,
-        'comment': comment,
-        'created_at': datetime.now().isoformat(),
-        'updated_at': datetime.now().isoformat()
-    }
-    
-    reviews_db['reviews'].append(review)
-    
-    # Recalculer la moyenne
-    total = sum(r['rating'] for r in reviews_db['reviews'])
-    reviews_db['average'] = total / len(reviews_db['reviews'])
-    
-    GitHubManager.save_to_github(f'reviews/{name}.json', reviews_db, f"New review for {name}")
-    
-    return jsonify({'success': True, 'average': reviews_db['average']})
-
-@app.route('/api/v1/package/<name>/rating')
-def get_rating(name):
-    """Récupérer la note moyenne"""
-    reviews_db = GitHubManager.read_from_github(f'reviews/{name}.json', {'reviews': [], 'average': 0})
-    return jsonify({
-        'average': reviews_db['average'],
-        'count': len(reviews_db['reviews'])
-    })
-@app.route('/packages')
-def packages_page():
-    """Page de liste des packages avec recherche et filtres"""
-    page = request.args.get('page', 1, type=int)
-    per_page = 12
-    query = request.args.get('q', '').strip().lower()
-    sort = request.args.get('sort', 'recent')
-    scope_filter = request.args.get('scope', 'all')
-    
-    try:
-        # Récupérer la base de données
-        db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-        
-        if not isinstance(db, dict):
-            db = {'packages': []}
-        
-        packages = db.get('packages', [])
-        
-        # Statistiques globales
-        total_packages = len(packages)
-        total_downloads = sum(p.get('downloads', 0) for p in packages)
-        total_authors = len(set(p.get('author') for p in packages if p.get('author')))
-        
-        # Filtrer par scope
-        if scope_filter != 'all':
-            packages = [p for p in packages if p.get('scope') == scope_filter]
-        
-        # RECHERCHE PAR TEXTE (la partie importante !)
-        if query:
-            search_terms = query.split()
-            filtered_packages = []
-            
-            for pkg in packages:
-                name = pkg.get('name', '').lower()
-                description = pkg.get('description', '').lower()
-                author = pkg.get('author', '').lower()
-                
-                # Score de pertinence
-                score = 0
-                
-                for term in search_terms:
-                    if term in name:
-                        score += 10  # Nom = très pertinent
-                    if term in description:
-                        score += 3   # Description = pertinent
-                    if term in author:
-                        score += 5   # Auteur = pertinent
-                    if name.startswith(term):
-                        score += 5   # Commence par = pertinent
-                
-                if score > 0:
-                    pkg['_score'] = score
-                    filtered_packages.append(pkg)
-            
-            # Trier par score
-            packages = sorted(filtered_packages, key=lambda x: x.get('_score', 0), reverse=True)
-            
-            # Nettoyer le score
-            for pkg in packages:
-                if '_score' in pkg:
-                    del pkg['_score']
-        
-        # Appliquer le tri
-        if sort == 'downloads':
-            packages.sort(key=lambda x: x.get('downloads', 0), reverse=True)
-        elif sort == 'name':
-            packages.sort(key=lambda x: x.get('name', '').lower())
-        elif sort == 'name_desc':
-            packages.sort(key=lambda x: x.get('name', '').lower(), reverse=True)
-        else:  # recent par défaut
-            packages.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-        
-        # Pagination
-        total_results = len(packages)
-        total_pages = (total_results + per_page - 1) // per_page
-        start = (page - 1) * per_page
-        end = start + per_page
-        paginated_packages = packages[start:end]
-        
-        return render_template('packages.html',
-                             packages=paginated_packages,
-                             total_packages=total_packages,
-                             total_downloads=total_downloads,
-                             total_authors=total_authors,
-                             total_results=total_results,
-                             total_pages=total_pages,
-                             page=page,
-                             per_page=per_page,
-                             query=query,
-                             sort=sort,
-                             scope=scope_filter,
-                             now=datetime.now())
-    
-    except Exception as e:
-        app.logger.error(f"Packages page error: {e}")
-        flash('Error loading packages', 'error')
-        return render_template('packages.html',
-                             packages=[],
-                             total_packages=0,
-                             total_downloads=0,
-                             total_authors=0,
-                             total_results=0,
-                             total_pages=1,
-                             page=1,
-                             per_page=12,
-                             query=query,
-                             sort=sort,
-                             scope=scope_filter,
-                             now=datetime.now())
-
-@app.route('/api/v1/packages/search')
-def api_packages_search():
-    """API endpoint pour la recherche en temps réel"""
-    query = request.args.get('q', '').strip().lower()
-    
-    if not query or len(query) < 2:
-        return jsonify({'results': []})
-    
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    packages = db.get('packages', [])
-    
-    results = []
-    for pkg in packages:
-        name = pkg.get('name', '').lower()
-        description = pkg.get('description', '').lower()
-        
-        if query in name or query in description:
-            results.append({
-                'name': pkg.get('name'),
-                'version': pkg.get('version'),
-                'author': pkg.get('author'),
-                'downloads': pkg.get('downloads', 0),
-                'scope': pkg.get('scope', 'public'),
-                'url': f"/package/{pkg.get('name')}"
-            })
-            
-            if len(results) >= 10:  # Limiter à 10 résultats
-                break
-    
-    return jsonify({'results': results})
-@app.route('/package/<name>')
-def package_detail_page(name):
-    """Page de détail d'un package avec README"""
-    version = request.args.get('version')
-    
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
-    packages = db.get('packages', [])
-    package = None
-    
-    for p in packages:
-        if p['name'] == name:
-            if version is None or p['version'] == version:
-                package = p
-                break
-    
-    if not package:
-        abort(404, description="Package not found")
-    
-    # Chercher le README
+    # Lire le README
     readme_html = None
-    filename = f"{name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
-    pkg_path = f"packages/{package['scope']}/{name}/{filename}"
+    if package.file_path:
+        content = GitHubManager.read_binary(package.file_path)
+        if content:
+            with tempfile.NamedTemporaryFile(suffix='.tar.bool', delete=False) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            
+            readme_text = MarkdownRenderer.extract_from_tar(tmp_path)
+            if readme_text:
+                readme_html = MarkdownRenderer.render(readme_text)
+            
+            os.unlink(tmp_path)
     
-    content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
-    if content:
-        temp_dir = tempfile.mkdtemp()
-        temp_path = os.path.join(temp_dir, filename)
-        with open(temp_path, 'wb') as f:
-            f.write(content)
-        
-        readme_text = MarkdownRenderer.extract_from_tar(temp_path)
-        if readme_text:
-            readme_html = MarkdownRenderer.render(readme_text)
-        
-        shutil.rmtree(temp_dir)
+    # Reviews
+    reviews = ReviewManager.get_by_package(name)
+    avg_rating = ReviewManager.get_average(name)
     
     return render_template('package.html',
                          package=package,
-                         readme_html=readme_html)
+                         readme_html=readme_html,
+                         reviews=reviews,
+                         avg_rating=avg_rating)
 
-@app.route('/docs')
-def docs_page():
-    """Page de documentation"""
-    return render_template('docs.html')
-
-@app.route('/upload')
-def upload_page():
-    """Page d'upload"""
-    user = session.get('user')
+@app.route('/<username>')
+def profile_page(username):
+    """Page de profil public"""
+    user = UserManager.get_by_username(username)
     if not user:
-        flash('Please login to upload packages', 'info')
-        return redirect('/login')
-    return render_template('upload.html', user=user)
+        abort(404)
+    
+    packages = PackageManager.get_by_author(username)
+    badges = BadgeManager.get_user_badges(username)
+    
+    return render_template('profile.html',
+                         profile_user=user,
+                         packages=packages,
+                         badges=badges)
 
 @app.route('/dashboard')
 @token_required
 def dashboard_page():
-    """Dashboard minimal compatible avec le template"""
-    user = g.user
-    username = user['username']
+    """Dashboard utilisateur"""
+    user = UserManager.get_by_username(g.user.username)
+    packages = PackageManager.get_by_author(g.user.username)
+    badges = BadgeManager.get_user_badges(g.user.username)
     
-    try:
-        # =====================================================================
-        # 1. CHARGER LES PACKAGES DE L'UTILISATEUR
-        # =====================================================================
-        packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-        all_packages = packages_db.get('packages', [])
-        
-        # Filtrer les packages de l'utilisateur
-        user_packages = []
-        for pkg in all_packages:
-            if pkg.get('author') == username:
-                # Créer une copie sécurisée avec toutes les clés nécessaires
-                safe_pkg = {
-                    'name': pkg.get('name', 'unknown'),
-                    'version': pkg.get('version', '0.0.0'),
-                    'scope': pkg.get('scope', 'public'),
-                    'downloads': pkg.get('downloads', 0),
-                    'created_at': pkg.get('created_at'),
-                    'size': pkg.get('size', 0),
-                    'description': pkg.get('description', '')
-                }
-                user_packages.append(safe_pkg)
-        
-        # =====================================================================
-        # 2. CALCULER LES STATISTIQUES
-        # =====================================================================
-        total_packages = len(user_packages)
-        total_downloads = sum(p.get('downloads', 0) for p in user_packages)
-        
-        # Date d'inscription (avec fallback)
-        member_since = user.get('created_at', '2026-01-01')
-        if member_since and len(member_since) > 10:
-            member_since = member_since[:10]
-        
-        stats = {
-            'packages': total_packages,
-            'downloads': total_downloads,
-            'member_since': member_since
-        }
-        
-        # =====================================================================
-        # 3. LOG POUR DÉBOGAGE
-        # =====================================================================
-        app.logger.info(f"Dashboard loaded for {username}: {total_packages} packages, {total_downloads} downloads")
-        
-        # =====================================================================
-        # 4. RENDU DU TEMPLATE
-        # =====================================================================
-        return render_template('dashboard.html',
-                             user=user,
-                             user_packages=user_packages,
-                             stats=stats)
-    
-    except Exception as e:
-        app.logger.error(f"Dashboard error for {username}: {str(e)}")
-        
-        # Statistiques par défaut en cas d'erreur
-        default_stats = {
-            'packages': 0,
-            'downloads': 0,
-            'member_since': user.get('created_at', '2026-01-01')[:10] if user.get('created_at') else '2026-01-01'
-        }
-        
-        # Afficher l'erreur à l'utilisateur (optionnel)
-        flash('Unable to load some dashboard data', 'warning')
-        
-        return render_template('dashboard.html',
-                             user=user,
-                             user_packages=[],
-                             stats=default_stats)
+    return render_template('dashboard.html',
+                         user=user,
+                         packages=packages,
+                         badges=badges)
+
 @app.route('/login')
 def login_page():
     """Page de connexion"""
-    if session.get('user'):
-        return redirect('/dashboard')
     return render_template('login.html')
 
 @app.route('/register')
 def register_page():
     """Page d'inscription"""
-    if session.get('user'):
-        return redirect('/dashboard')
     return render_template('register.html')
-
-@app.route('/logout')
-def logout():
-    """Déconnexion"""
-    session.clear()
-    response = make_response(redirect('/'))
-    CookieManager.delete_secure_cookie(response, 'zarch_token')
-    flash('You have been logged out successfully', 'success')
-    return response
-
-@app.route('/stats')
-def stats_page():
-    """Page de statistiques"""
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
-    packages = db.get('packages', [])
-    
-    stats = {
-        'total_packages': len(packages),
-        'total_downloads': sum(p.get('downloads', 0) for p in packages),
-        'public_packages': len([p for p in packages if p.get('scope') == 'public']),
-        'private_packages': len([p for p in packages if p.get('scope') == 'private']),
-        'total_authors': len(set(p.get('author') for p in packages if p.get('author')))
-    }
-    
-    return render_template('stats.html', stats=stats)
-
-@app.route('/status')
-def status_page():
-    """Page de statut"""
-    return render_template('status.html')
-
-@app.route('/privacy')
-def privacy_page():
-    """Page de confidentialité"""
-    return render_template('privacy.html')
-
-@app.route('/terms')
-def terms_page():
-    """Page des conditions"""
-    return render_template('terms.html')
-
-@app.route('/api/docs')
-def api_docs_page():
-    """Documentation API"""
-    return render_template('api_docs.html')
-
-@app.route('/cookies')
-def cookies_page():
-    """Page d'information sur les cookies"""
-    return render_template('cookies.html')
-
-
-
-@app.route('/base')
-def base_page():
-    """Page d'information sur les base"""
-    return render_template('base.html')
-
-# ============================================================================
-# ROUTES COMMUNAUTÉ
-# ============================================================================
-@app.route('/@<username>')
-def user_profile(username):
-    """Profil public d'un utilisateur"""
-    # Récupérer l'utilisateur
-    db = GitHubManager.read_from_github('database/users.json', {'users': []})
-    user = next((u for u in db['users'] if u['username'] == username), None)
-    
-    if not user:
-        abort(404)
-    
-    # Récupérer ses packages
-    packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    user_packages = [p for p in packages_db.get('packages', []) if p['author'] == username]
-    
-    # Statistiques
-    total_downloads = sum(p.get('downloads', 0) for p in user_packages)
-    total_packages = len(user_packages)
-    
-    # Badges personnalisés
-    badges_db = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
-    
-    # Activité récente (à implémenter)
-    recent_activity = []
-    
-    return render_template('profile.html',
-                         profile_user=user,
-                         packages=user_packages,
-                         total_downloads=total_downloads,
-                         total_packages=total_packages,
-                         badges=badges_db,
-                         activity=recent_activity,
-                         now=datetime.now())
-@app.route('/settings/badges/create', methods=['GET', 'POST'])
-@token_required
-def create_custom_badge():
-    """Atelier de création de badges"""
-    user = g.user
-    
-    if request.method == 'POST':
-        badge_data = {
-            'name': request.form['name'],
-            'label': request.form['label'],
-            'value': request.form['value'],
-            'color': request.form['color'],
-            'description': request.form.get('description', ''),
-            'created_at': datetime.now().isoformat(),
-            'usage_count': 0
-        }
-        
-        # Sauvegarder le badge
-        db = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
-        db[badge_data['name']] = badge_data
-        GitHubManager.save_to_github(
-            f'badges/{user["username"]}/badges.json', 
-            db, 
-            f"New badge: {badge_data['name']}"
-        )
-        
-        flash('Badge created successfully!', 'success')
-        return redirect(f'/settings/badges/{badge_data["name"]}')
-    
-    return render_template('create_badge.html', user=user)
-
-
-
-@app.route('/community')
-def community_page():
-    """Page communautaire (sans erreur)"""
-    try:
-        # Charger les données avec des valeurs par défaut
-        users_db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-        
-        # Statistiques sécurisées
-        total_users = len(users_db.get('users', []))
-        total_packages = len(packages_db.get('packages', []))
-        
-        # Top contributeurs (sans utiliser created_at)
-        author_stats = {}
-        for pkg in packages_db.get('packages', []):
-            author = pkg.get('author')
-            if author:
-                author_stats[author] = author_stats.get(author, 0) + 1
-        
-        top_contributors = []
-        for author, count in sorted(author_stats.items(), key=lambda x: x[1], reverse=True)[:5]:
-            top_contributors.append({
-                'username': author,
-                'packages': count
-            })
-        
-        return render_template('community.html',
-                             total_users=total_users,
-                             total_packages=total_packages,
-                             online_members=min(total_users, 42),
-                             top_contributors=top_contributors,
-                             recent_activity=[],
-                             forum_categories=[],
-                             recent_topics=[],
-                             community_badges=[],
-                             upcoming_events=[],
-                             realtime_stats={},
-                             welcome_message="Welcome to the community!",
-                             user=session.get('user'))
-    
-    except Exception as e:
-        app.logger.error(f"Community error: {e}")
-        return render_template('community.html',
-                             total_users=0,
-                             total_packages=0,
-                             online_members=0,
-                             top_contributors=[],
-                             recent_activity=[],
-                             forum_categories=[],
-                             recent_topics=[],
-                             community_badges=[],
-                             upcoming_events=[],
-                             realtime_stats={},
-                             welcome_message="Welcome to the community!",
-                             user=session.get('user'))
-@app.route('/package/download/<scope>/<name>/<version>/<release>/<arch>')
-@rate_limit()
-def download_package(scope, name, version, release, arch):
-    """Télécharge un fichier package en utilisant tous les identifiants."""
-    try:
-        filename = f"{name}-{version}-{release}-{arch}.tar.bool"
-        pkg_path = f"packages/{scope}/{name}/{filename}"
-        
-        app.logger.info(f"📥 Download requested: {pkg_path}")
-        
-        # Vérifier d'abord si le package existe dans la base de données
-        db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-        package_found = None
-        
-        if isinstance(db, dict) and 'packages' in db:
-            for pkg in db['packages']:
-                if (pkg['name'] == name and 
-                    pkg['version'] == version and 
-                    pkg.get('release') == release and 
-                    pkg.get('arch') == arch):
-                    package_found = pkg
-                    break
-        
-        if not package_found:
-            app.logger.warning(f"Package metadata not found in database: {name} {version}")
-            # On continue quand même, le fichier pourrait exister sans métadonnées
-        
-        # Lire le contenu binaire depuis GitHub
-        file_content = GitHubManager.read_from_github(pkg_path, binary=True)
-        
-        if file_content is None:
-            app.logger.error(f"❌ Package file not found: {pkg_path}")
-            
-            # Chercher des fichiers similaires pour aider l'utilisateur
-            similar_files = []
-            base_path = f"packages/{scope}/{name}/"
-            # Logique pour lister les fichiers similaires (optionnel)
-            
-            flash(f'Package file not found: {filename}', 'error')
-            return render_template('package.html',
-                                 package=package_found or {'name': name, 'version': version, 'release': release, 'arch': arch, 'scope': scope},
-                                 error=f"File {filename} not found on server",
-                                 similar_files=similar_files), 404
-        
-        # ✅ Incrémenter le compteur de téléchargements (version asynchrone)
-        if package_found:
-            try:
-                # Mise à jour asynchrone pour ne pas bloquer le téléchargement
-                import threading
-                def increment_download():
-                    try:
-                        package_found['downloads'] = package_found.get('downloads', 0) + 1
-                        GitHubManager.save_to_github('database/zenv_hub.json', db, 
-                                                    f"Increment download count for {name} v{version}")
-                        app.logger.info(f"✅ Download count incremented for {name}")
-                    except Exception as e:
-                        app.logger.error(f"Failed to increment download count: {e}")
-                
-                # Lancer dans un thread séparé
-                thread = threading.Thread(target=increment_download)
-                thread.daemon = True
-                thread.start()
-                
-            except Exception as e:
-                app.logger.error(f"Failed to start download counter thread: {e}")
-        
-        # 📊 Statistiques de téléchargement (optionnel)
-        app.logger.info(f"✅ Download successful: {filename} ({len(file_content)} bytes)")
-        
-        # Envoyer le fichier
-        response = make_response(file_content)
-        response.headers.set('Content-Type', 'application/gzip')
-        response.headers.set('Content-Disposition', f'attachment; filename={filename}')
-        response.headers.set('Content-Length', str(len(file_content)))
-        response.headers.set('X-Download-Count', str(package_found.get('downloads', 0) + 1 if package_found else 0))
-        
-        return response
-        
-    except Exception as e:
-        app.logger.error(f"🔥 Download error: {str(e)}")
-        flash(f'Error downloading package: {str(e)}', 'error')
-        
-        # En cas d'erreur, essayer de récupérer les infos du package pour afficher une page
-        try:
-            db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-            package_info = None
-            if isinstance(db, dict) and 'packages' in db:
-                for pkg in db['packages']:
-                    if pkg['name'] == name:
-                        package_info = pkg
-                        break
-            
-            return render_template('package.html',
-                                 package=package_info or {'name': name, 'version': version, 'release': release, 'arch': arch, 'scope': scope},
-                                 error=f"Download failed: {str(e)}"), 500
-        except:
-            return render_template('error.html', error=str(e)), 500
-
-@app.route('/install.sh')
-def install_script():
-    """Script d'installation automatique pour APKM/APSM/BOOL"""
-    script = """#!/bin/sh
-# Zarch Hub Auto-Installer
-set -e
-
-echo "🚀 Zarch Hub Installer"
-echo "======================"
-
-# Couleurs
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-BLUE='\\033[0;34m'
-NC='\\033[0m'
-
-# Vérification des permissions
-if [ "$EUID" -ne 0 ]; then 
-    echo "${RED}❌ Please run as root${NC}"
-    exit 1
-fi
-
-echo "${BLUE}📦 Installing APKM Tools...${NC}"
-
-# Détection de l'architecture
-ARCH=$(uname -m)
-case $ARCH in
-    x86_64)  ARCH="x86_64" ;;
-    aarch64) ARCH="arm64" ;;
-    armv7l)  ARCH="armv7" ;;
-    *)       echo "${RED}❌ Unsupported architecture: $ARCH${NC}"; exit 1 ;;
-esac
-
-echo "${YELLOW}🔧 Architecture detected: $ARCH${NC}"
-
-# URLs des binaires
-BASE_URL="https://gsql-badge.onrender.com/package/download/public"
-VERSION="2.0.0"
-RELEASE="r1"
-
-# Installation d'APKM
-echo "${BLUE}📥 Downloading APKM...${NC}"
-curl -L -o /tmp/apkm.tar.bool "$BASE_URL/apkm/$VERSION/$RELEASE/$ARCH"
-tar -xzf /tmp/apkm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apkm.tar.bool -C /usr/local/bin/
-chmod +x /usr/local/bin/apkm
-rm -f /tmp/apkm.tar.bool
-
-# Installation d'APSM
-echo "${BLUE}📥 Downloading APSM...${NC}"
-curl -L -o /tmp/apsm.tar.bool "$BASE_URL/apsm/$VERSION/$RELEASE/$ARCH"
-tar -xzf /tmp/apsm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apsm.tar.bool -C /usr/local/bin/
-chmod +x /usr/local/bin/apsm
-rm -f /tmp/apsm.tar.bool
-
-# Installation de BOOL
-echo "${BLUE}📥 Downloading BOOL...${NC}"
-curl -L -o /tmp/bool.tar.bool "$BASE_URL/bool/$VERSION/$RELEASE/$ARCH"
-tar -xzf /tmp/bool.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/bool.tar.bool -C /usr/local/bin/
-chmod +x /usr/local/bin/bool
-rm -f /tmp/bool.tar.bool
-
-# Création des répertoires
-mkdir -p /usr/local/share/apkm/{database,cache,PROTOCOLE/security/tokens}
-
-# Configuration initiale
-echo "${BLUE}⚙️  Configuring APKM...${NC}"
-cat > /etc/apkm/repositories.conf << EOF
-# APKM Repositories
-zarch-hub https://gsql-badge.onrender.com 5
-EOF
-
-# Vérification
-echo "${GREEN}✅ Installation complete!${NC}"
-echo ""
-echo "📋 Commands installed:"
-echo "   $(which apkm) - Package manager"
-echo "   $(which apsm) - Publisher"
-echo "   $(which bool) - Builder"
-echo ""
-echo "🚀 Try: apkm --help"
-echo "🔐 Login: apsm login"
-echo "🏗️ build: bool --verify"
-echo "${YELLOW}📊 Statistics:${NC}"
-apkm --version
-"""
-    
-    return Response(script, mimetype='text/plain', headers={
-        'Content-Disposition': 'attachment; filename="install.sh"',
-        'Cache-Control': 'no-cache'
-    })
-
-@app.route('/badge/<path:badge_name>')
-def serve_badge_svg(badge_name):
-    """Génère un badge SVG dynamique"""
-    from badges import BadgeGenerator
-    
-    # Parser le format [label]-[value]-[color]
-    parts = badge_name.replace('.svg', '').split('-')
-    
-    if len(parts) >= 2:
-        # Format: label-value-color
-        if len(parts) >= 3:
-            label, value, color = parts[0], '-'.join(parts[1:-1]), parts[-1]
-        else:
-            label, value = parts[0], parts[1]
-            color = 'blue'
-    else:
-        label = badge_name
-        value = 'unknown'
-        color = 'gray'
-    
-    svg = BadgeGenerator.generate(label, value, color)
-    return Response(svg, mimetype='image/svg+xml')
-
-@app.route('/badge/package/<name>')
-def package_badge(name):
-    """Badge dynamique pour un package"""
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    package = next((p for p in db.get('packages', []) if p['name'] == name), None)
-    
-    if not package:
-        return serve_badge_svg('package-not_found-red')
-    
-    version = package.get('version', 'unknown')
-    downloads = package.get('downloads', 0)
-    
-    # Générer plusieurs badges
-    badges = {
-        'version': BadgeGenerator.generate('version', version, 'blue'),
-        'downloads': BadgeGenerator.generate('downloads', f"{downloads}", 'green'),
-        'license': BadgeGenerator.generate('license', package.get('license', 'MIT'), 'yellow')
-    }
-    
-    return jsonify(badges)
-
-@app.route('/badge/custom/<username>/<badge_name>')
-def custom_badge(username, badge_name):
-    """Badge personnalisé créé par l'utilisateur"""
-    db = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
-    badge = db.get(badge_name)
-    
-    if not badge:
-        return serve_badge_svg('badge-not_found-red')
-    
-    svg = BadgeGenerator.generate(
-        badge['label'],
-        badge['value'],
-        badge.get('color', 'blue')
-    )
-    return Response(svg, mimetype='image/svg+xml')
-
 
 # ============================================================================
 # GESTION DES ERREURS
 # ============================================================================
 
 @app.errorhandler(404)
-def page_not_found(e):
+def not_found(e):
     return render_template('404.html'), 404
 
 @app.errorhandler(500)
-def internal_server_error(e):
+def internal_error(e):
     app.logger.error(f"500 error: {e}")
     return render_template('500.html'), 500
 
-@app.errorhandler(429)
-def rate_limit_exceeded(e):
-    return jsonify({'error': 'Rate limit exceeded'}), 429
-
-# ============================================================================
-# ROUTES DE DÉBOGAGE (À DÉSACTIVER EN PRODUCTION)
-# ============================================================================
-
-@app.route('/debug/db')
-def debug_db():
-    """Debug uniquement - À désactiver en production"""
-    if not app.debug:
-        abort(404)
-    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    return jsonify(db)
-
-@app.route('/debug/token')
-def debug_session():
-    """Debug uniquement"""
-    if not app.debug:
-        abort(404)
-    return jsonify({
-        'session': dict(session),
-        'user': session.get('user'),
-        'token': session.get('token')
-    })
-@app.route('/debug/cookies')
-def debug_coockies():
-    """Route de debug pour vérifier la session"""
-    if not app.debug:
-        abort(404)
-    
-    return jsonify({
-        'session': dict(session),
-        'cookies': dict(request.cookies),
-        'user': session.get('user'),
-        'token': session.get('token'),
-        'has_token_cookie': 'zarch_token' in request.cookies
-    })
-
-# ============================================================================
-# SETTING COMPLET
-# ============================================================================
-
-@app.route('/settings')
-@token_required
-def settings_dashboard():
-    """Dashboard des paramètres"""
-    user = g.user
-    return render_template('settings/index.html', user=user)
-
-@app.route('/settings/profile', methods=['GET', 'POST'])
-@token_required
-def settings_profile():
-    """Paramètres du profil"""
-    user = g.user
-    
-    if request.method == 'POST':
-        # Mettre à jour le profil
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        for u in db['users']:
-            if u['username'] == user['username']:
-                u['display_name'] = request.form.get('display_name', u['username'])
-                u['bio'] = request.form.get('bio', '')
-                u['website'] = request.form.get('website', '')
-                u['twitter'] = request.form.get('twitter', '')
-                u['github'] = request.form.get('github', '')
-                u['updated_at'] = datetime.now().isoformat()
-                break
-        
-        GitHubManager.save_to_github('database/users.json', db, f"Profile update: {user['username']}")
-        flash('Profile updated successfully!', 'success')
-        return redirect('/settings/profile')
-    
-    return render_template('settings/profile.html', user=user)
-
-@app.route('/settings/security', methods=['GET', 'POST'])
-@token_required
-def settings_security():
-    """Paramètres de sécurité"""
-    user = g.user
-    return render_template('settings/security.html', user=user)
-
-@app.route('/settings/notifications', methods=['GET', 'POST'])
-@token_required
-def settings_notifications():
-    """Paramètres des notifications"""
-    user = g.user
-    return render_template('settings/notifications.html', user=user)
-
-@app.route('/settings/badges')
-@token_required
-def settings_badges():
-    """Gestion des badges personnalisés"""
-    user = g.user
-    badges = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
-    return render_template('settings/badges.html', user=user, badges=badges)
-
-@app.route('/settings/badges/<badge_name>')
-@token_required
-def settings_badge_detail(badge_name):
-    """Détail d'un badge"""
-    user = g.user
-    badges = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
-    badge = badges.get(badge_name)
-    
-    if not badge:
-        abort(404)
-    
-    return render_template('settings/badge_detail.html', user=user, badge=badge, name=badge_name)
-
-@app.route('/settings/badges/<badge_name>/delete', methods=['POST'])
-@token_required
-def settings_badge_delete(badge_name):
-    """Supprimer un badge"""
-    user = g.user
-    badges = GitHubManager.read_from_github(f'badges/{user["username"]}/badges.json', {})
-    
-    if badge_name in badges:
-        del badges[badge_name]
-        GitHubManager.save_to_github(
-            f'badges/{user["username"]}/badges.json', 
-            badges, 
-            f"Deleted badge: {badge_name}"
-        )
-        flash('Badge deleted', 'success')
-    
-    return redirect('/settings/badges')
-
-@app.route('/settings/delete-account', methods=['POST'])
-@token_required
-def settings_delete_account():
-    """Supprimer définitivement le compte utilisateur"""
-    user = g.user
-    username = user['username']
-    
-    try:
-        # 1. Vérification du mot de passe (sécurité)
-        password = request.form.get('password')
-        if not password:
-            flash('Password is required to delete account', 'error')
-            return redirect('/settings/danger')
-        
-        # Vérifier le mot de passe (à adapter selon ton système d'auth)
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        user_data = next((u for u in db['users'] if u['username'] == username), None)
-        
-        if not user_data:
-            flash('User not found', 'error')
-            return redirect('/settings')
-        
-        # Vérifier le mot de passe (si tu utilises bcrypt)
-        # if not SecurityUtils.check_password(password, user_data['password']):
-        #     flash('Invalid password', 'error')
-        #     return redirect('/settings/danger')
-        
-        # 2. Demander confirmation (déjà géré par le formulaire)
-        
-        # 3. Supprimer tous les packages de l'utilisateur
-        packages_db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-        user_packages = [p for p in packages_db.get('packages', []) if p.get('author') == username]
-        
-        deleted_packages = 0
-        for package in user_packages:
-            package_name = package['name']
-            
-            # Supprimer le fichier du package
-            package_path = f"packages/{package.get('scope', 'public')}/{package_name}/{package_name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
-            GitHubManager.delete_from_github(package_path, f"Deleted package {package_name} (account deletion)")
-            
-            # Supprimer les reviews du package
-            GitHubManager.delete_from_github(f'reviews/{package_name}.json', f"Deleted reviews for {package_name}")
-            
-            deleted_packages += 1
-        
-        # 4. Supprimer tous les badges personnalisés
-        badges = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
-        if badges:
-            for badge_name in badges.keys():
-                # Log la suppression (pas besoin de supprimer individuellement)
-                pass
-            GitHubManager.delete_from_github(f'badges/{username}/badges.json', f"Deleted all badges for {username}")
-            GitHubManager.delete_from_github(f'badges/{username}/', f"Deleted badge directory for {username}")
-        
-        # 5. Supprimer les reviews laissées par l'utilisateur
-        # Parcourir tous les packages pour supprimer les reviews de l'utilisateur
-        all_packages = packages_db.get('packages', [])
-        for package in all_packages:
-            reviews = GitHubManager.read_from_github(f'reviews/{package["name"]}.json', {'reviews': [], 'average': 0})
-            if reviews.get('reviews'):
-                original_count = len(reviews['reviews'])
-                reviews['reviews'] = [r for r in reviews['reviews'] if r.get('username') != username]
-                
-                if len(reviews['reviews']) < original_count:
-                    # Recalculer la moyenne
-                    if reviews['reviews']:
-                        total = sum(r['rating'] for r in reviews['reviews'])
-                        reviews['average'] = total / len(reviews['reviews'])
-                    else:
-                        reviews['average'] = 0
-                    
-                    GitHubManager.save_to_github(
-                        f'reviews/{package["name"]}.json',
-                        reviews,
-                        f"Removed reviews by {username} (account deletion)"
-                    )
-        
-        # 6. Supprimer l'utilisateur de la base de données
-        db['users'] = [u for u in db['users'] if u['username'] != username]
-        
-        # 7. Sauvegarder la base de données mise à jour
-        GitHubManager.save_to_github('database/users.json', db, f"Deleted user: {username}")
-        
-        # 8. Nettoyer la session et les cookies
-        session.clear()
-        
-        # Créer une réponse de redirection
-        response = make_response(redirect('/'))
-        
-        # Supprimer le cookie
-        CookieManager.delete_secure_cookie(response, 'zarch_token')
-        
-        # 9. Journaliser l'action
-        app.logger.info(f"Account deleted: {username} (deleted {deleted_packages} packages)")
-        
-        # 10. Message de confirmation
-        flash('Your account has been permanently deleted. We\'re sorry to see you go!', 'info')
-        
-        return response
-        
-    except Exception as e:
-        app.logger.error(f"Error deleting account {username}: {e}")
-        flash(f'Error deleting account: {str(e)}', 'error')
-        return redirect('/settings')
-    
 # ============================================================================
 # INITIALISATION
 # ============================================================================
 
-def init_storage():
-    """Initialise les dossiers de stockage"""
-    os.makedirs('/tmp/zarch_uploads', exist_ok=True)
-    os.makedirs('/tmp/zarch_temp', exist_ok=True)
+def init_github_structure():
+    """Initialise la structure de dossiers sur GitHub"""
+    # Créer les dossiers nécessaires via des fichiers .gitkeep
+    folders = [
+        'database',
+        'packages/public',
+        'packages/private',
+        'packages/global',
+        'reviews',
+        'badges',
+        'tokens',
+        'forum'
+    ]
     
-    # Vérifier la base de données GitHub
-    if not GitHubManager.read_from_github('database/zenv_hub.json'):
-        GitHubManager.save_to_github('database/zenv_hub.json', {
-            'packages': [],
-            'version': '5.2',
-            'updated_at': datetime.now().isoformat()
-        })
+    for folder in folders:
+        GitHubManager.write_json(f"{folder}/.gitkeep", {}, "Init structure")
+
+@app.before_first_request
+def startup():
+    """Initialisation au démarrage"""
+    init_github_structure()
+    # Nettoyer les tokens expirés
+    TokenManager.cleanup_expired()
 
 if __name__ == '__main__':
-    init_storage()
+    port = int(os.environ.get('PORT', 10000))
     
-    print("🚀 Zarch Server v5.2 Started")
-    print("=" * 50)
-    print(f"📦 GitHub Repo: {SecurityConfig.GITHUB_REPO}")
-    print(f"🔒 Session timeout: {SecurityConfig.SESSION_TIMEOUT}s")
-    print(f"🔑 Token expiry: {SecurityConfig.TOKEN_EXPIRY}s")
-    print(f"📁 Max upload: {SecurityConfig.MAX_CONTENT_LENGTH // (1024*1024)}MB")
-    print(f"🌐 API version: /v5.2/")
-    print(f"🔗 http://localhost:10000")
-    print("=" * 50)
+    print("\n" + "="*60)
+    print("🚀 Zarch Server v6.0 - Enterprise Edition")
+    print("="*60)
+    print(f"📦 GitHub Repo: {Config.GITHUB_REPO}")
+    print(f"🌐 Branch: {Config.GITHUB_BRANCH}")
+    print(f"🔑 Token expiry: {Config.TOKEN_EXPIRY_DAYS} days")
+    print(f"📁 Max upload: {Config.MAX_CONTENT_LENGTH // (1024*1024)}MB")
+    print(f"🔗 http://localhost:{port}")
+    print("="*60 + "\n")
     
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)), debug=True)
+    app.run(host='0.0.0.0', port=port, debug=True)
