@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}404 - Page Not Found | Zarch Hub{% endblock %}
+{% block title %}404 - Page Not Found{% endblock %}
 
 {% block content %}
 <div class="min-h-[60vh] flex items-center justify-center px-4">
     <div class="text-center max-w-2xl" data-aos="fade-up">
-        <!-- Icône animée -->
         <div class="relative mb-8">
             <div class="w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full flex items-center justify-center animate-float">
                 <i class="fas fa-search text-4xl text-purple-600 dark:text-purple-400"></i>
@@ -15,44 +14,20 @@
             </div>
         </div>
 
-        <!-- Titre -->
         <h1 class="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
             Page Not Found
         </h1>
         
-        <!-- Message -->
         <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
             The page you're looking for doesn't exist or has been moved.
         </p>
 
-        <!-- Suggestions -->
-        <div class="mb-8">
-            <p class="text-sm text-gray-500 mb-3">You might want to try:</p>
-            <div class="flex flex-wrap justify-center gap-2">
-                <a href="/packages" class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm hover:bg-purple-100 transition-all">
-                    Browse Packages
-                </a>
-                <a href="/docs" class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm hover:bg-purple-100 transition-all">
-                    Documentation
-                </a>
-                <a href="/community" class="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-sm hover:bg-purple-100 transition-all">
-                    Community
-                </a>
-            </div>
-        </div>
-
-        <!-- Boutons d'action -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/" 
-               class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105">
-                <i class="fas fa-home mr-2"></i>
-                Go Home
+            <a href="/" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition hover:scale-105">
+                <i class="fas fa-home mr-2"></i>Go Home
             </a>
-            
-            <a href="javascript:history.back()" 
-               class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all hover:scale-105">
-                <i class="fas fa-arrow-left mr-2"></i>
-                Go Back
+            <a href="/packages" class="px-6 py-3 glass-card text-gray-900 dark:text-white rounded-xl font-semibold hover:bg-white/30 transition hover:scale-105">
+                <i class="fas fa-box mr-2"></i>Browse Packages
             </a>
         </div>
     </div>
