@@ -1,37 +1,29 @@
 {
   "users": [
     {
-      "id": "c1d3d49e-0b2c-467e-9ba1-b2a44baf733a",
-      "username": "admin",
-      "email": "",
-      "password": "$2b$12$senyAICjYvR9loyYO80U7e7sxJYt82PDKkrT3Jf/uVKUweh60DLS.",
-      "personal_code": "BD21002C84F3",
-      "created_at": "2026-01-25T14:57:24.948050",
-      "updated_at": "2026-01-25T14:57:24.948062",
-      "role": "admin",
-      "active": true
-    },
-    {
-      "id": "ce6da7bd-3e18-47d5-89f4-a5ee78ce54a3",
       "username": "mauricio",
-      "password": "$2b$12$tlRNBPWXGBl4aM6uN99iS.F1719TmUgmyfPtNCfMohqEuWisQb1p.",
+      "email": "mauricio@example.com",
       "role": "user",
-      "created_at": "2026-03-01T21:19:26.454588"
-    },
-    {
-      "id": "0fa692fe-8c33-4078-8ec5-b1992c184ed8",
-      "username": "mauricio_tukss1231",
-      "email": "didimbanza714@gmail.com",
-      "discord_id": "1394106069139325009",
-      "discord_username": "mauricio_tukss1231",
-      "discord_avatar": "https://cdn.discordapp.com/avatars/1394106069139325009/c60975992c691ed0c45a9222791468b1.png",
-      "discord_token": "MTQ2NzU0MjkyMjEzOTUzNzQ2OQ.lZuEqr7B3EQoQ4RSxVghTL5mPkIWRa",
-      "discord_refresh_token": "AIPAvFe4YDJPDgRxZhyJd5jAPyDRPY",
-      "discord_token_expires": "2026-03-16T21:53:19.982163",
-      "role": "user",
-      "created_at": "2026-03-09T11:14:59.483443",
-      "last_login": "2026-03-09T21:53:19.982153",
-      "provider": "discord"
+      "bio": null,
+      "avatar_url": null,
+      "website": null,
+      "github": null,
+      "twitter": null,
+      "discord_id": null,
+      "discord_username": null,
+      "discord_avatar": null,
+      "id": "a5cc6768-1eac-4d9f-9bfc-4f526db8df89",
+      "password_hash": "$2b$12$YA81.3vKoq5GJnmHLWL4Z.sEfFr/JNIsfHWycYjdHYNDQqe30W4xS",
+      "created_at": "2026-03-13T23:07:35.895001",
+      "updated_at": "2026-03-13T23:07:35.895006",
+      "last_login": null,
+      "email_verified": false,
+      "email_verification_token": "cywBZQzt3yhVlM0hZWd2sbYHlh-9noo7ZMQ3RXxwVQo",
+      "reset_password_token": null,
+      "reset_password_expires": null,
+      "discord_token": null,
+      "discord_refresh_token": null,
+      "discord_token_expires": null
     }
   ]
 }
