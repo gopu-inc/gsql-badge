@@ -1,145 +1,172 @@
 {% extends "base.html" %}
 
+{% block title %}Upload Package - Zarch Hub{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-12">
-    <div class="bg-surface rounded-2xl border border-gray-700 p-8 shadow-2xl">
-        <div class="flex items-center gap-4 mb-8 pb-6 border-b border-gray-700">
-            <div class="bg-primary/10 p-3 rounded-lg text-primary">
-                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
-            </div>
-            <div>
-                <h1 class="text-3xl font-bold text-white">Publier un paquet</h1>
-                <p class="text-gray-400 text-sm">Rendez votre code accessible à la communauté</p>
-            </div>
-        </div>
-
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="glass-card rounded-2xl p-8" data-aos="fade-up">
+        <h1 class="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Upload Package
+        </h1>
+        
         <form id="uploadForm" class="space-y-6">
-            <!-- Basic Info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Scope <span class="text-xs text-gray-500">(optionnel)</span></label>
-                    <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">@</span>
-                        <input type="text" name="scope" value="global" class="w-full bg-darker border border-gray-600 rounded-lg py-3 pl-8 pr-4 text-white focus:border-primary outline-none font-mono">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Nom du paquet *</label>
-                    <input type="text" name="name" required placeholder="mathlib" class="w-full bg-darker border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none font-mono">
-                </div>
-            </div>
-
+            <!-- Package Name -->
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Version *</label>
-                <input type="text" name="version" required placeholder="1.0.0" class="w-full bg-darker border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none font-mono">
-                <p class="text-xs text-gray-500 mt-1">Format SemVer recommandé (ex: 1.0.0)</p>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Description courte</label>
-                <textarea name="description" rows="2" class="w-full bg-darker border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none resize-none"></textarea>
-            </div>
-
-            <!-- Security Code -->
-            <div class="bg-darker/50 p-4 rounded-xl border border-gray-700">
-                <label class="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-shield-halved text-primary"></i> Code Personnel *
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Package Name
                 </label>
-                <input type="password" name="personal_code" required placeholder="Votre code secret reçu à l'inscription" class="w-full bg-darker border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-primary outline-none">
+                <input type="text" id="name" required
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
+                       placeholder="e.g., my-package">
             </div>
-
+            
+            <!-- Version -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Version
+                </label>
+                <input type="text" id="version" required
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
+                       placeholder="1.0.0">
+            </div>
+            
+            <!-- Release -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Release
+                </label>
+                <input type="text" id="release" value="r0"
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
+            </div>
+            
+            <!-- Architecture -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Architecture
+                </label>
+                <select id="arch" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
+                    <option value="x86_64">x86_64</option>
+                    <option value="i386">i386</option>
+                    <option value="arm64">arm64</option>
+                    <option value="armv7">armv7</option>
+                </select>
+            </div>
+            
+            <!-- Scope -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Scope
+                </label>
+                <select id="scope" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                </select>
+            </div>
+            
+            <!-- Description -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                </label>
+                <textarea id="description" rows="3"
+                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
+                          placeholder="Short description of your package"></textarea>
+            </div>
+            
+            <!-- License -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    License
+                </label>
+                <input type="text" id="license" value="MIT"
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
+            </div>
+            
             <!-- File Upload -->
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Archive du paquet (.tar.gz) *</label>
-                <div id="dropZone" class="border-2 border-dashed border-gray-600 rounded-xl p-10 text-center hover:border-primary hover:bg-primary/5 transition cursor-pointer relative">
-                    <input type="file" id="fileInput" name="file" accept=".tar.gz" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" required>
-                    
-                    <div id="dropContent">
-                        <i class="fa-solid fa-file-zipper text-4xl text-gray-500 mb-4"></i>
-                        <p class="text-gray-300 font-medium">Glissez votre fichier ici ou cliquez</p>
-                        <p class="text-sm text-gray-500 mt-2">Doit contenir un fichier zarch.json à la racine</p>
-                    </div>
-                    
-                    <div id="fileSelected" class="hidden">
-                        <i class="fa-solid fa-check-circle text-4xl text-green-500 mb-3"></i>
-                        <p id="fileName" class="text-white font-mono font-bold text-lg"></p>
-                        <p class="text-sm text-gray-400 mt-1">Fichier prêt à l'envoi</p>
-                    </div>
-                </div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Package File (.tar.bool)
+                </label>
+                <input type="file" id="file" accept=".tar.bool" required
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
             </div>
-
-            <button type="submit" class="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-4 rounded-xl transition transform hover:scale-[1.01] shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2">
-                <span>Publier maintenant</span>
-                <i class="fa-solid fa-rocket"></i>
+            
+            <!-- Submit -->
+            <button type="submit" 
+                    class="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition transform hover:scale-105">
+                <i class="fas fa-cloud-upload-alt mr-2"></i>
+                Upload Package
             </button>
         </form>
+        
+        <div id="message" class="mt-4 text-center hidden"></div>
     </div>
 </div>
 
 <script>
-    // Drag & Drop Logic
-    const fileInput = document.getElementById('fileInput');
-    const dropContent = document.getElementById('dropContent');
-    const fileSelected = document.getElementById('fileSelected');
-    const fileName = document.getElementById('fileName');
+const token = localStorage.getItem('zarch_token');
+if (!token) {
+    window.location.href = '/login';
+}
 
-    fileInput.addEventListener('change', function() {
-        if (this.files[0]) {
-            dropContent.classList.add('hidden');
-            fileSelected.classList.remove('hidden');
-            fileName.textContent = this.files[0].name;
-        }
-    });
-
-    // Form Submission
-    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const token = localStorage.getItem('zarch_token');
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('name', document.getElementById('name').value);
+    formData.append('version', document.getElementById('version').value);
+    formData.append('release', document.getElementById('release').value);
+    formData.append('arch', document.getElementById('arch').value);
+    formData.append('scope', document.getElementById('scope').value);
+    formData.append('description', document.getElementById('description').value);
+    formData.append('license', document.getElementById('license').value);
+    formData.append('file', document.getElementById('file').files[0]);
+    
+    const msg = document.getElementById('message');
+    msg.classList.remove('hidden', 'text-green-600', 'text-red-600');
+    msg.textContent = 'Uploading...';
+    msg.classList.add('text-purple-600');
+    
+    try {
+        // 1. Créer le package
+        const pkgRes = await fetch('/v6/packages', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: document.getElementById('name').value,
+                version: document.getElementById('version').value,
+                release: document.getElementById('release').value,
+                arch: document.getElementById('arch').value,
+                scope: document.getElementById('scope').value,
+                description: document.getElementById('description').value,
+                license: document.getElementById('license').value,
+                author: '{{ user.username }}'
+            })
+        });
         
-        if (!token) {
-            alert("Session expirée. Veuillez vous reconnecter.");
-            window.location.href = '/login';
-            return;
-        }
-
-        const btn = e.target.querySelector('button');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xl"></i> Upload en cours...';
-        btn.disabled = true;
-
-        const formData = new FormData(e.target);
-        const scope = formData.get('scope') || 'global';
-        const name = formData.get('name');
-
-        try {
-            const res = await fetch(`/api/package/upload/${scope}/${name}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                },
-                body: formData
-            });
-            
-            const data = await res.json();
-            if (data.success) {
-                // Success Animation / Redirect
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Succès !';
-                btn.classList.replace('from-cyan-500', 'from-green-500');
-                btn.classList.replace('to-blue-500', 'to-green-600');
-                
-                setTimeout(() => {
-                    window.location.href = `/package/${scope}/${name}`;
-                }, 1000);
-            } else {
-                alert("Erreur: " + data.error);
-                btn.innerHTML = originalContent;
-                btn.disabled = false;
-            }
-        } catch (err) {
-            alert("Erreur réseau");
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }
-    });
+        const pkgData = await pkgRes.json();
+        if (!pkgRes.ok) throw new Error(pkgData.error);
+        
+        // 2. Uploader le fichier
+        const fileRes = await fetch(`/v6/packages/${document.getElementById('name').value}/upload`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        
+        const fileData = await fileRes.json();
+        if (!fileRes.ok) throw new Error(fileData.error);
+        
+        msg.textContent = '✅ Package uploaded successfully!';
+        msg.classList.add('text-green-600');
+        setTimeout(() => window.location.href = `/package/${document.getElementById('name').value}`, 2000);
+    } catch (err) {
+        msg.textContent = `❌ Error: ${err.message}`;
+        msg.classList.add('text-red-600');
+    }
+});
 </script>
 {% endblock %}
