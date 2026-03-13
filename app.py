@@ -299,12 +299,17 @@ class TokenInDB(BaseModel):
     username: str
     role: UserRole = UserRole.USER
     created_at: datetime = Field(default_factory=datetime.now)
-    expires_at: datetime
+    expires_at: Optional[datetime] = None  # ← Rendre optionnel
     active: bool = True
     last_used: Optional[datetime] = None
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
-
+    
+    @field_validator('expires_at', mode='before')
+    def set_default_expiry(cls, v):
+        if v is None:
+            return datetime.now() + timedelta(days=30)
+        return v
 # ============================================================================
 # INITIALISATION FLASK
 # ============================================================================
