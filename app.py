@@ -2001,75 +2001,337 @@ apkm --version
     })
 
 @app.route('/badge/<path:badge_name>')
-def serve_badge_svg(badge_name):
-    """Génère un badge SVG dynamique"""
-    # Parser le format [label]-[value]-[color]
-    parts = badge_name.replace('.svg', '').split('-')
-    
-    if len(parts) >= 2:
-        # Format: label-value-color
+@app.route('/badge/<path:badge_name>.<format>')
+def serve_badge_svg(badge_name, format='svg'):
+    """Générateur de badges avancé avec support des logos, couleurs personnalisées et cache"""
+    try:
+        # ============================================================================
+        # PARSING DE L'URL
+        # ============================================================================
+        
+        # Nettoyer le nom du badge
+        if format not in ['svg', 'png', 'json']:
+            format = 'svg'
+        
+        badge_name = badge_name.replace(f'.{format}', '')
+        
+        # Récupérer les paramètres d'URL (style, logo, etc.)
+        style = request.args.get('style', 'flat')  # flat, plastic, for-the-badge, social
+        logo = request.args.get('logo', '')
+        logo_width = request.args.get('logoWidth', '')
+        link = request.args.get('link', '')
+        colorA = request.args.get('colorA', '#555')
+        colorB = request.args.get('colorB', '')
+        label_color = request.args.get('labelColor', '')
+        
+        # ============================================================================
+        # PARSER LE NOM DU BADGE (format: label-value-color)
+        # ============================================================================
+        
+        parts = badge_name.split('-')
+        
         if len(parts) >= 3:
-            label, value, color = parts[0], '-'.join(parts[1:-1]), parts[-1]
-        else:
+            # Format complet: label-value-color
+            # Le label peut contenir des tirets, donc on prend le dernier élément comme couleur
+            color = parts[-1]
+            # La valeur est entre le premier élément et la couleur
+            value = '-'.join(parts[1:-1])
+            label = parts[0]
+        elif len(parts) == 2:
+            # Format: label-value (couleur par défaut: blue)
             label, value = parts[0], parts[1]
             color = 'blue'
-    else:
-        label = badge_name
-        value = 'unknown'
-        color = 'gray'
-    
-    # Générer le SVG (simplifié pour l'exemple)
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{len(label)*7 + len(value)*7 + 20}" height="20">
-        <linearGradient id="smooth" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#bbb" stop-opacity=".1"/>
-            <stop offset="100%" stop-opacity=".1"/>
+        else:
+            # Format invalide
+            label = 'badge'
+            value = 'error'
+            color = 'red'
+        
+        # Décoder les caractères URL-encodés
+        from urllib.parse import unquote
+        label = unquote(label)
+        value = unquote(value)
+        
+        # ============================================================================
+        # TABLE DES COULEURS
+        # ============================================================================
+        
+        COLORS = {
+            # Couleurs standard
+            'blue': '#007ec6',
+            'green': '#97ca00',
+            'red': '#e05d44',
+            'yellow': '#dfb317',
+            'orange': '#fe7d37',
+            'purple': '#8e44ad',
+            'pink': '#ff69b4',
+            'gray': '#555555',
+            'grey': '#555555',
+            'lightgray': '#9f9f9f',
+            'lightgrey': '#9f9f9f',
+            'white': '#ffffff',
+            'black': '#000000',
+            
+            # Couleurs vives
+            'brightgreen': '#4c1',
+            'greenyellow': '#a4a61d',
+            'yellowgreen': '#a4a61d',
+            'yellowgreen': '#a4a61d',
+            'orange': '#fe7d37',
+            'red': '#e05d44',
+            'blue': '#007ec6',
+            'cyan': '#00b9fe',
+            'magenta': '#f0f',
+            
+            # Couleurs par nom
+            'success': '#4c1',
+            'info': '#007ec6',
+            'warning': '#dfb317',
+            'danger': '#e05d44',
+            
+            # Couleurs des plateformes
+            'discord': '#5865F2',
+            'github': '#333333',
+            'gitlab': '#fc6d26',
+            'docker': '#2496ed',
+            'python': '#3776ab',
+            'javascript': '#f7df1e',
+            'typescript': '#3178c6',
+            'rust': '#000000',
+            'go': '#00add8',
+            'alpine': '#0d597f',
+            'linux': '#fcc624',
+            'apache': '#d22128',
+            'nginx': '#009639',
+            'mysql': '#4479a1',
+            'postgresql': '#336791',
+            'mongodb': '#47a248',
+            'redis': '#dc382d',
+            'aws': '#ff9900',
+            'azure': '#0078d4',
+            'gcp': '#4285f4',
+            'heroku': '#430098',
+            'vercel': '#000000',
+            'netlify': '#00c7b7',
+        }
+        
+        # ============================================================================
+        # DÉTERMINER LES COULEURS
+        # ============================================================================
+        
+        # Couleur de la partie valeur
+        if colorB:
+            main_color = colorB
+        elif color in COLORS:
+            main_color = COLORS[color]
+        elif color.startswith('#'):
+            main_color = color
+        else:
+            main_color = COLORS.get(color, '#007ec6')
+        
+        # Couleur de la partie label
+        if label_color:
+            label_bg = label_color
+        elif colorA:
+            label_bg = colorA
+        else:
+            label_bg = '#555'
+        
+        # ============================================================================
+        # STYLES DE BADGES
+        # ============================================================================
+        
+        # Dimensions de base
+        label_padding = 10
+        value_padding = 10
+        font_size = 11
+        char_width = 7  # Largeur approximative par caractère
+        
+        # Calculer les largeurs
+        label_width = max(len(label) * char_width + label_padding, 30)
+        value_width = max(len(value) * char_width + value_padding, 30)
+        total_width = label_width + value_width
+        height = 20
+        
+        # Ajustements selon le style
+        border_radius = 3
+        if style == 'plastic':
+            height = 22
+            font_size = 12
+        elif style == 'for-the-badge':
+            height = 28
+            font_size = 14
+            label_padding = 15
+            value_padding = 15
+            border_radius = 4
+        elif style == 'social':
+            height = 20
+            label_bg = '#f0f0f0'
+            main_color = '#f0f0f0'
+            font_size = 11
+        
+        # ============================================================================
+        # SUPPORT DES LOGOS (Font Awesome / Simple Icons)
+        # ============================================================================
+        
+        logo_svg = ''
+        if logo:
+            # Ajuster la largeur pour inclure le logo
+            label_padding += 16
+            label_width += 16
+            
+            # Chemins SVG pour les logos populaires
+            logos = {
+                'github': 'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z',
+                'discord': 'M13.56 2.8C12.45 2.3 11.3 1.9 10.1 1.7c-.1.2-.2.4-.3.6 1.1.2 2.2.6 3.2 1-.9.5-1.9.9-2.9 1.2-.6.2-1.2.4-1.9.5-.2 0-.3.1-.5.1-.6.1-1.3.2-2 .2s-1.4-.1-2-.2c-.2 0-.3-.1-.5-.1-.6-.1-1.3-.3-1.9-.5-1-.3-2-.7-2.9-1.2 1-.4 2-.8 3.2-1-.1-.2-.2-.4-.3-.6-1.2.2-2.4.6-3.5 1.1C1.5 4.3.9 5.6.6 7c1 .5 2.1.9 3.2 1.1.1-.1.1-.2.2-.3.6-1 1.4-1.8 2.4-2.5-.1-.1-.3-.1-.4-.2-.4-.2-.8-.4-1.2-.6.8-.4 1.7-.6 2.6-.7.1 0 .3 0 .4.1.5.2 1 .4 1.5.7.4.2.7.5 1 .8-.1.1-.3.1-.4.2-.3.2-.6.5-.8.7-.1.1-.2.3-.3.4.5-.1 1.1-.1 1.6-.1s1.1 0 1.6.1c-.1-.2-.2-.3-.3-.4-.2-.2-.5-.4-.8-.7-.1-.1-.3-.1-.4-.2.3-.3.6-.6 1-.8.5-.2 1-.5 1.5-.7.1 0 .3 0 .4-.1 1 .1 1.9.3 2.7.6-.4.2-.8.4-1.2.6-.1.1-.3.1-.4.2 1 .7 1.8 1.5 2.4 2.5.1.1.1.2.2.3 1.2-.2 2.3-.5 3.3-1.1-.3-1.4-.9-2.7-1.8-3.8zM5.5 10.2c-.7 0-1.3-.6-1.3-1.4s.6-1.4 1.3-1.4 1.3.6 1.3 1.4-.6 1.4-1.3 1.4zm5 0c-.7 0-1.3-.6-1.3-1.4s.6-1.4 1.3-1.4 1.3.6 1.3 1.4-.6 1.4-1.3 1.4z',
+                'docker': 'M1.5 6.5h2v2h-2zm3 0h2v2h-2zm3 0h2v2h-2zm3 0h2v2h-2zm3 0h1v2h-1zm-12 3h2v2h-2zm3 0h2v2h-2zm3 0h2v2h-2zm3 0h2v2h-2zm3-3h1v2h-1z',
+                'python': 'M7.5 0C5.5 0 3.5.5 2.5 1.5c-1 1-1.5 3-1.5 5 0 2 1 4 2.5 5 .5.5 1.5 1 2.5 1h5c1 0 2-.5 2.5-1 1.5-1 2.5-3 2.5-5 0-2-.5-4-1.5-5C12.5.5 10.5 0 8.5 0zm0 2h1v1h-1V2zm3 1v1h-1V3h1zM6 4h5c1 0 2 .5 2 1.5V7c0 1-1 1.5-2 1.5H6c-1 0-2-.5-2-1.5V5.5c0-1 1-1.5 2-1.5zm-2 2v1h1V6H4zm6 0v1h1V6h-1z',
+                'rust': 'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z',
+            }
+            
+            if logo in logos:
+                logo_svg = f'''<svg x="5" y="2" width="16" height="16" viewBox="0 0 16 16" fill="white">
+                    <path d="{logos[logo]}"/>
+                </svg>'''
+        
+        # ============================================================================
+        # GÉNÉRATION DU SVG
+        # ============================================================================
+        
+        # Dégradé pour l'effet 3D
+        gradient = f'''
+        <linearGradient id="smooth" x2="0" y2="100%">
+            <stop offset="0" stop-color="#fff" stop-opacity=".7"/>
+            <stop offset=".1" stop-color="#aaa" stop-opacity=".1"/>
+            <stop offset=".9" stop-color="#000" stop-opacity=".3"/>
+            <stop offset="1" stop-color="#000" stop-opacity=".5"/>
         </linearGradient>
-        <rect rx="3" width="{len(label)*7 + 10}" height="20" fill="#555"/>
-        <rect rx="3" x="{len(label)*7 + 10}" width="{len(value)*7 + 10}" height="20" fill="#{color}"/>
-        <rect rx="3" width="{len(label)*7 + len(value)*7 + 20}" height="20" fill="url(#smooth)"/>
-        <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-            <text x="{len(label)*7/2 + 5}" y="14">{label}</text>
-            <text x="{len(label)*7 + len(value)*7/2 + 15}" y="14">{value}</text>
-        </g>
-    </svg>'''
-    
-    return Response(svg, mimetype='image/svg+xml')
+        '''
+        
+        # Badge de base
+        svg = f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+            width="{total_width}" height="{height}" role="img" aria-label="{label}: {value}">
+            <title>{label}: {value}</title>
+            {gradient}
+            <rect rx="{border_radius}" width="{total_width}" height="{height}" fill="#555"/>
+            <rect rx="{border_radius}" x="{label_width}" width="{value_width}" height="{height}" fill="{main_color}"/>
+            <rect rx="{border_radius}" width="{total_width}" height="{height}" fill="url(#smooth)"/>
+            {logo_svg}
+            <g fill="#fff" text-anchor="middle" font-family="'DejaVu Sans', 'Verdana', 'Geneva', sans-serif" 
+                font-size="{font_size}" font-weight="500">
+                <text x="{label_width/2 + (16 if logo else 0)}" y="{height - 6}">{label}</text>
+                <text x="{label_width + value_width/2}" y="{height - 6}">{value}</text>
+            </g>
+        </svg>'''
+        
+        # ============================================================================
+        # LIEN HYPERTEXTE (si spécifié)
+        # ============================================================================
+        
+        if link:
+            svg = f'''<a href="{link}" target="_blank">
+                {svg}
+            </a>'''
+        
+        # ============================================================================
+        # FORMAT DE RÉPONSE
+        # ============================================================================
+        
+        # Headers de cache (30 minutes)
+        headers = {
+            'Cache-Control': 'public, max-age=1800',
+            'X-Badge-Generator': 'Zarch-Hub-v5.2',
+            'Access-Control-Allow-Origin': '*'
+        }
+        
+        if format == 'json':
+            # Retourner les métadonnées du badge au format JSON
+            return jsonify({
+                'label': label,
+                'value': value,
+                'color': color,
+                'color_hex': main_color,
+                'label_color': label_bg,
+                'style': style,
+                'logo': logo,
+                'schemaVersion': 1,
+                'labelColor': label_bg,
+                'color': main_color,
+                'cacheSeconds': 1800
+            })
+        elif format == 'png':
+            # Convertir SVG en PNG (nécessite cairosvg ou autre bibliothèque)
+            # Pour l'instant, on redirige vers Shields.io pour le PNG
+            return redirect(f'https://img.shields.io/badge/{label}-{value}-{color}.png')
+        else:
+            # SVG par défaut
+            return Response(svg, mimetype='image/svg+xml', headers=headers)
+            
+    except Exception as e:
+        app.logger.error(f"Badge generation error: {e}")
+        
+        # Badge d'erreur
+        error_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
+            <rect rx="3" width="120" height="20" fill="#e05d44"/>
+            <g fill="#fff" text-anchor="middle" font-family="sans-serif" font-size="11">
+                <text x="60" y="14">error: {str(e)[:20]}</text>
+            </g>
+        </svg>'''
+        
+        return Response(error_svg, mimetype='image/svg+xml'), 500
+
+
+# ============================================================================
+# ROUTE POUR LES BADGES PERSONNALISÉS DES UTILISATEURS
+# ============================================================================
+
+@app.route('/badge/custom/<username>/<badge_name>')
+def custom_user_badge(username, badge_name):
+    """Génère un badge personnalisé créé par un utilisateur"""
+    try:
+        # Récupérer le badge depuis GitHub
+        badges = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
+        badge = badges.get(badge_name.replace('.svg', ''))
+        
+        if not badge:
+            return serve_badge_svg('badge-not_found-red')
+        
+        # Générer le badge avec les paramètres de l'utilisateur
+        return serve_badge_svg(f"{badge['label']}-{badge['value']}-{badge.get('color', 'blue')}")
+        
+    except Exception as e:
+        app.logger.error(f"Custom badge error: {e}")
+        return serve_badge_svg('error-server_500-red')
+
+
+# ============================================================================
+# ROUTE POUR LES BADGES DE PACKAGES
+# ============================================================================
+
 @app.route('/badge/package/<name>')
-def package_badge(name):
-    """Badge dynamique pour un package"""
+def package_badge_redirect(name):
+    """Redirige vers Shields.io pour les badges de packages"""
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
     package = next((p for p in db.get('packages', []) if p['name'] == name), None)
     
     if not package:
         return serve_badge_svg('package-not_found-red')
     
+    # Rediriger vers Shields.io avec les infos du package
     version = package.get('version', 'unknown')
     downloads = package.get('downloads', 0)
     
-    # Générer plusieurs badges
-    badges = {
-        'version': BadgeGenerator.generate('version', version, 'blue'),
-        'downloads': BadgeGenerator.generate('downloads', f"{downloads}", 'green'),
-        'license': BadgeGenerator.generate('license', package.get('license', 'MIT'), 'yellow')
-    }
-    
-    return jsonify(badges)
+    return redirect(f'https://img.shields.io/badge/version-{version}-blue')
 
-@app.route('/badge/custom/<username>/<badge_name>')
-def custom_badge(username, badge_name):
-    """Badge personnalisé créé par l'utilisateur"""
-    db = GitHubManager.read_from_github(f'badges/{username}/badges.json', {})
-    badge = db.get(badge_name)
-    
-    if not badge:
-        return serve_badge_svg('badge-not_found-red')
-    
-    svg = BadgeGenerator.generate(
-        badge['label'],
-        badge['value'],
-        badge.get('color', 'blue')
-    )
-    return Response(svg, mimetype='image/svg+xml')
+
+# ============================================================================
+# ENDPOINT POUR LES MÉTADONNÉES DE BADGES (Compatibilité Shields.io)
+# ============================================================================
+
+@app.route('/badge/<path:badge_name>/json')
+def badge_json_metadata(badge_name):
+    """Retourne les métadonnées du badge au format Shields.io"""
+    return serve_badge_svg(badge_name, format='json')
 
 
 # ============================================================================
