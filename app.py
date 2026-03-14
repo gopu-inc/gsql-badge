@@ -102,7 +102,7 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config.update(
     SECRET_KEY=SecurityConfig.APP_SECRET,
     MAX_CONTENT_LENGTH=SecurityConfig.MAX_CONTENT_LENGTH,
-    JSON_SORT_KEYS=True,
+    JSON_SORT_KEYS=False,
     SESSION_TYPE='filesystem',
     SESSION_PERMANENT=True,
     PERMANENT_SESSION_LIFETIME=timedelta(seconds=SecurityConfig.SESSION_TIMEOUT),
