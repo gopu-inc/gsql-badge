@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}{{ badge.name }} - Détail du Badge{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Navigation -->
+    <div class="mb-6 text-sm" data-aos="fade-up">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+                <li><a href="/settings" class="text-slate-400 hover:text-sky-400">Paramètres</a></li>
+                <li><i class="fas fa-chevron-right text-slate-600 text-xs"></i></li>
+                <li><a href="/settings/badges" class="text-slate-400 hover:text-sky-400">Badges</a></li>
+                <li><i class="fas fa-chevron-right text-slate-600 text-xs"></i></li>
+                <li class="text-white">{{ badge.name }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Header -->
+    <div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50 text-center" data-aos="fade-up">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl mb-4">
+            <i class="fas fa-medal text-white text-3xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-white mb-2">{{ badge.name }}</h1>
+        <p class="text-slate-400">{{ badge.description or 'Aucune description' }}</p>
+    </div>
+
+    <!-- Badge Preview -->
+    <div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50 text-center" data-aos="fade-up" data-aos-delay="50">
+        <h2 class="text-xl font-bold text-white mb-6">Aperçu</h2>
+        <div class="flex justify-center">
+            <img src="/badge/custom/{{ user.username }}/{{ badge.name }}" alt="{{ badge.name }}" class="h-12">
+        </div>
+    </div>
+
+    <!-- Badge Info -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
+            <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                <i class="fas fa-info-circle text-sky-400 mr-2"></i>
+                Informations
+            </h3>
+            <dl class="space-y-3">
+                <div class="flex justify-between">
+                    <dt class="text-slate-400">Label</dt>
+                    <dd class="text-white font-mono">{{ badge.label }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-slate-400">Valeur</dt>
+                    <dd class="text-white font-mono">{{ badge.value }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-slate-400">Couleur</dt>
+                    <dd class="flex items-center">
+                        <span class="w-4 h-4 rounded-full mr-2" style="background-color: {{ badge.color }}"></span>
+                        <span class="text-white">{{ badge.color }}</span>
+                    </dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-slate-400">Créé le</dt>
+                    <dd class="text-white">{{ badge.created_at[:10] }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-slate-400">Utilisations</dt>
+                    <dd class="text-white">{{ badge.usage_count or 0 }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="150">
+            <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                <i class="fas fa-code text-sky-400 mr-2"></i>
+                Intégration
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">Markdown</label>
+                    <div class="code-block relative group">
+                        <pre class="text-sm">![{{ badge.label }}](https://gsql-badge.onrender.com/badge/custom/{{ user.username }}/{{ badge.name }}.svg)</pre>
+                        <button onclick="copyText('![{{ badge.label }}](https://gsql-badge.onrender.com/badge/custom/{{ user.username }}/{{ badge.name }}.svg)')" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copier
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-2">HTML</label>
+                    <div class="code-block relative group">
+                        <pre class="text-sm">&lt;img src="https://gsql-badge.onrender.com/badge/custom/{{ user.username }}/{{ badge.name }}.svg" alt="{{ badge.label }}"&gt;</pre>
+                        <button onclick="copyText('&lt;img src=\"https://gsql-badge.onrender.com/badge/custom/{{ user.username }}/{{ badge.name }}.svg\" alt=\"{{ badge.label }}\"&gt;')" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copier
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-col md:flex-row gap-4" data-aos="fade-up" data-aos-delay="200">
+        <a href="/settings/badges/{{ badge.name }}/edit" 
+           class="flex-1 px-6 py-4 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button text-center">
+            <i class="fas fa-edit mr-2"></i>Modifier
+        </a>
+        <button onclick="deleteBadge('{{ badge.name }}')"
+                class="flex-1 px-6 py-4 bg-red-500/10 text-red-400 rounded-xl font-semibold hover:bg-red-500/20 transition-all border border-red-500/30">
+            <i class="fas fa-trash mr-2"></i>Supprimer
+        </button>
+        <a href="/settings/badges" 
+           class="flex-1 px-6 py-4 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all text-center">
+            <i class="fas fa-arrow-left mr-2"></i>Retour
+        </a>
+    </div>
+</div>
+
+<script>
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Copié !', 'success');
+    });
+}
+
+function deleteBadge(badgeName) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce badge ?')) {
+        fetch(`/settings/badges/${badgeName}/delete`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer {{ session.get("token") }}'
+            }
+        }).then(response => {
+            if (response.ok) {
+                showNotification('Badge supprimé', 'success');
+                setTimeout(() => {
+                    window.location.href = '/settings/badges';
+                }, 1000);
+            } else {
+                showNotification('Erreur lors de la suppression', 'error');
+            }
+        });
+    }
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-red-500/50 bg-red-500/10 text-red-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+</script>
+{% endblock %}
