@@ -2291,7 +2291,49 @@ def settings_delete_account():
         app.logger.error(f"Error deleting account {username}: {e}")
         flash(f'Error deleting account: {str(e)}', 'error')
         return redirect('/settings')
+
+# ============================================================================
+# ROUTES DE TEST POUR LES COOKIES
+# ============================================================================
+
+@app.route('/debug/cookiess')
+def debug_cookies():
+    """Route de debug pour vérifier les cookies"""
+    if not app.debug:
+        abort(404)
     
+    # Récupérer les cookies
+    cookies = dict(request.cookies)
+    
+    # Tenter de déchiffrer le token
+    token = CookieManager.get_secure_cookie(request, 'zarch_token')
+    
+    # Informations sur la session
+    session_info = dict(session)
+    
+    return jsonify({
+        'cookies': cookies,
+        'has_zarch_token': 'zarch_token' in cookies,
+        'decrypted_token': token,
+        'session': session_info,
+        'user': session.get('user'),
+        'fernet_key_configured': bool(SecurityConfig.FERNET_KEY),
+        'cookie_secure': app.config.get('SESSION_COOKIE_SECURE'),
+        'cookie_samesite': app.config.get('SESSION_COOKIE_SAMESITE')
+    })
+
+@app.route('/debug/set-test-cookie')
+def debug_set_test_cookie():
+    """Route de test pour définir un cookie"""
+    if not app.debug:
+        abort(404)
+    
+    response = make_response(jsonify({'message': 'Test cookie set'}))
+    
+    # Définir un cookie de test
+    CookieManager.set_secure_cookie(response, 'test_cookie', 'test_value_123', 3600)
+    
+    return response
 # ============================================================================
 # INITIALISATION
 # ============================================================================
