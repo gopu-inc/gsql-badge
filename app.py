@@ -68,11 +68,11 @@ load_dotenv()
 
 class SecurityConfig:
     # Clés de chiffrement
-    FERNET_KEY = os.environ.get('FERNET_KEY', Fernet.generate_key().decode())
-    JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
-    APP_SECRET = os.environ.get('APP_SECRET', secrets.token_hex(32))
-    COOKIE_SECRET = os.environ.get('COOKIE_SECRET', secrets.token_hex(32))
-    
+# Générez ces clés avec le script ci-dessous et utilisez-les DANS VOTRE ENVIRONNEMENT RENDER
+    FERNET_KEY = "dGhpcyBpcyBhIHNlY3VyZSBrZXkgZm9yIGZlcm5ldCAtIDMyIGJ5dGVzIGxvbmdraGpoa2hoa2hoa2hoaw=="
+    JWT_SECRET = "e8f2e4b8c6d4a1f9b7e3c5a7d9b1f3e5c7a9b1d3f5e7c9a1b3d5f7e9c1b3d5f7"
+    APP_SECRET = "f7e8d9c0b1a2f3e4d5c6b7a8f9e0d1c2b3a4f5e6d7c8b9a0f1e2d3c4b5a6f7e8d9"
+    COOKIE_SECRET = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2"
     # GitHub (inchangé)
     GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', "")
     GITHUB_REPO = os.environ.get('GITHUB_REPO', "gopu-inc/gsql-badge")
