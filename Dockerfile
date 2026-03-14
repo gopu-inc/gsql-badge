@@ -13,9 +13,12 @@ RUN apt-get update && apt-get install -y \
     gcc \
     git \
     python3 \
+    python3-venv
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python -m venv apps
+RUN source apps/bin/activate
 # Copier les dépendances Python
 COPY requirements.txt .
 
