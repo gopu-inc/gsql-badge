@@ -3,35 +3,167 @@
 {% block title %}Community - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">Community</h1>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-3xl font-bold text-purple-600">{{ total_users }}</div>
-            <div class="text-sm text-gray-600">Members</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-3xl font-bold text-green-600">{{ total_packages }}</div>
-            <div class="text-sm text-gray-600">Packages</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="text-3xl font-bold text-blue-600">{{ online_members }}</div>
-            <div class="text-sm text-gray-600">Online</div>
-        </div>
-    </div>
+<div class="mb-8" data-aos="fade-up">
+    <h1 class="text-4xl font-bold mb-2">Community Hub</h1>
+    <p class="text-xl text-gray-600">Connect with developers, share knowledge, and collaborate</p>
+</div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-4">Top Contributors</h2>
-        <div class="space-y-3">
-            {% for contributor in top_contributors %}
-            <div class="flex justify-between items-center">
-                <span class="font-medium">{{ contributor.username }}</span>
-                <span class="text-sm text-gray-600">{{ contributor.packages }} packages</span>
+<!-- Community Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-aos="fade-up" data-aos-delay="100">
+    <div class="glassmorphism rounded-2xl p-6 text-center hover-lift">
+        <div class="text-3xl font-bold text-indigo-600 mb-2">{{ total_users }}</div>
+        <div class="text-gray-600">Community Members</div>
+    </div>
+    <div class="glassmorphism rounded-2xl p-6 text-center hover-lift">
+        <div class="text-3xl font-bold text-indigo-600 mb-2">{{ total_packages }}</div>
+        <div class="text-gray-600">Shared Packages</div>
+    </div>
+    <div class="glassmorphism rounded-2xl p-6 text-center hover-lift">
+        <div class="text-3xl font-bold text-indigo-600 mb-2">{{ online_members }}</div>
+        <div class="text-gray-600">Online Now</div>
+    </div>
+    <div class="glassmorphism rounded-2xl p-6 text-center hover-lift">
+        <div class="text-3xl font-bold text-indigo-600 mb-2">24/7</div>
+        <div class="text-gray-600">Support Available</div>
+    </div>
+</div>
+
+<!-- Top Contributors -->
+<div class="glassmorphism rounded-2xl p-8 mb-8" data-aos="fade-up" data-aos-delay="150">
+    <h2 class="text-2xl font-bold mb-6">Top Contributors</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for contributor in top_contributors %}
+        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+            <div class="w-12 h-12 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+                {{ contributor.username[0]|upper }}
+            </div>
+            <div>
+                <h3 class="font-semibold">
+                    <a href="/@{{ contributor.username }}" class="hover:text-indigo-600">
+                        {{ contributor.username }}
+                    </a>
+                </h3>
+                <p class="text-sm text-gray-500">{{ contributor.packages }} packages</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <!-- Recent Packages -->
+    <div class="glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="200">
+        <h2 class="text-2xl font-bold mb-6">Recent Packages</h2>
+        <div class="space-y-4">
+            {% for package in recent_activity %}
+            <div class="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <i class="fas fa-cube text-indigo-600 mt-1"></i>
+                <div>
+                    <a href="/package/{{ package.name }}" class="font-semibold hover:text-indigo-600">
+                        {{ package.name }}
+                    </a>
+                    <p class="text-sm text-gray-500">by {{ package.author }} • {{ package.created_at[:10] }}</p>
+                </div>
             </div>
             {% else %}
-            <p class="text-gray-500">No contributors yet</p>
+            <p class="text-gray-500 text-center py-4">No recent activity</p>
             {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Forum Topics -->
+    <div class="glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="250">
+        <h2 class="text-2xl font-bold mb-6">Recent Discussions</h2>
+        <div class="space-y-4">
+            {% for topic in recent_topics %}
+            <div class="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <i class="fas fa-comment text-purple-600 mt-1"></i>
+                <div>
+                    <a href="/forum/{{ topic.id }}" class="font-semibold hover:text-indigo-600">
+                        {{ topic.title }}
+                    </a>
+                    <p class="text-sm text-gray-500">{{ topic.replies }} replies • {{ topic.last_active }}</p>
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-4">No discussions yet</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Community Badges -->
+<div class="glassmorphism rounded-2xl p-8 mb-8" data-aos="fade-up" data-aos-delay="300">
+    <h2 class="text-2xl font-bold mb-6">Community Badges</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="text-center p-4 hover-lift">
+            <div class="w-16 h-16 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-crown text-white text-2xl"></i>
+            </div>
+            <h3 class="font-semibold">Top Contributor</h3>
+            <p class="text-sm text-gray-500">Awarded to top 10 contributors</p>
+        </div>
+        <div class="text-center p-4 hover-lift">
+            <div class="w-16 h-16 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-code text-white text-2xl"></i>
+            </div>
+            <h3 class="font-semibold">Package Creator</h3>
+            <p class="text-sm text-gray-500">Published 10+ packages</p>
+        </div>
+        <div class="text-center p-4 hover-lift">
+            <div class="w-16 h-16 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-heart text-white text-2xl"></i>
+            </div>
+            <h3 class="font-semibold">Early Adopter</h3>
+            <p class="text-sm text-gray-500">Joined in the first month</p>
+        </div>
+        <div class="text-center p-4 hover-lift">
+            <div class="w-16 h-16 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-shield-alt text-white text-2xl"></i>
+            </div>
+            <h3 class="font-semibold">Security Expert</h3>
+            <p class="text-sm text-gray-500">Reported critical vulnerabilities</p>
+        </div>
+    </div>
+</div>
+
+<!-- Join Discord CTA -->
+<div class="glassmorphism rounded-2xl p-12 text-center" data-aos="fade-up" data-aos-delay="350">
+    <i class="fab fa-discord text-6xl text-indigo-600 mb-4"></i>
+    <h2 class="text-3xl font-bold mb-4">Join Our Discord Community</h2>
+    <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+        Get help, share your packages, and connect with other developers
+    </p>
+    <div class="flex flex-wrap justify-center gap-4">
+        <a href="https://discord.gg/W2xN49q9h" 
+           class="inline-flex items-center px-8 py-4 bg-[#5865F2] text-white rounded-xl font-semibold hover:bg-[#4752C4] transform hover:scale-105 transition-all duration-300">
+            <i class="fab fa-discord mr-2"></i>
+            Join Discord Server
+        </a>
+        <a href="/forum" 
+           class="inline-flex items-center px-8 py-4 bg-white text-indigo-600 rounded-xl font-semibold hover:bg-gray-50 transform hover:scale-105 transition-all duration-300 border-2 border-indigo-600">
+            <i class="fas fa-comments mr-2"></i>
+            Visit Forum
+        </a>
+    </div>
+</div>
+
+<!-- Real-time Activity Feed -->
+<div class="mt-8 glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="400">
+    <h2 class="text-2xl font-bold mb-6">Live Activity</h2>
+    <div class="space-y-3" id="activity-feed">
+        <div class="flex items-center space-x-3 text-sm text-gray-600">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>5 users online</span>
+        </div>
+        <div class="flex items-center space-x-3 text-sm text-gray-600">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>3 packages uploaded in the last hour</span>
+        </div>
+        <div class="flex items-center space-x-3 text-sm text-gray-600">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>12 new reviews</span>
         </div>
     </div>
 </div>
