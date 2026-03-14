@@ -1,144 +1,113 @@
 {% extends "base.html" %}
 
-{% block title %}{{ profile_user.username }} - Zarch Hub Profile{% endblock %}
+{% block title %}{{ profile_user.username }} - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="max-w-4xl mx-auto">
     <!-- Profile Header -->
-    <div class="glass-card rounded-2xl p-8 mb-8" data-aos="fade-up">
-        <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+    <div class="glassmorphism rounded-2xl p-8 mb-8" data-aos="fade-up">
+        <div class="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
             <!-- Avatar -->
             <div class="relative">
-                <div class="w-24 h-24 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center text-white text-4xl font-bold shadow-xl">
+                {% if profile_user.discord_avatar %}
+                <img src="{{ profile_user.discord_avatar }}" 
+                     alt="{{ profile_user.username }}" 
+                     class="w-24 h-24 rounded-2xl object-cover">
+                {% else %}
+                <div class="w-24 h-24 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white text-4xl font-bold">
                     {{ profile_user.username[0]|upper }}
                 </div>
+                {% endif %}
+                
                 {% if profile_user.discord_id %}
-                <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-1.5 rounded-full shadow-lg" title="Discord connected">
-                    <i class="fab fa-discord text-xs"></i>
+                <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-[#5865F2] rounded-full flex items-center justify-center">
+                    <i class="fab fa-discord text-white text-sm"></i>
                 </div>
                 {% endif %}
             </div>
             
             <!-- Info -->
             <div class="flex-1">
-                <div class="flex items-center gap-3 flex-wrap">
-                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-                        {{ profile_user.username }}
-                    </h1>
-                    {% if profile_user.role == 'admin' %}
-                    <span class="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium">
-                        <i class="fas fa-crown mr-1"></i>Admin
-                    </span>
+                <div class="flex items-center space-x-3 mb-2">
+                    <h1 class="text-3xl font-bold">{{ profile_user.username }}</h1>
+                    {% if profile_user.display_name and profile_user.display_name != profile_user.username %}
+                    <span class="text-gray-500">({{ profile_user.display_name }})</span>
                     {% endif %}
                 </div>
                 
                 {% if profile_user.bio %}
-                <p class="text-gray-600 dark:text-gray-400 mt-2">{{ profile_user.bio }}</p>
+                <p class="text-gray-600 mb-4">{{ profile_user.bio }}</p>
                 {% endif %}
                 
-                <div class="flex flex-wrap gap-4 mt-4">
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <i class="fas fa-calendar mr-2 text-purple-600"></i>
-                        Joined {{ profile_user.created_at[:10] }}
-                    </div>
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <i class="fas fa-box mr-2 text-green-600"></i>
-                        {{ packages|length }} packages
-                    </div>
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                        <i class="fas fa-download mr-2 text-blue-600"></i>
-                        {{ packages|sum(attribute='downloads') }} downloads
-                    </div>
-                </div>
-
-                {% if profile_user.website or profile_user.github or profile_user.twitter %}
-                <div class="flex gap-3 mt-4">
+                <div class="flex flex-wrap gap-4 text-sm text-gray-500">
+                    <span><i class="fas fa-calendar-alt mr-1"></i>Joined {{ profile_user.created_at[:10] }}</span>
+                    <span><i class="fas fa-cube mr-1"></i>{{ total_packages }} packages</span>
+                    <span><i class="fas fa-download mr-1"></i>{{ total_downloads }} total downloads</span>
                     {% if profile_user.website %}
-                    <a href="{{ profile_user.website }}" target="_blank" class="text-gray-500 hover:text-purple-600">
-                        <i class="fas fa-globe text-xl"></i>
-                    </a>
+                    <span><i class="fas fa-globe mr-1"></i><a href="{{ profile_user.website }}" target="_blank" class="text-indigo-600 hover:underline">Website</a></span>
                     {% endif %}
                     {% if profile_user.github %}
-                    <a href="https://github.com/{{ profile_user.github }}" target="_blank" class="text-gray-500 hover:text-gray-900 dark:hover:text-white">
-                        <i class="fab fa-github text-xl"></i>
-                    </a>
+                    <span><i class="fab fa-github mr-1"></i><a href="https://github.com/{{ profile_user.github }}" target="_blank" class="text-indigo-600 hover:underline">GitHub</a></span>
                     {% endif %}
                     {% if profile_user.twitter %}
-                    <a href="https://twitter.com/{{ profile_user.twitter }}" target="_blank" class="text-gray-500 hover:text-blue-400">
-                        <i class="fab fa-twitter text-xl"></i>
-                    </a>
+                    <span><i class="fab fa-twitter mr-1"></i><a href="https://twitter.com/{{ profile_user.twitter }}" target="_blank" class="text-indigo-600 hover:underline">Twitter</a></span>
                     {% endif %}
                 </div>
-                {% endif %}
             </div>
-        </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" data-aos="fade-up">
-        <div class="glass-card rounded-xl p-6 text-center">
-            <div class="text-3xl font-bold text-purple-600">{{ packages|length }}</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Packages</div>
-        </div>
-        <div class="glass-card rounded-xl p-6 text-center">
-            <div class="text-3xl font-bold text-green-600">{{ packages|sum(attribute='downloads') }}</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Downloads</div>
-        </div>
-        <div class="glass-card rounded-xl p-6 text-center">
-            <div class="text-3xl font-bold text-blue-600">{{ badges|length }}</div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">Badges</div>
-        </div>
-    </div>
-
-    <!-- Badges -->
-    {% if badges %}
-    <div class="glass-card rounded-2xl p-6 mb-8" data-aos="fade-up">
-        <h2 class="text-xl font-semibold mb-4 flex items-center">
-            <i class="fas fa-award text-purple-600 mr-2"></i>
-            Custom Badges
-        </h2>
-        <div class="flex flex-wrap gap-4">
-            {% for name, badge in badges.items() %}
-            <div class="text-center">
-                <img src="/v6/badges/{{ profile_user.username }}/{{ name }}/svg" 
-                     alt="{{ badge.label }}" class="mb-1" style="height: 20px;">
-                <p class="text-xs text-gray-500">Used {{ badge.usage_count }} times</p>
+            
+            <!-- Badges -->
+            {% if badges %}
+            <div class="flex space-x-2">
+                {% for badge in badges %}
+                <img src="/badge/custom/{{ profile_user.username }}/{{ badge }}" alt="{{ badge }}" class="h-8">
+                {% endfor %}
             </div>
-            {% endfor %}
+            {% endif %}
         </div>
     </div>
-    {% endif %}
-
-    <!-- Packages -->
-    <div class="glass-card rounded-2xl p-6" data-aos="fade-up">
-        <h2 class="text-xl font-semibold mb-4 flex items-center">
-            <i class="fas fa-boxes text-purple-600 mr-2"></i>
-            Packages by {{ profile_user.username }}
-        </h2>
+    
+    <!-- User's Packages -->
+    <div class="glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="100">
+        <h2 class="text-2xl font-bold mb-6">Packages by {{ profile_user.username }}</h2>
         
         {% if packages %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for pkg in packages %}
-            <a href="/package/{{ pkg.name }}" class="block p-4 bg-gray-50 dark:bg-gray-800 rounded-xl hover:shadow-lg transition hover:-translate-y-1">
-                <div class="flex items-center gap-3 mb-2">
-                    <div class="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cubes text-purple-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold">{{ pkg.name }}</h3>
-                        <p class="text-xs text-gray-500">v{{ pkg.version }}</p>
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for package in packages %}
+            <div class="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                <div class="flex items-start justify-between mb-2">
+                    <h3 class="text-lg font-semibold">
+                        <a href="/package/{{ package.name }}" class="hover:text-indigo-600">
+                            {{ package.name }}
+                        </a>
+                    </h3>
+                    <span class="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm">
+                        v{{ package.version }}
+                    </span>
                 </div>
-                <div class="flex justify-between text-xs text-gray-500">
-                    <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
-                    <span>{{ pkg.created_at[:10] }}</span>
+                <p class="text-gray-600 text-sm mb-3">{{ package.description or 'No description' }}</p>
+                <div class="flex items-center justify-between text-sm text-gray-500">
+                    <span><i class="fas fa-download mr-1"></i>{{ package.downloads }} downloads</span>
+                    <span><i class="far fa-clock mr-1"></i>{{ package.created_at[:10] }}</span>
                 </div>
-            </a>
+            </div>
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-center text-gray-500 py-8">No packages yet</p>
+        <p class="text-center text-gray-500 py-8">No packages published yet</p>
         {% endif %}
     </div>
-</div>
-{% endblock %}
+    
+    <!-- Activity Timeline -->
+    {% if activity %}
+    <div class="mt-8 glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="150">
+        <h2 class="text-2xl font-bold mb-6">Recent Activity</h2>
+        <div class="space-y-4">
+            {% for event in activity %}
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    {% if event.type == 'upload' %}
+                    <i class="fas fa-upload text-indigo-600"></i>
+                    {% elif event.type == 'review' %}
+                    <i class="fas fa-star text-yellow-500"></i>
+                    {% else %}
+                    <i class="fas
