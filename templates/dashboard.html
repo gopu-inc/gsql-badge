@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Dashboard - {{ user.username }}{% endblock %}
@@ -53,4 +54,109 @@
         <div class="flex items-center space-x-4">
             <div class="w-14 h-14 bg-gradient-to-br from-sky-500 to-sky-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
                 <i class="fas fa-upload text-white text-xl"></i>
-            </div
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold text-white mb-1">Upload New Package</h3>
+                <p class="text-slate-400 text-sm">Share your software with the community</p>
+            </div>
+            <i class="fas fa-arrow-right ml-auto text-slate-500 group-hover:text-sky-400 group-hover:translate-x-1 transition-all"></i>
+        </div>
+    </a>
+    
+    <a href="/settings" class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="300">
+        <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 bg-gradient-to-br from-sky-500 to-sky-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
+                <i class="fas fa-cog text-white text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold text-white mb-1">Account Settings</h3>
+                <p class="text-slate-400 text-sm">Manage your profile and preferences</p>
+            </div>
+            <i class="fas fa-arrow-right ml-auto text-slate-500 group-hover:text-sky-400 group-hover:translate-x-1 transition-all"></i>
+        </div>
+    </a>
+</div>
+
+<!-- Your Packages -->
+<div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="350">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-white">Your Packages</h2>
+        <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl text-sm font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-plus mr-2"></i>New Package
+        </a>
+    </div>
+    
+    {% if user_packages %}
+    <div class="space-y-4">
+        {% for package in user_packages %}
+        <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-sky-500/30 transition-all">
+            <div>
+                <div class="flex items-center space-x-3">
+                    <h3 class="text-lg font-semibold">
+                        <a href="/package/{{ package.name }}" class="text-white hover:text-sky-400">
+                            {{ package.name }}
+                        </a>
+                    </h3>
+                    <span class="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-full text-xs border border-sky-500/30">
+                        v{{ package.version }}
+                    </span>
+                    <span class="px-2 py-1 bg-slate-700 text-slate-300 rounded-full text-xs">
+                        {{ package.scope }}
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4 mt-2 text-sm text-slate-400">
+                    <span><i class="fas fa-download mr-1 text-sky-400"></i>{{ package.downloads }} downloads</span>
+                    <span><i class="far fa-clock mr-1 text-sky-400"></i>{{ package.created_at[:10] }}</span>
+                </div>
+            </div>
+            
+            <div class="flex space-x-2">
+                <a href="/package/{{ package.name }}" 
+                   class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:bg-sky-500 hover:text-white transition-all">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}"
+                   class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:bg-sky-500 hover:text-white transition-all">
+                    <i class="fas fa-download"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-box-open text-4xl text-slate-600"></i>
+        </div>
+        <p class="text-xl text-white mb-2">No packages yet</p>
+        <p class="text-slate-400 mb-6">Share your software with the community</p>
+        <a href="/upload" 
+           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-upload mr-2"></i>Upload Your First Package
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Discord Connection Status -->
+{% if user.discord_id %}
+<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="400">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-[#5865F2]/20 rounded-xl flex items-center justify-center border border-[#5865F2]/30">
+                <i class="fab fa-discord text-2xl text-[#5865F2]"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-white">Discord Connected</h3>
+                <p class="text-slate-400">Connected as {{ user.discord_username }}</p>
+            </div>
+        </div>
+        <div class="flex space-x-2">
+            <span class="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-sm border border-green-500/30">
+                <i class="fas fa-check-circle mr-1"></i>Connected
+            </span>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
