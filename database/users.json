@@ -49,6 +49,14 @@
       "discord_token": null,
       "discord_refresh_token": null,
       "discord_token_expires": null
+    },
+    {
+      "id": "607a22d3-5d57-4fe7-b208-352d844e70b5",
+      "username": "testeur_zarch",
+      "email": "test@zarch.com",
+      "password": "$2b$12$DRLckV18DpNiYIfWlg4UjeWYQhx5eabnxtODwFGf3.hIdBkZoECUy",
+      "role": "user",
+      "created_at": "2026-03-14T03:36:39.050494"
     }
   ]
 }
