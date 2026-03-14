@@ -2338,6 +2338,25 @@ def debug_set_test_cookie():
     CookieManager.set_secure_cookie(response, 'test_cookie', 'test_value_123', 3600)
     
     return response
+
+@app.route('/clear-cookies')
+def clear_all_cookies():
+    """Route temporaire pour forcer la suppression des cookies"""
+    response = make_response(redirect('/'))
+    
+    # Supprimer tous les cookies problématiques
+    response.set_cookie('zarch_token', '', expires=0, path='/')
+    response.set_cookie('zarch_session', '', expires=0, path='/')
+    response.set_cookie('session', '', expires=0, path='/')
+    
+    # Utiliser votre CookieManager
+    CookieManager.delete_secure_cookie(response, 'zarch_token')
+    
+    # Nettoyer la session
+    session.clear()
+    
+    flash('Cookies nettoyés avec succès ! Veuillez vous reconnecter.', 'success')
+    return response
 # ============================================================================
 # INITIALISATION
 # ============================================================================
