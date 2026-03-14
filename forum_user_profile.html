@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile_user.username }} - Forum Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Profile Header -->
+    <div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50" data-aos="fade-up">
+        <div class="flex flex-col md:flex-row items-start gap-6">
+            <!-- Avatar -->
+            <div class="relative">
+                {% if profile_user.discord_avatar %}
+                <img src="{{ profile_user.discord_avatar }}" 
+                     alt="{{ profile_user.username }}" 
+                     class="w-24 h-24 rounded-2xl object-cover border-4 border-sky-500/30">
+                {% else %}
+                <div class="w-24 h-24 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl flex items-center justify-center text-white text-4xl font-bold">
+                    {{ profile_user.username[0]|upper }}
+                </div>
+                {% endif %}
+                
+                <!-- Online Status -->
+                <div class="absolute -bottom-2 -right-2">
+                    {% if is_online %}
+                    <div class="w-5 h-5 bg-green-500 rounded-full border-4 border-slate-900"></div>
+                    {% else %}
+                    <div class="w-5 h-5 bg-slate-500 rounded-full border-4 border-slate-900"></div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- User Info -->
+            <div class="flex-1">
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <h1 class="text-3xl font-bold text-white">{{ profile_user.username }}</h1>
+                    
+                    <!-- Badges -->
+                    <div class="flex gap-1">
+                        {% if profile_user.role == 'admin' %}
+                        <span class="px-2 py-1 bg-red-500/10 text-red-400 rounded-full text-xs border border-red-500/30">
+                            <i class="fas fa-crown mr-1"></i>Admin
+                        </span>
+                        {% endif %}
+                        {% if profile_user.role == 'moderator' %}
+                        <span class="px-2 py-1 bg-purple-500/10 text-purple-400 rounded-full text-xs border border-purple-500/30">
+                            <i class="fas fa-shield-alt mr-1"></i>Moderator
+                        </span>
+                        {% endif %}
+                        {% if profile_user.discord_id %}
+                        <span class="px-2 py-1 bg-[#5865F2]/10 text-[#5865F2] rounded-full text-xs border border-[#5865F2]/30">
+                            <i class="fab fa-discord mr-1"></i>Discord
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <div class="text-2xl font-bold text-sky-400">{{ stats.topics }}</div>
+                        <div class="text-xs text-slate-400">Topics</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-sky-400">{{ stats.posts }}</div>
+                        <div class="text-xs text-slate-400">Posts</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-sky-400">{{ stats.likes_received }}</div>
+                        <div class="text-xs text-slate-400">Likes Received</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-sky-400">{{ stats.reputation }}</div>
+                        <div class="text-xs text-slate-400">Reputation</div>
+                    </div>
+                </div>
+                
+                <!-- Bio -->
+                {% if profile_user.bio %}
+                <p class="text-slate-300 text-sm">{{ profile_user.bio }}</p>
+                {% endif %}
+                
+                <!-- Join Date -->
+                <p class="text-xs text-slate-500 mt-2">
+                    <i class="far fa-calendar-alt mr-1"></i>
+                    Joined {{ profile_user.created_at[:10] }}
+                </p>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-2">
+                {% if session.get('user') and session.get('user').id != profile_user.id %}
+                <button onclick="sendMessage('{{ profile_user.username }}')"
+                        class="px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-sky-500 transition-all">
+                    <i class="fas fa-envelope mr-2"></i>Message
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- User Badges -->
+    {% if user_badges %}
+    <div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="50">
+        <h2 class="text-xl font-bold text-white mb-4">Badges Earned</h2>
+        <div class="flex flex-wrap gap-4">
+            {% for badge in user_badges %}
+            <div class="flex items-center gap-3 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700 group hover:border-sky-500/30 transition-all">
+                <img src="{{ badge.image }}" alt="{{ badge.name }}" class="h-8">
+                <div>
+                    <p class="font-semibold text-white text-sm">{{ badge.name }}</p>
+                    <p class="text-xs text-slate-400">Earned {{ badge.earned_at|timeago }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- User Activity Tabs -->
+    <div class="mb-8" data-aos="fade-up" data-aos-delay="100">
+        <div class="flex border-b border-slate-800">
+            <button onclick="switchTab('topics')" 
+                    class="tab-btn px-6 py-3 text-white font-semibold border-b-2 border-sky-400" 
+                    id="tab-topics">
+                <i class="fas fa-file-alt mr-2"></i>Topics ({{ stats.topics }})
+            </button>
+            <button onclick="switchTab('posts')" 
+                    class="tab-btn px-6 py-3 text-slate-400 font-semibold hover:text-white" 
+                    id="tab-posts">
+                <i class="fas fa-comment mr-2"></i>Posts ({{ stats.posts }})
+            </button>
+            <button onclick="switchTab('likes')" 
+                    class="tab-btn px-6 py-3 text-slate-400 font-semibold hover:text-white" 
+                    id="tab-likes">
+                <i class="fas fa-heart mr-2"></i>Likes Given
+            </button>
+        </div>
+
+        <!-- Topics Tab -->
+        <div id="tab-topics-content" class="tab-content mt-6">
+            <div class="space-y-4">
+                {% for topic in user_topics %}
+                <div class="p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                    <h3 class="text-lg font-semibold mb-2">
+                        <a href="/forum/topic/{{ topic.id }}" class="text-white hover:text-sky-400">
+                            {{ topic.title }}
+                        </a>
+                    </h3>
+                    <div class="flex items-center gap-4 text-sm text-slate-400">
+                        <span><i class="far fa-clock mr-1"></i>{{ topic.created_at|timeago }}</span>
+                        <span><i class="far fa-comment mr-1"></i>{{ topic.replies_count }} replies</span>
+                        <span><i class="far fa-eye mr-1"></i>{{ topic.views }} views</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-center text-slate-400 py-8">No topics created yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Posts Tab -->
+        <div id="tab-posts-content" class="tab-content mt-6 hidden">
+            <div class="space-y-4">
+                {% for post in user_posts %}
+                <div class="p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                    <p class="text-slate-300 mb-2">{{ post.excerpt }}</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4 text-sm text-slate-400">
+                            <span>in <a href="/forum/topic/{{ post.topic_id }}" class="text-sky-400 hover:text-sky-300">{{ post.topic_title }}</a></span>
+                            <span><i class="far fa-clock mr-1"></i>{{ post.created_at|timeago }}</span>
+                        </div>
+                        <span class="text-sm text-sky-400"><i class="fas fa-heart mr-1"></i>{{ post.likes }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-center text-slate-400 py-8">No posts created yet</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Likes Tab -->
+        <div id="tab-likes-content" class="tab-content mt-6 hidden">
+            <div class="space-y-4">
+                {% for like in user_likes %}
+                <div class="p-4 bg-slate-800/30 rounded-xl">
+                    <p class="text-slate-300">
+                        Liked <a href="/forum/topic/{{ like.topic_id }}#post-{{ like.post_id }}" class="text-sky-400 hover:text-sky-300">a post</a>
+                        by {{ like.author }} in "{{ like.topic_title }}"
+                    </p>
+                    <p class="text-xs text-slate-500 mt-1">{{ like.created_at|timeago }}</p>
+                </div>
+                {% else %}
+                <p class="text-center text-slate-400 py-8">No likes given yet</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contribution Graph -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="150">
+        <h2 class="text-xl font-bold text-white mb-4">Contribution Activity</h2>
+        <div class="grid grid-cols-7 gap-1">
+            {% for i in range(49) %}
+            <div class="aspect-square rounded-sm 
+                {% if loop.index % 5 == 0 %}bg-sky-500
+                {% elif loop.index % 3 == 0 %}bg-sky-400
+                {% elif loop.index % 2 == 0 %}bg-sky-300
+                {% else %}bg-slate-700{% endif %}"
+                title="{{ loop.index }} contributions"></div>
+            {% endfor %}
+        </div>
+        <div class="flex justify-between text-xs text-slate-500 mt-2">
+            <span>Less</span>
+            <div class="flex gap-1">
+                <span class="w-3 h-3 bg-slate-700 rounded-sm"></span>
+                <span class="w-3 h-3 bg-sky-300 rounded-sm"></span>
+                <span class="w-3 h-3 bg-sky-400 rounded-sm"></span>
+                <span class="w-3 h-3 bg-sky-500 rounded-sm"></span>
+            </div>
+            <span>More</span>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-b-2', 'border-sky-400', 'text-white');
+        btn.classList.add('text-slate-400');
+    });
+    document.getElementById(`tab-${tab}`).classList.add('border-b-2', 'border-sky-400', 'text-white');
+    
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`tab-${tab}-content`).classList.remove('hidden');
+}
+
+function sendMessage(username) {
+    // Implémenter la messagerie privée
+    alert('Private messaging coming soon!');
+}
+</script>
+{% endblock %}
