@@ -559,20 +559,33 @@ def before_request():
         'method': request.method,
         'path': request.path,
         'ip': request.remote_addr,
-        'user_agent': request.user_agent.string
+        'user_agent': request.user_agent.string[:50]
     })
     
     # Rate limiting simple
     g.request_time = datetime.now()
     
-    # Vérification du token dans les cookies
+    # Éviter de traiter les routes statiques et de debug
+    if request.path.startswith('/static/') or request.path.startswith('/debug/'):
+        return
+    
+    # Vérification du token dans les cookies (avec gestion d'erreur améliorée)
     if not session.get('user'):
         token = CookieManager.get_secure_cookie(request, 'zarch_token')
         if token:
-            user = SecurityUtils.validate_token(token)
-            if user:
-                session['user'] = user
-
+            try:
+                user = SecurityUtils.validate_token(token)
+                if user:
+                    app.logger.info(f"✅ User {user.get('username')} authenticated via cookie")
+                    session['user'] = user
+                    session['token'] = token
+                else:
+                    app.logger.warning("⚠️ Invalid token found in cookie")
+                    # Le cookie est invalide, on le supprimera dans la réponse
+                    g.invalid_cookie = True
+            except Exception as e:
+                app.logger.error(f"🔥 Error validating token: {e}")
+                g.invalid_cookie = True
 @app.after_request
 def after_request(response):
     """Middleware exécuté après chaque requête"""
@@ -581,16 +594,21 @@ def after_request(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:;"
+    
+    # Nettoyer les cookies invalides si nécessaire
+    if hasattr(g, 'invalid_cookie') and g.invalid_cookie:
+        CookieManager.delete_secure_cookie(response, 'zarch_token')
+        app.logger.info("🗑️ Removed invalid cookie")
     
     # Audit logging
+    duration = (datetime.now() - g.request_time).total_seconds()
     app.logger.info('Response', extra={
         'status': response.status_code,
-        'duration': (datetime.now() - g.request_time).total_seconds()
+        'duration': round(duration, 3)
     })
     
     return response
-
+    
 # ============================================================================
 # DÉCORATEURS DE SÉCURITÉ
 # ============================================================================
