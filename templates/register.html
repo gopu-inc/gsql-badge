@@ -1,212 +1,295 @@
 {% extends "base.html" %}
 
-{% block title %}Register - Zarch Hub{% endblock %}
+{% block title %}Inscription - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="min-h-[80vh] flex items-center justify-center fade-in">
+<div class="min-h-[80vh] flex items-center justify-center" data-aos="fade-up">
     <div class="w-full max-w-md">
-        <!-- Header -->
+        <!-- Logo / Header -->
         <div class="text-center mb-8">
-            <img src="https://raw.githubusercontent.com/gopu-inc/gsql-badge/main/images/icon.png" 
-                 alt="Zarch Hub" 
-                 class="h-20 w-auto mx-auto mb-4 rounded-2xl">
-            <h1 class="text-3xl font-bold">
-                <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    Create Account
-                </span>
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-2">Join the Zarch Hub community</p>
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl mb-4 shadow-lg shadow-sky-500/20 animate-float">
+                <i class="fas fa-user-plus text-white text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">Create Account</h1>
+            <p class="text-slate-400 mt-2">Join the Zarch Hub community</p>
         </div>
-        
-        <!-- Register Form -->
-        <div class="glass-card p-8">
-            <form method="POST" action="/api/v5.4/auth/register" id="registerForm" class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Username</label>
+
+        <!-- Register Card -->
+        <div class="glass-card p-8 rounded-3xl border border-slate-700/50">
+            <form id="registerForm" class="space-y-6">
+                <!-- Alert Box -->
+                <div id="alertBox" class="hidden p-4 rounded-xl border flex items-start gap-3"></div>
+
+                <!-- Username -->
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Username</label>
                     <div class="relative">
-                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" 
-                               name="username" 
-                               required 
-                               minlength="3"
-                               pattern="[a-zA-Z0-9_]+"
-                               class="w-full pl-10 pr-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
+                            <i class="fas fa-user"></i>
+                        </span>
+                        <input type="text" id="username" name="username" required
+                               minlength="3" maxlength="30" pattern="[a-zA-Z0-9_]+"
+                               class="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
                                placeholder="Choose a username">
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Minimum 3 characters, letters, numbers, and underscores only</p>
+                    <p class="text-xs text-slate-500 mt-1">Letters, numbers, and underscores only (3-30 chars)</p>
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Email</label>
+
+                <!-- Email -->
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Email</label>
                     <div class="relative">
-                        <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="email" 
-                               name="email" 
-                               required 
-                               class="w-full pl-10 pr-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
-                               placeholder="Enter your email">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <input type="email" id="email" name="email" required
+                               class="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
+                               placeholder="your@email.com">
                     </div>
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Password</label>
+
+                <!-- Password -->
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Password</label>
                     <div class="relative">
-                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="password" 
-                               name="password" 
-                               required 
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" id="password" name="password" required
                                minlength="8"
-                               class="w-full pl-10 pr-12 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
-                               placeholder="Create a password"
-                               id="passwordInput">
-                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
-                        </button>
+                               class="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
+                               placeholder="Create a password">
                     </div>
-                    <div class="mt-2">
-                        <div class="flex gap-2 text-xs">
-                            <span class="password-requirement" id="req-length">✓ 8+ chars</span>
-                            <span class="password-requirement" id="req-upper">✓ Uppercase</span>
-                            <span class="password-requirement" id="req-lower">✓ Lowercase</span>
-                            <span class="password-requirement" id="req-number">✓ Number</span>
-                        </div>
+                    <div class="mt-2 grid grid-cols-4 gap-1 h-1">
+                        <div id="strength-1" class="bg-slate-700 rounded-full transition-all"></div>
+                        <div id="strength-2" class="bg-slate-700 rounded-full transition-all"></div>
+                        <div id="strength-3" class="bg-slate-700 rounded-full transition-all"></div>
+                        <div id="strength-4" class="bg-slate-700 rounded-full transition-all"></div>
                     </div>
+                    <p id="strength-text" class="text-xs text-slate-500 mt-1">Minimum 8 characters</p>
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Confirm Password</label>
+
+                <!-- Confirm Password -->
+                <div class="input-group">
+                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Confirm Password</label>
                     <div class="relative">
-                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="password" 
-                               name="confirm_password" 
-                               required 
-                               class="w-full pl-10 pr-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
-                               placeholder="Confirm your password"
-                               id="confirmPassword">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input type="password" id="confirm_password" name="confirm_password" required
+                               class="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
+                               placeholder="Confirm your password">
+                    </div>
+                    <div id="password-match" class="text-xs mt-1 hidden">
+                        <span class="text-green-400"><i class="fas fa-check mr-1"></i>Passwords match</span>
                     </div>
                 </div>
-                
+
+                <!-- Terms -->
                 <div class="flex items-start">
-                    <input type="checkbox" name="terms" required class="mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-600">
-                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                    <input id="terms" name="terms" type="checkbox" required
+                           class="mt-1 h-4 w-4 text-sky-500 focus:ring-sky-500 border-slate-700 rounded bg-slate-900">
+                    <label for="terms" class="ml-2 block text-sm text-slate-400">
                         I agree to the 
-                        <a href="/terms" class="text-purple-600 hover:underline">Terms of Service</a> 
+                        <a href="/terms" class="text-sky-400 hover:text-sky-300">Terms of Service</a> 
                         and 
-                        <a href="/privacy" class="text-purple-600 hover:underline">Privacy Policy</a>
-                    </span>
+                        <a href="/privacy" class="text-sky-400 hover:text-sky-300">Privacy Policy</a>
+                    </label>
                 </div>
-                
-                <button type="submit" 
-                        class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-semibold shadow-lg">
-                    <i class="fas fa-user-plus mr-2"></i> Create Account
+
+                <button type="submit" id="submitBtn"
+                        class="glow-button w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-sky-400 hover:from-sky-600 hover:to-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="btnText">Create Account</span>
+                    <i id="loadingIcon" class="hidden fas fa-circle-notch fa-spin ml-2"></i>
                 </button>
             </form>
-            
-            <!-- Divider -->
-            <div class="relative my-6">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+
+            <!-- Social Register -->
+            <div class="mt-8">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-slate-700"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-4 bg-slate-800/50 text-slate-400 rounded-full">Or sign up with</span>
+                    </div>
                 </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">Or sign up with</span>
+
+                <div class="mt-6 grid grid-cols-3 gap-3">
+                    <a href="{{ url_for('auth_discord') }}" 
+                       class="flex justify-center py-3 px-4 bg-slate-800/50 border border-slate-700 rounded-xl hover:bg-sky-500/10 hover:border-sky-500/50 transition-all group">
+                        <i class="fab fa-discord text-2xl text-slate-400 group-hover:text-sky-400"></i>
+                    </a>
+                    <a href="#" 
+                       class="flex justify-center py-3 px-4 bg-slate-800/50 border border-slate-700 rounded-xl hover:bg-sky-500/10 hover:border-sky-500/50 transition-all group">
+                        <i class="fab fa-github text-2xl text-slate-400 group-hover:text-sky-400"></i>
+                    </a>
+                    <a href="#" 
+                       class="flex justify-center py-3 px-4 bg-slate-800/50 border border-slate-700 rounded-xl hover:bg-sky-500/10 hover:border-sky-500/50 transition-all group">
+                        <i class="fab fa-google text-2xl text-slate-400 group-hover:text-sky-400"></i>
+                    </a>
                 </div>
             </div>
-            
-            <!-- Social Signup -->
-            <div class="grid grid-cols-2 gap-3">
-                <a href="/auth/discord" 
-                   class="discord-btn text-white p-3 rounded-lg flex items-center justify-center gap-2 transition">
-                    <i class="fab fa-discord"></i>
-                    <span>Discord</span>
-                </a>
-                <a href="/auth/github" 
-                   class="github-btn text-white p-3 rounded-lg flex items-center justify-center gap-2 transition">
-                    <i class="fab fa-github"></i>
-                    <span>GitHub</span>
-                </a>
+
+            <div class="mt-8 pt-6 border-t border-slate-800 text-center">
+                <p class="text-sm text-slate-400">
+                    Already have an account? 
+                    <a href="/login" class="font-medium text-sky-400 hover:text-sky-300">Sign in</a>
+                </p>
             </div>
-            
-            <!-- Login Link -->
-            <p class="text-center mt-6 text-sm text-gray-600 dark:text-gray-400">
-                Already have an account? 
-                <a href="/login" class="text-purple-600 hover:underline font-semibold">
-                    Sign in
-                </a>
-            </p>
         </div>
     </div>
 </div>
 
-<style>
-.password-requirement {
-    color: #9ca3af;
-}
-.password-requirement.valid {
-    color: #10b981;
-}
-</style>
-
 <script>
-function togglePassword() {
-    const passwordInput = document.getElementById('passwordInput');
-    const icon = document.getElementById('togglePasswordIcon');
+const registerForm = document.getElementById('registerForm');
+const alertBox = document.getElementById('alertBox');
+const submitBtn = document.getElementById('submitBtn');
+const btnText = document.getElementById('btnText');
+const loadingIcon = document.getElementById('loadingIcon');
+
+// Password strength checker
+const password = document.getElementById('password');
+const confirmPassword = document.getElementById('confirm_password');
+const strengthBars = [
+    document.getElementById('strength-1'),
+    document.getElementById('strength-2'),
+    document.getElementById('strength-3'),
+    document.getElementById('strength-4')
+];
+const strengthText = document.getElementById('strength-text');
+const passwordMatch = document.getElementById('password-match');
+
+function checkPasswordStrength(pwd) {
+    let strength = 0;
     
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
+    if (pwd.length >= 8) strength++;
+    if (pwd.match(/[a-z]+/)) strength++;
+    if (pwd.match(/[A-Z]+/)) strength++;
+    if (pwd.match(/[0-9]+/)) strength++;
+    if (pwd.match(/[$@#&!]+/)) strength++;
+    
+    return Math.min(strength, 4);
+}
+
+function updatePasswordStrength() {
+    const pwd = password.value;
+    const strength = checkPasswordStrength(pwd);
+    
+    // Reset bars
+    strengthBars.forEach(bar => {
+        bar.classList.remove('bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-sky-500');
+        bar.classList.add('bg-slate-700');
+    });
+    
+    // Update bars based on strength
+    const colors = ['bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-sky-500'];
+    for (let i = 0; i < strength; i++) {
+        strengthBars[i].classList.remove('bg-slate-700');
+        strengthBars[i].classList.add(colors[Math.min(i, colors.length - 1)]);
+    }
+    
+    // Update text
+    const messages = [
+        'Too weak',
+        'Weak',
+        'Medium',
+        'Strong',
+        'Very strong'
+    ];
+    strengthText.textContent = messages[strength];
+    strengthText.className = 'text-xs mt-1 ' + 
+        (strength <= 1 ? 'text-red-400' : 
+         strength <= 2 ? 'text-yellow-400' : 
+         'text-green-400');
+}
+
+function checkPasswordMatch() {
+    if (confirmPassword.value.length > 0) {
+        if (password.value === confirmPassword.value) {
+            passwordMatch.classList.remove('hidden');
+            confirmPassword.classList.remove('border-red-500');
+            confirmPassword.classList.add('border-green-500/50');
+        } else {
+            passwordMatch.classList.add('hidden');
+            confirmPassword.classList.remove('border-green-500/50');
+            confirmPassword.classList.add('border-red-500');
+        }
     } else {
-        passwordInput.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
+        passwordMatch.classList.add('hidden');
+        confirmPassword.classList.remove('border-red-500', 'border-green-500/50');
     }
 }
 
-// Password validation
-document.getElementById('passwordInput').addEventListener('input', function(e) {
-    const password = e.target.value;
-    
-    document.getElementById('req-length').classList.toggle('valid', password.length >= 8);
-    document.getElementById('req-upper').classList.toggle('valid', /[A-Z]/.test(password));
-    document.getElementById('req-lower').classList.toggle('valid', /[a-z]/.test(password));
-    document.getElementById('req-number').classList.toggle('valid', /[0-9]/.test(password));
+password.addEventListener('input', () => {
+    updatePasswordStrength();
+    checkPasswordMatch();
 });
 
-// Form submission
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
+confirmPassword.addEventListener('input', checkPasswordMatch);
+
+function showAlert(message, type = 'error') {
+    alertBox.classList.remove('hidden', 'bg-red-500/10', 'border-red-500/50', 'text-red-400', 'bg-green-500/10', 'border-green-500/50', 'text-green-400');
+    
+    if (type === 'error') {
+        alertBox.classList.add('bg-red-500/10', 'border-red-500/50', 'text-red-400');
+        alertBox.innerHTML = `<i class="fas fa-exclamation-circle mt-0.5"></i><span>${message}</span>`;
+    } else {
+        alertBox.classList.add('bg-green-500/10', 'border-green-500/50', 'text-green-400');
+        alertBox.innerHTML = `<i class="fas fa-check-circle mt-0.5"></i><span>${message}</span>`;
+    }
+}
+
+registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const password = document.getElementById('passwordInput').value;
-    const confirm = document.getElementById('confirmPassword').value;
-    
-    if (password !== confirm) {
-        alert('Passwords do not match');
+    // Validate passwords match
+    if (password.value !== confirmPassword.value) {
+        showAlert('Passwords do not match');
         return;
     }
     
-    const formData = new FormData(e.target);
+    // Validate password strength
+    if (password.value.length < 8) {
+        showAlert('Password must be at least 8 characters');
+        return;
+    }
+    
+    submitBtn.disabled = true;
+    btnText.textContent = "Creating account...";
+    loadingIcon.classList.remove('hidden');
+    alertBox.classList.add('hidden');
+
+    const formData = new FormData(registerForm);
     const data = {
         username: formData.get('username'),
         email: formData.get('email'),
-        password: password
+        password: formData.get('password')
     };
-    
+
     try {
-        const response = await fetch('/api/v5.4/auth/register', {
+        const response = await fetch('/v5.2/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
-            window.location.href = '/dashboard';
+            showAlert('Account created! Redirecting...', 'success');
+            setTimeout(() => window.location.href = '/dashboard', 1000);
         } else {
-            alert(result.error || 'Registration failed');
+            showAlert(result.error || 'Registration failed');
+            submitBtn.disabled = false;
+            btnText.textContent = "Create Account";
+            loadingIcon.classList.add('hidden');
         }
     } catch (error) {
-        alert('Network error. Please try again.');
+        showAlert('Connection error');
+        submitBtn.disabled = false;
+        btnText.textContent = "Create Account";
+        loadingIcon.classList.add('hidden');
     }
 });
 </script>
