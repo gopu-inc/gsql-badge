@@ -25,7 +25,7 @@ from functools import wraps
 from urllib.parse import urlparse, urlencode, quote
 
 # Flask et extensions
-from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort
+from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort, Response 
 from flask_cors import CORS
 
 # Sécurité avancée
