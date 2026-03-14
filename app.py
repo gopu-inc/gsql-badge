@@ -664,7 +664,7 @@ def api_v52_login():
             session['token'] = token
             session.permanent = True
             
-            # Cookie sécurisé
+            # Cookie sécurisé (CORRIGÉ)
             response = jsonify({
                 'success': True,
                 'token': token,
@@ -675,7 +675,10 @@ def api_v52_login():
                 }
             })
             
+            # Définir le cookie
             CookieManager.set_secure_cookie(response, 'zarch_token', token, SecurityConfig.TOKEN_EXPIRY)
+            
+            app.logger.info(f"User {validated.username} logged in successfully, cookie set")
             
             return response
         
@@ -683,6 +686,7 @@ def api_v52_login():
         
     except ValidationError as e:
         return jsonify({'error': str(e)}), 400
+
 
 @app.route('/v5.2/auth/register', methods=['POST'])
 @rate_limit()
