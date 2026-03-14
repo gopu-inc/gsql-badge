@@ -1,178 +1,552 @@
 {% extends "base.html" %}
 
+{% block title %}Badges - Zarch Hub Community{% endblock %}
+
 {% block content %}
-<!-- En-tête -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center">
-                <h1 class="display-6 fw-bold mb-3">
-                    <i class="bi bi-award me-3"></i>Badges de Qualité
-                </h1>
-                <p class="lead text-muted mb-4">
-                    Reconnaissez la qualité, la sécurité et la popularité des packages avec notre système de badges.
-                </p>
-                {% if session.get('usr_id') %}
-                <a href="{{ url_for('generate_badge') }}" class="btn btn-zenv btn-lg">
-                    <i class="bi bi-plus-circle me-2"></i>Créer un badge
-                </a>
-                {% endif %}
+<!-- Header -->
+<div class="mb-8" data-aos="fade-up">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-4xl font-bold text-white mb-2">Community Badges</h1>
+            <p class="text-slate-400">Show off your achievements and contributions to the community</p>
+        </div>
+        {% if session.get('user') %}
+        <a href="/settings/badges/create" 
+           class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-plus mr-2"></i>Create Custom Badge
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="50">
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">156</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Total Badges</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">1.2k</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Badges Earned</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">89</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Badge Holders</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">23</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Custom Badges</div>
+    </div>
+</div>
+
+<!-- Featured Badges -->
+<div class="mb-12">
+    <h2 class="text-2xl font-bold text-white mb-6" data-aos="fade-up">🏆 Featured Badges</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Early Adopter -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-purple-500/30 transition-all group" data-aos="fade-up" data-aos-delay="100">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="fas fa-rocket text-white text-2xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-purple-500/10 text-purple-400 rounded-full text-xs border border-purple-500/30">Legendary</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Early Adopter</h3>
+            <p class="text-sm text-slate-400 mb-4">Joined Zarch Hub during the first month of launch</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">🏅 234 holders</span>
+                <div class="flex -space-x-2">
+                    <img src="https://i.pravatar.cc/32?u=1" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <img src="https://i.pravatar.cc/32?u=2" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <img src="https://i.pravatar.cc/32?u=3" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <span class="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-800 flex items-center justify-center text-xs text-slate-400">+12</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Package Creator -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="150">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="fas fa-cube text-white text-2xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-xs border border-sky-500/30">Epic</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Package Creator</h3>
+            <p class="text-sm text-slate-400 mb-4">Published 10+ packages to the registry</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">🏅 89 holders</span>
+                <div class="flex -space-x-2">
+                    <img src="https://i.pravatar.cc/32?u=4" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <img src="https://i.pravatar.cc/32?u=5" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <img src="https://i.pravatar.cc/32?u=6" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <span class="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-800 flex items-center justify-center text-xs text-slate-400">+5</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Expert -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-green-500/30 transition-all group" data-aos="fade-up" data-aos-delay="200">
+            <div class="flex items-start justify-between mb-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="fas fa-shield-alt text-white text-2xl"></i>
+                </div>
+                <span class="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">Rare</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Security Expert</h3>
+            <p class="text-sm text-slate-400 mb-4">Reported critical vulnerabilities</p>
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">🏅 23 holders</span>
+                <div class="flex -space-x-2">
+                    <img src="https://i.pravatar.cc/32?u=7" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <img src="https://i.pravatar.cc/32?u=8" class="w-6 h-6 rounded-full border-2 border-slate-800">
+                    <span class="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-800 flex items-center justify-center text-xs text-slate-400">+2</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Liste des badges -->
-<div class="row">
-    {% for badge in badges %}
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <img src="{{ url_for('serve_badge_svg', badge_name=badge.name) }}" 
-                         alt="{{ badge.label }}: {{ badge.value }}"
-                         class="img-fluid mb-3"
-                         style="max-height: 40px;">
-                    
-                    <h5 class="card-title">{{ badge.label }}</h5>
-                    <h6 class="card-subtitle mb-3 text-muted">{{ badge.value }}</h6>
-                    
-                    <div class="d-flex justify-content-center gap-2 mb-3">
-                        <span class="badge rounded-pill" 
-                              style="background-color: {{ badge.color }}; color: white;">
-                            {{ badge.color|title }}
-                        </span>
-                        <span class="badge bg-secondary rounded-pill">
-                            {{ badge.usage_count|default(0) }} utilisations
-                        </span>
+<!-- All Badges Categories -->
+<div class="space-y-8">
+    <!-- Official Badges -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="250">
+        <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+            <i class="fas fa-crown text-yellow-400 mr-3"></i>
+            Official Badges
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Contributor Badge -->
+            <div class="flex items-center space-x-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-star text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-white">Top Contributor</h4>
+                    <p class="text-xs text-slate-400">Awarded to top 10 contributors</p>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs text-yellow-400">★ 156 holders</span>
                     </div>
                 </div>
-                
-                <div class="text-center">
-                    <div class="btn-group" role="group">
-                        <a href="{{ url_for('badge_detail', badge_name=badge.name) }}" 
-                           class="btn btn-outline-primary">
-                            <i class="bi bi-eye me-1"></i>Détails
-                        </a>
-                        <button class="btn btn-outline-secondary" 
-                                onclick="copyBadgeCode('{{ badge.name }}')">
-                            <i class="bi bi-code me-1"></i>Code
-                        </button>
+                <img src="/badge/contributor.svg" alt="Contributor" class="h-8">
+            </div>
+
+            <!-- Veteran Badge -->
+            <div class="flex items-center space-x-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                <div class="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-clock text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-white">Veteran</h4>
+                    <p class="text-xs text-slate-400">Active for over 2 years</p>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs text-gray-400">★ 342 holders</span>
                     </div>
+                </div>
+                <img src="/badge/veteran.svg" alt="Veteran" class="h-8">
+            </div>
+
+            <!-- Helper Badge -->
+            <div class="flex items-center space-x-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-hands-helping text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-white">Community Helper</h4>
+                    <p class="text-xs text-slate-400">Helped 50+ users</p>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs text-blue-400">★ 78 holders</span>
+                    </div>
+                </div>
+                <img src="/badge/helper.svg" alt="Helper" class="h-8">
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievement Badges -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="300">
+        <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+            <i class="fas fa-trophy text-sky-400 mr-3"></i>
+            Achievement Badges
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- First Package -->
+            <div class="flex items-center space-x-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-gift text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-white">First Package</h4>
+                    <p class="text-xs text-slate-400">Published first package</p>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs text-green-400">★ 412 holders</span>
+                    </div>
+                </div>
+                <img src="/badge/first-package.svg" alt="First Package" class="h-8">
+            </div>
+
+            <!-- 1000 Downloads -->
+            <div class="flex items-center space-x-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-download text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-white">1K Downloads</h4>
+                    <p class="text-xs text-slate-400">Package reached 1000 downloads</p>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs text-purple-400">★ 67 holders</span>
+                    </div>
+                </div>
+                <img src="/badge/1k-downloads.svg" alt="1K Downloads" class="h-8">
+            </div>
+
+            <!-- Bug Hunter -->
+            <div class="flex items-center space-x-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all">
+                <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-bug text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-white">Bug Hunter</h4>
+                    <p class="text-xs text-slate-400">Reported 10+ bugs</p>
+                    <div class="flex items-center mt-1">
+                        <span class="text-xs text-red-400">★ 34 holders</span>
+                    </div>
+                </div>
+                <img src="/badge/bug-hunter.svg" alt="Bug Hunter" class="h-8">
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Badges -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="350">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-white flex items-center">
+                <i class="fas fa-paint-brush text-pink-400 mr-3"></i>
+                Custom Community Badges
+            </h2>
+            {% if session.get('user') %}
+            <a href="/settings/badges/create" class="text-sky-400 hover:text-sky-300 text-sm">
+                <i class="fas fa-plus mr-1"></i>Create yours
+            </a>
+            {% endif %}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Rust Expert -->
+            <div class="p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all group">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-rust text-white"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">by @rustacean</span>
+                </div>
+                <img src="/badge/custom/rust-expert.svg" alt="Rust Expert" class="h-8 mb-2">
+                <h4 class="font-semibold text-white text-sm">Rust Expert</h4>
+                <p class="text-xs text-slate-400">For Rust language contributors</p>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-slate-500">★ 23 used</span>
+                    <button onclick="useBadge('rust-expert')" class="text-xs text-sky-400 hover:text-sky-300">Use</button>
                 </div>
             </div>
-            <div class="card-footer bg-transparent">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
-                        <i class="bi bi-person me-1"></i>
-                        {{ badge.created_by_name|default('Système') }}
-                    </small>
-                    <small class="text-muted">
-                        {{ badge.created_at|datetimeformat('%d/%m/%Y') }}
-                    </small>
+
+            <!-- Docker Captain -->
+            <div class="p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all group">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-docker text-white"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">by @dockerfan</span>
+                </div>
+                <img src="/badge/custom/docker-captain.svg" alt="Docker Captain" class="h-8 mb-2">
+                <h4 class="font-semibold text-white text-sm">Docker Captain</h4>
+                <p class="text-xs text-slate-400">Docker and container expert</p>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-slate-500">★ 15 used</span>
+                    <button onclick="useBadge('docker-captain')" class="text-xs text-sky-400 hover:text-sky-300">Use</button>
+                </div>
+            </div>
+
+            <!-- Alpine Master -->
+            <div class="p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all group">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-linux text-white"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">by @alpineuser</span>
+                </div>
+                <img src="/badge/custom/alpine-master.svg" alt="Alpine Master" class="h-8 mb-2">
+                <h4 class="font-semibold text-white text-sm">Alpine Master</h4>
+                <p class="text-xs text-slate-400">Alpine Linux expert</p>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-slate-500">★ 42 used</span>
+                    <button onclick="useBadge('alpine-master')" class="text-xs text-sky-400 hover:text-sky-300">Use</button>
+                </div>
+            </div>
+
+            <!-- Python Guru -->
+            <div class="p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all group">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                        <i class="fab fa-python text-white"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">by @pythonista</span>
+                </div>
+                <img src="/badge/custom/python-guru.svg" alt="Python Guru" class="h-8 mb-2">
+                <h4 class="font-semibold text-white text-sm">Python Guru</h4>
+                <p class="text-xs text-slate-400">Python development expert</p>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-slate-500">★ 67 used</span>
+                    <button onclick="useBadge('python-guru')" class="text-xs text-sky-400 hover:text-sky-300">Use</button>
                 </div>
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center py-5">
-                <i class="bi bi-award display-1 text-muted mb-3"></i>
-                <h4>Aucun badge disponible</h4>
-                <p class="text-muted mb-4">
-                    Aucun badge n'a été créé pour le moment.
-                </p>
-                {% if session.get('usr_id') %}
-                <a href="{{ url_for('generate_badge') }}" class="btn btn-zenv">
-                    <i class="bi bi-plus-circle me-1"></i>Créer le premier badge
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endfor %}
 </div>
 
-<!-- Badges par catégorie -->
-<div class="row mt-5">
-    <div class="col-12 mb-4">
-        <h3 class="text-center mb-4">
-            <i class="bi bi-tags me-2"></i>Catégories de badges
-        </h3>
-    </div>
-    
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="badge-display mx-auto mb-3">
-                    <img src="{{ url_for('serve_badge_svg', badge_name='version') }}" 
-                         alt="version: 1.0.0"
-                         style="height: 20px;">
+<!-- Leaderboard -->
+<div class="mt-12 glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="400">
+    <h2 class="text-2xl font-bold text-white mb-6 flex items-center">
+        <i class="fas fa-ranking-star text-sky-400 mr-3"></i>
+        Top Badge Collectors
+    </h2>
+    <div class="space-y-4">
+        <!-- Rank 1 -->
+        <div class="flex items-center p-4 bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 rounded-xl border border-yellow-500/30">
+            <div class="w-10 text-2xl font-bold text-yellow-400">#1</div>
+            <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-4">
+                JD
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-white">John Doe</h3>
+                <p class="text-xs text-slate-400">Joined Mar 2026</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex -space-x-2">
+                    <img src="/badge/contributor.svg" class="h-6">
+                    <img src="/badge/veteran.svg" class="h-6">
+                    <img src="/badge/helper.svg" class="h-6">
+                    <span class="text-xs text-slate-400 ml-2">+12</span>
                 </div>
-                <h5>Version</h5>
-                <p class="text-muted small">
-                    Indique la version stable du package
-                </p>
+                <span class="text-xl font-bold text-yellow-400">24</span>
+                <span class="text-sm text-slate-400">badges</span>
+            </div>
+        </div>
+
+        <!-- Rank 2 -->
+        <div class="flex items-center p-4 bg-gradient-to-r from-gray-500/10 to-gray-500/5 rounded-xl border border-gray-500/30">
+            <div class="w-10 text-2xl font-bold text-gray-400">#2</div>
+            <div class="w-12 h-12 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-4">
+                AS
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-white">Alice Smith</h3>
+                <p class="text-xs text-slate-400">Joined Jan 2026</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex -space-x-2">
+                    <img src="/badge/contributor.svg" class="h-6">
+                    <img src="/badge/first-package.svg" class="h-6">
+                    <img src="/badge/1k-downloads.svg" class="h-6">
+                    <span class="text-xs text-slate-400 ml-2">+8</span>
+                </div>
+                <span class="text-xl font-bold text-gray-400">19</span>
+                <span class="text-sm text-slate-400">badges</span>
+            </div>
+        </div>
+
+        <!-- Rank 3 -->
+        <div class="flex items-center p-4 bg-gradient-to-r from-amber-500/10 to-amber-500/5 rounded-xl border border-amber-500/30">
+            <div class="w-10 text-2xl font-bold text-amber-600">#3</div>
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-4">
+                MK
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-white">Mike Johnson</h3>
+                <p class="text-xs text-slate-400">Joined Feb 2026</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex -space-x-2">
+                    <img src="/badge/bug-hunter.svg" class="h-6">
+                    <img src="/badge/security-expert.svg" class="h-6">
+                    <span class="text-xs text-slate-400 ml-2">+5</span>
+                </div>
+                <span class="text-xl font-bold text-amber-600">16</span>
+                <span class="text-sm text-slate-400">badges</span>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Badge Generator -->
+<div class="mt-12 glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="450">
+    <h2 class="text-2xl font-bold text-white mb-6">Badge Generator</h2>
+    <p class="text-slate-400 mb-6">Create your own custom badge to display on your profile or README</p>
     
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="badge-display mx-auto mb-3">
-                    <img src="{{ url_for('serve_badge_svg', badge_name='downloads') }}" 
-                         alt="downloads: 1k+"
-                         style="height: 20px;">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Generator Form -->
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Label</label>
+                <input type="text" id="badge-label" value="version" 
+                       class="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-100">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Value</label>
+                <input type="text" id="badge-value" value="1.0.0" 
+                       class="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-100">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Color</label>
+                <select id="badge-color" class="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-100">
+                    <option value="blue">Blue</option>
+                    <option value="green">Green</option>
+                    <option value="red">Red</option>
+                    <option value="yellow">Yellow</option>
+                    <option value="orange">Orange</option>
+                    <option value="purple">Purple</option>
+                    <option value="pink">Pink</option>
+                    <option value="gray">Gray</option>
+                    <option value="brightgreen">Bright Green</option>
+                    <option value="yellowgreen">Yellow Green</option>
+                </select>
+            </div>
+            <button onclick="generateBadge()"
+                    class="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                Generate Badge
+            </button>
+        </div>
+
+        <!-- Preview & Code -->
+        <div class="space-y-4">
+            <div class="p-6 bg-slate-800/50 rounded-xl text-center">
+                <img id="badge-preview" src="/badge/version-1.0.0-blue.svg" alt="Badge preview" class="h-8 mx-auto">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Markdown</label>
+                <div class="code-block relative group">
+                    <pre id="badge-markdown" class="text-sm">![version](https://gsql-badge.onrender.com/badge/version-1.0.0-blue.svg)</pre>
+                    <button onclick="copyBadgeMarkdown()" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
                 </div>
-                <h5>Popularité</h5>
-                <p class="text-muted small">
-                    Nombre de téléchargements et d'utilisateurs
-                </p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">HTML</label>
+                <div class="code-block relative group">
+                    <pre id="badge-html" class="text-sm">&lt;img src="https://gsql-badge.onrender.com/badge/version-1.0.0-blue.svg" alt="version"&gt;</pre>
+                    <button onclick="copyBadgeHTML()" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="badge-display mx-auto mb-3">
-                    <img src="{{ url_for('serve_badge_svg', badge_name='license') }}" 
-                         alt="license: MIT"
-                         style="height: 20px;">
-                </div>
-                <h5>Licence</h5>
-                <p class="text-muted small">
-                    Type de licence du package
-                </p>
-            </div>
+</div>
+
+<!-- Use Badge Modal -->
+<div id="useBadgeModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">Add Badge to Profile</h3>
+            <button onclick="hideUseBadgeModal()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
         </div>
-    </div>
-    
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <div class="badge-display mx-auto mb-3">
-                    <img src="{{ url_for('serve_badge_svg', badge_name='tests') }}" 
-                         alt="tests: passing"
-                         style="height: 20px;">
-                </div>
-                <h5>Qualité</h5>
-                <p class="text-muted small">
-                    Tests, couverture de code et documentation
-                </p>
-            </div>
+        
+        <p class="text-slate-400 mb-4">This badge will be displayed on your profile page.</p>
+        
+        <div class="flex justify-center mb-6">
+            <img id="modal-badge-img" src="" alt="Badge" class="h-12">
+        </div>
+        
+        <div class="flex space-x-3">
+            <button onclick="confirmAddBadge()"
+                    class="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                Add to Profile
+            </button>
+            <button onclick="hideUseBadgeModal()"
+                    class="flex-1 px-4 py-3 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all">
+                Cancel
+            </button>
         </div>
     </div>
 </div>
 
 <script>
-    function copyBadgeCode(badgeName) {
-        const code = `![Badge]({{ url_for('serve_badge_svg', badge_name='${badgeName}') }})`;
-        navigator.clipboard.writeText(code).then(() => {
-            alert('Code du badge copié !');
-        });
+// Badge generator
+function generateBadge() {
+    const label = document.getElementById('badge-label').value || 'label';
+    const value = document.getElementById('badge-value').value || 'value';
+    const color = document.getElementById('badge-color').value;
+    
+    const badgeUrl = `/badge/${label}-${value}-${color}.svg`;
+    document.getElementById('badge-preview').src = badgeUrl;
+    
+    const markdown = `![${label}](${window.location.origin}${badgeUrl})`;
+    const html = `<img src="${window.location.origin}${badgeUrl}" alt="${label}">`;
+    
+    document.getElementById('badge-markdown').textContent = markdown;
+    document.getElementById('badge-html').textContent = html;
+}
+
+// Copy functions
+function copyBadgeMarkdown() {
+    const text = document.getElementById('badge-markdown').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Markdown copied!', 'success');
+    });
+}
+
+function copyBadgeHTML() {
+    const text = document.getElementById('badge-html').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('HTML copied!', 'success');
+    });
+}
+
+// Use badge
+let currentBadge = '';
+
+function useBadge(badgeName) {
+    currentBadge = badgeName;
+    document.getElementById('modal-badge-img').src = `/badge/custom/${badgeName}.svg`;
+    document.getElementById('useBadgeModal').classList.remove('hidden');
+    document.getElementById('useBadgeModal').classList.add('flex');
+}
+
+function hideUseBadgeModal() {
+    document.getElementById('useBadgeModal').classList.add('hidden');
+    document.getElementById('useBadgeModal').classList.remove('flex');
+}
+
+function confirmAddBadge() {
+    showNotification(`Badge added to your profile!`, 'success');
+    hideUseBadgeModal();
+}
+
+// Live preview for generator
+document.getElementById('badge-label').addEventListener('input', generateBadge);
+document.getElementById('badge-value').addEventListener('input', generateBadge);
+document.getElementById('badge-color').addEventListener('change', generateBadge);
+
+// Notification helper
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 
+        'border-sky-500/50 bg-sky-500/10 text-sky-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// Close modal on escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        hideUseBadgeModal();
     }
+});
 </script>
 {% endblock %}
