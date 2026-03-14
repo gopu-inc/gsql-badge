@@ -774,50 +774,44 @@ class ForumManager:
         return GitHubManager.save_to_github('forum/topics.json', {'topics': topics}, "Update forum topics")
     
     @staticmethod
-    def create_topic(topic_data):
-        """Crée un nouveau sujet"""
-        data = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
-        
-        # Générer un ID unique
-        topic_id = str(uuid.uuid4())
-        now = datetime.now().isoformat()
-        
-        new_topic = {
-            'id': topic_id,
-            'category_id': topic_data['category_id'],
-            'title': topic_data['title'],
-            'content': topic_data['content'],
-            'author': topic_data['author'],
-            'author_id': topic_data['author_id'],
-            'created_at': now,
-            'updated_at': now,
-            'views': 0,
-            'replies_count': 0,
-            'is_pinned': topic_data.get('is_pinned', False),
-            'is_locked': False,
-            'tags': topic_data.get('tags', []),
-            'last_reply_at': now,
-            'last_reply_by': topic_data['author']
-        }
-        
-        data['topics'].append(new_topic)
-        
-        if ForumManager.save_topics(data['topics']):
-            # Créer le premier post
-            ForumManager.create_post({
-                'topic_id': topic_id,
-                'content': topic_data['content'],
-                'author': topic_data['author'],
-                'author_id': topic_data['author_id']
-            })
-            
-            # Mettre à jour les stats de la catégorie
-            ForumManager.update_category_stats(topic_data['category_id'])
-            
-            return new_topic
-        
-        return None
     
+    def create_topic(topic_data):
+        """Crée un nouveau sujet - VERSION CORRIGÉE"""
+        try:
+            data = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+            
+            # Générer un ID unique
+            topic_id = str(uuid.uuid4())
+            now = datetime.now().isoformat()
+            
+            new_topic = {
+                'id': topic_id,  # ← L'ID est généré et inclus
+                'category_id': topic_data.get('category_id', 'general'),
+                'title': topic_data.get('title', 'Sans titre'),
+                'content': topic_data.get('content', ''),
+                'author': g.user['username'] if hasattr(g, 'user') else 'anonymous',
+                'author_id': g.user['id'] if hasattr(g, 'user') else '0',
+                'created_at': now,
+                'updated_at': now,
+                'views': 0,
+                'replies_count': 0,
+                'is_pinned': topic_data.get('is_pinned', False),
+                'is_locked': False,
+                'tags': topic_data.get('tags', []),
+                'last_reply_at': now,
+                'last_reply_by': g.user['username'] if hasattr(g, 'user') else 'anonymous'
+            }
+            
+            data['topics'].append(new_topic)
+            
+            if GitHubManager.save_to_github('forum/topics.json', data, f"New topic: {new_topic['title']}"):
+                return new_topic
+            
+            return None
+        except Exception as e:
+            app.logger.error(f"Error creating topic: {e}")
+            return None
+            
     @staticmethod
     def get_posts(topic_id, page=1, per_page=20):
         """Récupère les posts d'un sujet"""
