@@ -3,137 +3,152 @@
 {% block title %}Login - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-    <div class="glass-card rounded-3xl p-8 md:p-12 max-w-md w-full relative overflow-hidden" data-aos="fade-up">
-        <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-purple-600/10 to-pink-600/10 rounded-full blur-3xl -mr-24 -mt-24 animate-pulse"></div>
-        <div class="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-600/10 to-cyan-600/10 rounded-full blur-3xl -ml-24 -mb-24 animate-pulse animation-delay-2000"></div>
-        
+<div class="min-h-[80vh] flex items-center justify-center fade-in">
+    <div class="w-full max-w-md">
+        <!-- Header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl mb-4 animate-float">
-                <i class="fas fa-cubes text-white text-3xl"></i>
-            </div>
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                Welcome Back
+            <img src="https://raw.githubusercontent.com/gopu-inc/gsql-badge/main/images/icon.png" 
+                 alt="Zarch Hub" 
+                 class="h-20 w-auto mx-auto mb-4 rounded-2xl">
+            <h1 class="text-3xl font-bold">
+                <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Welcome Back
+                </span>
             </h1>
-            <p class="text-gray-600 dark:text-gray-400">Sign in to continue to Zarch Hub</p>
+            <p class="text-gray-600 dark:text-gray-400 mt-2">Sign in to continue to Zarch Hub</p>
         </div>
-
-        <div id="errorMessage" class="mb-4 hidden animate-slide-in">
-            <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-3">
-                <p class="text-red-700 dark:text-red-300 text-sm" id="errorText"></p>
+        
+        <!-- Login Form -->
+        <div class="glass-card p-8">
+            <form method="POST" action="/api/v5.4/auth/login" id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Username</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" 
+                               name="username" 
+                               required 
+                               class="w-full pl-10 pr-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                               placeholder="Enter your username">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="password" 
+                               name="password" 
+                               required 
+                               class="w-full pl-10 pr-12 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                               placeholder="Enter your password">
+                        <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="remember" class="rounded border-gray-300 text-purple-600 focus:ring-purple-600">
+                        <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
+                    </label>
+                    <a href="/forgot-password" class="text-sm text-purple-600 hover:underline">Forgot password?</a>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-semibold shadow-lg">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                </button>
+            </form>
+            
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
+                </div>
             </div>
+            
+            <!-- Social Login -->
+            <div class="grid grid-cols-2 gap-3">
+                <a href="/auth/discord" 
+                   class="discord-btn text-white p-3 rounded-lg flex items-center justify-center gap-2 transition">
+                    <i class="fab fa-discord"></i>
+                    <span>Discord</span>
+                </a>
+                <a href="/auth/github" 
+                   class="github-btn text-white p-3 rounded-lg flex items-center justify-center gap-2 transition">
+                    <i class="fab fa-github"></i>
+                    <span>GitHub</span>
+                </a>
+            </div>
+            
+            <!-- Register Link -->
+            <p class="text-center mt-6 text-sm text-gray-600 dark:text-gray-400">
+                Don't have an account? 
+                <a href="/register" class="text-purple-600 hover:underline font-semibold">
+                    Create one now
+                </a>
+            </p>
         </div>
-
-        <form id="loginForm" class="space-y-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-user mr-2 text-purple-600"></i>Username
-                </label>
-                <input type="text" id="username" value="mauricio" required
-                       class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition bg-white dark:bg-gray-800">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <i class="fas fa-lock mr-2 text-purple-600"></i>Password
-                </label>
-                <input type="password" id="password" value="Test123!" required
-                       class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition bg-white dark:bg-gray-800">
-            </div>
-
-            <div class="flex items-center justify-between">
-                <label class="flex items-center">
-                    <input type="checkbox" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Remember me</span>
-                </label>
-                <a href="/forgot-password" class="text-sm text-purple-600 hover:text-purple-700">Forgot password?</a>
-            </div>
-
-            <button type="submit" 
-                    class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition transform hover:scale-105"
-                    id="submitBtn">
-                <span class="btn-text">Sign In</span>
-                <span class="btn-loader hidden"><i class="fas fa-spinner fa-spin"></i></span>
-            </button>
-        </form>
-
-        <div class="relative my-8">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-                <span class="px-4 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-3 gap-3">
-            <a href="/auth/discord" class="flex justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition group">
-                <i class="fab fa-discord text-2xl text-indigo-600"></i>
+        
+        <!-- Discord Community -->
+        <div class="mt-6 text-center">
+            <a href="https://discord.gg/W2xN49q9h" target="_blank" 
+               class="inline-flex items-center text-sm text-gray-500 hover:text-purple-600 transition">
+                <i class="fab fa-discord mr-2"></i>
+                Join our Discord community for help and updates
             </a>
-            <button onclick="socialLogin('github')" class="flex justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-900 hover:bg-gray-50 transition group">
-                <i class="fab fa-github text-2xl text-gray-800 dark:text-white"></i>
-            </button>
-            <button onclick="socialLogin('google')" class="flex justify-center p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-500 hover:bg-red-50 transition group">
-                <i class="fab fa-google text-2xl text-red-500"></i>
-            </button>
         </div>
-
-        <p class="text-center text-gray-600 dark:text-gray-400 mt-6">
-            Don't have an account? 
-            <a href="/register" class="text-purple-600 hover:text-purple-700 font-semibold">Create one now</a>
-        </p>
     </div>
 </div>
 
 <script>
+function togglePassword() {
+    const passwordInput = document.querySelector('input[name="password"]');
+    const icon = document.getElementById('togglePasswordIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Handle login form submission
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const submitBtn = document.getElementById('submitBtn');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoader = submitBtn.querySelector('.btn-loader');
-    const errorMsg = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
-    
-    btnText.classList.add('hidden');
-    btnLoader.classList.remove('hidden');
-    submitBtn.disabled = true;
-    errorMsg.classList.add('hidden');
-    
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const formData = new FormData(e.target);
+    const data = {
+        username: formData.get('username'),
+        password: formData.get('password')
+    };
     
     try {
-        const res = await fetch('/v6/auth/login', {
+        const response = await fetch('/api/v5.4/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify(data)
         });
         
-        const data = await res.json();
+        const result = await response.json();
         
-        if (data.success) {
-            localStorage.setItem('zarch_token', data.token);
-            localStorage.setItem('zarch_user', JSON.stringify(data.user));
+        if (response.ok) {
             window.location.href = '/dashboard';
         } else {
-            errorText.textContent = data.error || 'Login failed';
-            errorMsg.classList.remove('hidden');
-            btnText.classList.remove('hidden');
-            btnLoader.classList.add('hidden');
-            submitBtn.disabled = false;
+            alert(result.error || 'Login failed');
         }
-    } catch (err) {
-        errorText.textContent = 'Network error';
-        errorMsg.classList.remove('hidden');
-        btnText.classList.remove('hidden');
-        btnLoader.classList.add('hidden');
-        submitBtn.disabled = false;
+    } catch (error) {
+        alert('Network error. Please try again.');
     }
 });
-
-function socialLogin(provider) {
-    alert(`${provider} login coming soon!`);
-}
 </script>
 {% endblock %}
