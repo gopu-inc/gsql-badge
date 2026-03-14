@@ -298,4 +298,383 @@
                 <div class="code-block relative group">
                     <pre id="installCommand" class="text-sm">apkm install {{ package.name }}</pre>
                     <button onclick="copyText('apkm install {{ package.name }}')" 
-                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Download URL -->
+            <div>
+                <p class="text-sm text-slate-400 mb-2">Download URL</p>
+                <div class="code-block relative group">
+                    <pre id="downloadCommand" class="text-sm text-wrap">https://gsql-badge.onrender.com/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}</pre>
+                    <button onclick="copyText('https://gsql-badge.onrender.com/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch}}')" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Close Button -->
+            <div class="pt-4">
+                <button onclick="hideInstallModal()"
+                        class="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div id="shareModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">Share Package</h3>
+            <button onclick="hideShareModal()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <!-- Share Links -->
+            <div class="grid grid-cols-4 gap-2">
+                <button onclick="shareTo('twitter')" 
+                        class="p-3 bg-slate-800 rounded-xl hover:bg-sky-500 transition-all group">
+                    <i class="fab fa-twitter text-xl text-slate-400 group-hover:text-white"></i>
+                </button>
+                <button onclick="shareTo('facebook')" 
+                        class="p-3 bg-slate-800 rounded-xl hover:bg-sky-500 transition-all group">
+                    <i class="fab fa-facebook text-xl text-slate-400 group-hover:text-white"></i>
+                </button>
+                <button onclick="shareTo('linkedin')" 
+                        class="p-3 bg-slate-800 rounded-xl hover:bg-sky-500 transition-all group">
+                    <i class="fab fa-linkedin text-xl text-slate-400 group-hover:text-white"></i>
+                </button>
+                <button onclick="shareTo('reddit')" 
+                        class="p-3 bg-slate-800 rounded-xl hover:bg-sky-500 transition-all group">
+                    <i class="fab fa-reddit text-xl text-slate-400 group-hover:text-white"></i>
+                </button>
+            </div>
+            
+            <!-- Package URL -->
+            <div>
+                <p class="text-sm text-slate-400 mb-2">Package URL</p>
+                <div class="code-block relative group">
+                    <pre class="text-sm text-wrap">{{ request.url }}</pre>
+                    <button onclick="copyText('{{ request.url }}')" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Embed Badge -->
+            <div>
+                <p class="text-sm text-slate-400 mb-2">Markdown Badge</p>
+                <div class="code-block relative group">
+                    <pre class="text-sm">[![{{ package.name }}](https://gsql-badge.onrender.com/badge/package/{{ package.name }})]({{ request.url }})</pre>
+                    <button onclick="copyText('[![{{ package.name }}](https://gsql-badge.onrender.com/badge/package/{{ package.name }})]({{ request.url }})')" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab switching
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-b-2', 'border-sky-400', 'text-white');
+        btn.classList.add('text-slate-400');
+    });
+    document.getElementById(`tab-${tab}`).classList.add('border-b-2', 'border-sky-400', 'text-white');
+    
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`tab-${tab}-content`).classList.remove('hidden');
+    
+    if (tab === 'reviews') {
+        loadReviews();
+    }
+}
+
+// Load reviews
+async function loadReviews() {
+    const container = document.getElementById('reviews-container');
+    
+    try {
+        const response = await fetch(`/api/v1/package/{{ package.name }}/reviews`);
+        const data = await response.json();
+        
+        if (data.reviews && data.reviews.length > 0) {
+            // Calculate average
+            const avgRating = data.average || (data.reviews.reduce((acc, r) => acc + r.rating, 0) / data.reviews.length).toFixed(1);
+            
+            container.innerHTML = `
+                <div class="flex items-center justify-between p-6 bg-slate-800/50 rounded-xl mb-6">
+                    <div class="flex items-center space-x-4">
+                        <div class="text-5xl font-bold text-sky-400">${avgRating}</div>
+                        <div>
+                            <div class="flex text-2xl text-yellow-400 mb-1">
+                                ${'★'.repeat(Math.round(avgRating))}${'☆'.repeat(5-Math.round(avgRating))}
+                            </div>
+                            <div class="text-sm text-slate-400">Based on ${data.reviews.length} reviews</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    ${data.reviews.map(review => `
+                        <div class="p-4 bg-slate-800/30 rounded-xl border border-slate-700">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-gradient-to-br from-sky-500 to-sky-400 rounded-lg flex items-center justify-center text-white font-bold">
+                                        ${review.username[0].toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <span class="font-semibold text-white">${review.username}</span>
+                                        <div class="flex text-yellow-400 text-sm">
+                                            ${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-slate-500">${review.created_at.slice(0,10)}</span>
+                            </div>
+                            <p class="text-slate-300 text-sm ml-11">${review.comment || 'No comment provided'}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="text-center py-12">
+                    <div class="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="far fa-star text-4xl text-slate-600"></i>
+                    </div>
+                    <p class="text-xl text-white mb-2">No reviews yet</p>
+                    <p class="text-slate-400 mb-6">Be the first to review this package!</p>
+                    {% if session.get('user') %}
+                    <button onclick="showReviewModal()"
+                            class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                        <i class="fas fa-star mr-2"></i>Write a Review
+                    </button>
+                    {% endif %}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading reviews:', error);
+        container.innerHTML = '<p class="text-red-400 text-center">Failed to load reviews</p>';
+    }
+}
+
+// Review modal
+let currentRating = 0;
+
+function showReviewModal() {
+    document.getElementById('reviewModal').classList.remove('hidden');
+    document.getElementById('reviewModal').classList.add('flex');
+}
+
+function hideReviewModal() {
+    document.getElementById('reviewModal').classList.add('hidden');
+    document.getElementById('reviewModal').classList.remove('flex');
+}
+
+function setRating(rating) {
+    currentRating = rating;
+    document.getElementById('rating').value = rating;
+    
+    document.querySelectorAll('.rating-star').forEach((star, index) => {
+        if (index < rating) {
+            star.classList.remove('text-slate-600');
+            star.classList.add('text-yellow-400');
+        } else {
+            star.classList.remove('text-yellow-400');
+            star.classList.add('text-slate-600');
+        }
+    });
+}
+
+// Submit review
+document.getElementById('reviewForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        rating: parseInt(document.getElementById('rating').value),
+        comment: formData.get('comment')
+    };
+    
+    if (data.rating === 0) {
+        showNotification('Please select a rating', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/v1/package/{{ package.name }}/review`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            hideReviewModal();
+            loadReviews();
+            switchTab('reviews');
+            showNotification('Review submitted successfully!', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.error || 'Failed to submit review', 'error');
+        }
+    } catch (error) {
+        console.error('Error submitting review:', error);
+        showNotification('Failed to submit review', 'error');
+    }
+});
+
+// Quick install modal
+function quickInstall() {
+    document.getElementById('installModal').classList.remove('hidden');
+    document.getElementById('installModal').classList.add('flex');
+}
+
+function hideInstallModal() {
+    document.getElementById('installModal').classList.add('hidden');
+    document.getElementById('installModal').classList.remove('flex');
+}
+
+// Share modal
+function sharePackage() {
+    document.getElementById('shareModal').classList.remove('hidden');
+    document.getElementById('shareModal').classList.add('flex');
+}
+
+function hideShareModal() {
+    document.getElementById('shareModal').classList.add('hidden');
+    document.getElementById('shareModal').classList.remove('flex');
+}
+
+function shareTo(platform) {
+    const url = encodeURIComponent('{{ request.url }}');
+    const text = encodeURIComponent('Check out {{ package.name }} on Zarch Hub!');
+    let shareUrl = '';
+    
+    switch(platform) {
+        case 'twitter':
+            shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+            break;
+        case 'facebook':
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+            break;
+        case 'linkedin':
+            shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+            break;
+        case 'reddit':
+            shareUrl = `https://reddit.com/submit?url=${url}&title=${text}`;
+            break;
+    }
+    
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+}
+
+// Copy utilities
+function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Copied to clipboard!', 'success');
+    });
+}
+
+function copyChecksum(checksum) {
+    copyText(checksum);
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-red-500/50 bg-red-500/10 text-red-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+}
+
+// Close modals on escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        hideReviewModal();
+        hideInstallModal();
+        hideShareModal();
+    }
+});
+
+// Load reviews if tab is active
+if (window.location.hash === '#reviews') {
+    switchTab('reviews');
+}
+</script>
+
+<style>
+/* Markdown styling */
+.markdown-body {
+    color: #e2e8f0;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+    color: white;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+.markdown-body h1 { font-size: 2em; border-bottom: 1px solid #334155; padding-bottom: 0.3em; }
+.markdown-body h2 { font-size: 1.5em; border-bottom: 1px solid #334155; padding-bottom: 0.3em; }
+.markdown-body code {
+    background: #1e293b;
+    color: #38bdf8;
+    padding: 0.2em 0.4em;
+    border-radius: 0.3em;
+    font-size: 0.9em;
+}
+.markdown-body pre {
+    background: #1e293b;
+    padding: 1em;
+    border-radius: 0.5em;
+    overflow-x: auto;
+    border: 1px solid #334155;
+}
+.markdown-body pre code {
+    background: none;
+    padding: 0;
+}
+.markdown-body blockquote {
+    border-left: 4px solid #38bdf8;
+    padding-left: 1em;
+    color: #94a3b8;
+    margin: 1em 0;
+}
+.markdown-body table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid #334155;
+    padding: 0.5em;
+    text-align: left;
+}
+.markdown-body th {
+    background: #1e293b;
+}
+.markdown-body img {
+    max-width: 100%;
+    border-radius: 0.5em;
+}
+</style>
+{% endblock %}
