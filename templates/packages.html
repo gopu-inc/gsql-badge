@@ -1,136 +1,316 @@
 {% extends "base.html" %}
 
-{% block title %}Packages - Zarch Hub{% endblock %}
+{% block title %}Packages - Zarch Hub Registry{% endblock %}
 
 {% block content %}
+<!-- Header -->
 <div class="mb-8" data-aos="fade-up">
-    <h1 class="text-4xl font-bold mb-4">Package Registry</h1>
-    <p class="text-xl text-gray-600">Browse and search available packages</p>
+    <h1 class="text-4xl font-bold text-white mb-2">Package Registry</h1>
+    <p class="text-slate-400">Browse and search available packages from the community</p>
 </div>
 
 <!-- Search and Filters -->
-<div class="glassmorphism rounded-2xl p-6 mb-8" data-aos="fade-up" data-aos-delay="100">
+<div class="glass-card rounded-2xl p-6 mb-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
     <form method="GET" class="space-y-4">
         <div class="flex flex-col md:flex-row gap-4">
+            <!-- Search Input -->
             <div class="flex-1 relative">
-                <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
+                <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
                 <input type="text" 
                        name="q" 
                        value="{{ query }}"
-                       placeholder="Search packages..." 
-                       class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                       placeholder="Search packages by name, description, or author..." 
+                       class="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
             </div>
             
-            <div class="flex gap-2">
-                <select name="sort" class="px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500">
-                    <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Most Recent</option>
-                    <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>Most Downloads</option>
-                    <option value="name" {% if sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
-                    <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+            <!-- Filter Controls -->
+            <div class="flex flex-wrap gap-2">
+                <select name="sort" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
+                    <option value="recent" {% if sort == 'recent' %}selected{% endif %}>📅 Most Recent</option>
+                    <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>📥 Most Downloads</option>
+                    <option value="name" {% if sort == 'name' %}selected{% endif %}>📝 Name (A-Z)</option>
+                    <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>📝 Name (Z-A)</option>
                 </select>
                 
-                <select name="scope" class="px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500">
-                    <option value="all" {% if scope == 'all' %}selected{% endif %}>All Packages</option>
-                    <option value="public" {% if scope == 'public' %}selected{% endif %}>Public</option>
-                    <option value="private" {% if scope == 'private' %}selected{% endif %}>Private</option>
+                <select name="scope" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
+                    <option value="all" {% if scope == 'all' %}selected{% endif %}>🌍 All Packages</option>
+                    <option value="public" {% if scope == 'public' %}selected{% endif %}>🔓 Public</option>
+                    <option value="private" {% if scope == 'private' %}selected{% endif %}>🔒 Private</option>
                 </select>
                 
                 <button type="submit" 
-                        class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300">
-                    Apply Filters
+                        class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    <i class="fas fa-filter mr-2"></i>Apply
                 </button>
             </div>
         </div>
     </form>
+    
+    <!-- Active Filters -->
+    {% if query or scope != 'all' or sort != 'recent' %}
+    <div class="mt-4 flex flex-wrap items-center gap-2 pt-4 border-t border-slate-800">
+        <span class="text-sm text-slate-400">Active filters:</span>
+        {% if query %}
+        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
+            <i class="fas fa-search mr-1"></i> "{{ query }}"
+            <a href="?{% if scope != 'all' %}scope={{ scope }}&{% endif %}{% if sort != 'recent' %}sort={{ sort }}{% endif %}" class="ml-2 hover:text-white">×</a>
+        </span>
+        {% endif %}
+        {% if scope != 'all' %}
+        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
+            <i class="fas fa-{% if scope == 'public' %}globe{% else %}lock{% endif %} mr-1"></i> {{ scope|capitalize }}
+            <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort != 'recent' %}sort={{ sort }}{% endif %}" class="ml-2 hover:text-white">×</a>
+        </span>
+        {% endif %}
+        {% if sort != 'recent' %}
+        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
+            <i class="fas fa-sort mr-1"></i> Sort: {{ sort }}
+            <a href="?{% if query %}q={{ query }}&{% endif %}{% if scope != 'all' %}scope={{ scope }}{% endif %}" class="ml-2 hover:text-white">×</a>
+        </span>
+        {% endif %}
+        <a href="/packages" class="text-sm text-slate-500 hover:text-sky-400 ml-auto">
+            <i class="fas fa-times mr-1"></i>Clear all
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Results Info -->
 <div class="flex justify-between items-center mb-6" data-aos="fade-up" data-aos-delay="150">
-    <div>
-        <span class="text-gray-600">{{ total_results }} packages found</span>
+    <div class="text-slate-400">
+        <span class="text-white font-semibold">{{ total_results }}</span> packages found
     </div>
-    <div class="text-sm text-gray-500">
-        Page {{ page }} of {{ total_pages }}
+    <div class="text-sm text-slate-500">
+        Page <span class="text-white">{{ page }}</span> of {{ total_pages }}
     </div>
 </div>
 
 <!-- Packages Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     {% for package in packages %}
-    <div class="glassmorphism rounded-2xl p-6 hover-lift" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" 
+         data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+        <!-- Package Header -->
         <div class="flex items-start justify-between mb-4">
             <div>
                 <h3 class="text-xl font-semibold">
-                    <a href="/package/{{ package.name }}" class="hover:text-indigo-600">
+                    <a href="/package/{{ package.name }}" class="text-white hover:text-sky-400 transition-colors">
                         {{ package.name }}
                     </a>
                 </h3>
-                <p class="text-sm text-gray-500">by {{ package.author }}</p>
+                <p class="text-sm text-slate-400">
+                    <i class="fas fa-user mr-1 text-sky-400/70"></i>{{ package.author }}
+                </p>
             </div>
-            <span class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm">
+            <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
                 v{{ package.version }}
             </span>
         </div>
         
+        <!-- Description -->
         {% if package.description %}
-        <p class="text-gray-600 mb-4">{{ package.description[:100] }}{% if package.description|length > 100 %}...{% endif %}</p>
+        <p class="text-slate-400 mb-4 text-sm line-clamp-2">{{ package.description }}</p>
+        {% else %}
+        <p class="text-slate-500 mb-4 text-sm italic">No description available</p>
         {% endif %}
         
-        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-            <span><i class="fas fa-download mr-1"></i>{{ package.downloads }} downloads</span>
-            <span><i class="far fa-clock mr-1"></i>{{ package.created_at[:10] }}</span>
-            <span class="px-2 py-1 bg-gray-100 rounded-full text-xs">{{ package.scope }}</span>
+        <!-- Package Metadata -->
+        <div class="flex items-center justify-between text-sm mb-4">
+            <div class="flex items-center space-x-3">
+                <span class="text-slate-400">
+                    <i class="fas fa-download mr-1 text-sky-400"></i>{{ package.downloads }}
+                </span>
+                <span class="text-slate-400">
+                    <i class="far fa-clock mr-1 text-sky-400"></i>{{ package.created_at[:10] }}
+                </span>
+            </div>
+            <span class="px-2 py-1 bg-slate-800 text-slate-300 rounded-full text-xs border border-slate-700">
+                {% if package.scope == 'public' %}
+                <i class="fas fa-globe text-sky-400 mr-1"></i>public
+                {% else %}
+                <i class="fas fa-lock text-yellow-400 mr-1"></i>private
+                {% endif %}
+            </span>
         </div>
         
+        <!-- Architecture Badges -->
+        <div class="flex flex-wrap gap-1 mb-4">
+            <span class="px-2 py-1 bg-slate-800 text-xs text-slate-400 rounded-lg border border-slate-700">
+                {{ package.arch }}
+            </span>
+            <span class="px-2 py-1 bg-slate-800 text-xs text-slate-400 rounded-lg border border-slate-700">
+                {{ package.release }}
+            </span>
+        </div>
+        
+        <!-- Action Buttons -->
         <div class="flex space-x-2">
             <a href="/package/{{ package.name }}" 
-               class="flex-1 text-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                View Details
+               class="flex-1 text-center px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-lg font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button text-sm">
+                <i class="fas fa-info-circle mr-1"></i>Details
             </a>
             <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}"
-               class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
-                <i class="fas fa-download"></i>
+               class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-sky-500 hover:text-white transition-all group"
+               title="Download">
+                <i class="fas fa-download group-hover:scale-110 transition-transform"></i>
             </a>
+            <button onclick="quickInstall('{{ package.name }}', '{{ package.version }}')"
+                    class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-sky-500 hover:text-white transition-all group"
+                    title="Quick install">
+                <i class="fas fa-terminal group-hover:scale-110 transition-transform"></i>
+            </button>
         </div>
     </div>
     {% else %}
-    <div class="col-span-full text-center py-12">
-        <i class="fas fa-box-open text-6xl text-gray-400 mb-4"></i>
-        <h3 class="text-2xl font-semibold text-gray-600 mb-2">No packages found</h3>
-        <p class="text-gray-500">Try adjusting your search or filters</p>
+    <!-- No Results -->
+    <div class="col-span-full text-center py-16">
+        <div class="w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-box-open text-4xl text-slate-600"></i>
+        </div>
+        <h3 class="text-2xl font-semibold text-white mb-2">No packages found</h3>
+        <p class="text-slate-400 mb-6">Try adjusting your search or filters</p>
+        <a href="/upload" 
+           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-plus mr-2"></i>Upload a Package
+        </a>
     </div>
     {% endfor %}
 </div>
 
 <!-- Pagination -->
 {% if total_pages > 1 %}
-<div class="flex justify-center space-x-2" data-aos="fade-up">
+<div class="flex justify-center items-center space-x-2" data-aos="fade-up">
+    <!-- Previous Page -->
     {% if page > 1 %}
     <a href="?page={{ page-1 }}&q={{ query }}&sort={{ sort }}&scope={{ scope }}" 
-       class="px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors">
+       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-700 hover:border-sky-500">
         <i class="fas fa-chevron-left"></i>
     </a>
     {% endif %}
     
+    <!-- Page Numbers -->
     {% for p in range(1, total_pages + 1) %}
         {% if p == page %}
-        <span class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg">
+        <span class="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold shadow-lg shadow-sky-500/20">
             {{ p }}
         </span>
         {% elif p >= page-2 and p <= page+2 %}
         <a href="?page={{ p }}&q={{ query }}&sort={{ sort }}&scope={{ scope }}" 
-           class="px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors">
+           class="w-10 h-10 flex items-center justify-center bg-slate-800/50 text-slate-400 rounded-xl hover:bg-sky-500 hover:text-white transition-all border border-slate-700 hover:border-sky-500">
             {{ p }}
         </a>
         {% endif %}
     {% endfor %}
     
+    <!-- Next Page -->
     {% if page < total_pages %}
     <a href="?page={{ page+1 }}&q={{ query }}&sort={{ sort }}&scope={{ scope }}" 
-       class="px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors">
+       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-700 hover:border-sky-500">
         <i class="fas fa-chevron-right"></i>
     </a>
     {% endif %}
 </div>
 {% endif %}
+
+<!-- Quick Install Modal -->
+<div id="installModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">Quick Install</h3>
+            <button onclick="hideInstallModal()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <p class="text-sm text-slate-400 mb-2">APKM Command</p>
+                <div class="code-block relative group">
+                    <pre id="installCommand" class="text-sm"></pre>
+                    <button onclick="copyInstallCommand()" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+            
+            <div>
+                <p class="text-sm text-slate-400 mb-2">Direct Download</p>
+                <div class="code-block relative group">
+                    <pre id="downloadCommand" class="text-sm"></pre>
+                    <button onclick="copyDownloadCommand()" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <i class="far fa-copy mr-1"></i>Copy
+                    </button>
+                </div>
+            </div>
+            
+            <div class="pt-4">
+                <button onclick="hideInstallModal()"
+                        class="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPackage = null;
+let currentVersion = null;
+
+function quickInstall(pkgName, version) {
+    currentPackage = pkgName;
+    currentVersion = version;
+    
+    document.getElementById('installCommand').textContent = `apkm install ${pkgName}`;
+    document.getElementById('downloadCommand').textContent = `curl -O https://gsql-badge.onrender.com/package/download/public/${pkgName}/${version}/r0/x86_64/${pkgName}-${version}-r0-x86_64.tar.bool`;
+    
+    document.getElementById('installModal').classList.remove('hidden');
+    document.getElementById('installModal').classList.add('flex');
+}
+
+function hideInstallModal() {
+    document.getElementById('installModal').classList.add('hidden');
+    document.getElementById('installModal').classList.remove('flex');
+}
+
+function copyInstallCommand() {
+    const cmd = document.getElementById('installCommand').textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+        showNotification('Install command copied!', 'success');
+    });
+}
+
+function copyDownloadCommand() {
+    const cmd = document.getElementById('downloadCommand').textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+        showNotification('Download command copied!', 'success');
+    });
+}
+
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-sky-500/50 bg-sky-500/10 text-sky-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('installModal').classList.contains('flex')) {
+        hideInstallModal();
+    }
+});
+
+// Close modal on click outside
+document.getElementById('installModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('installModal')) {
+        hideInstallModal();
+    }
+});
+</script>
 {% endblock %}
