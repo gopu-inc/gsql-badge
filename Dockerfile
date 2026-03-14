@@ -8,17 +8,19 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Dossier de travail
 WORKDIR /app
 
-# Dépendances système nécessaires à psycopg2
+# Dépendances système nécessaires
 RUN apt-get update && apt-get install -y \
     gcc \
     git \
     python3 \
-    python3-venv
+    python3-venv \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python -m venv apps
-RUN source apps/bin/activate
+# Créer et activer l'environnement virtuel
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Copier les dépendances Python
 COPY requirements.txt .
 
@@ -31,5 +33,5 @@ COPY . .
 # Port utilisé par Render
 EXPOSE 10000
 
-# Commande de démarrage (Render définit $PORT)
+# Commande de démarrage
 CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-10000}"]
