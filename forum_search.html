@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Search Forum - Zarch Hub{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-8" data-aos="fade-up">
+    <h1 class="text-4xl font-bold text-white mb-2">Search Forum</h1>
+    <p class="text-slate-400">Find discussions, topics, and answers</p>
+</div>
+
+<!-- Search Form -->
+<div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="50">
+    <form method="GET" action="/forum/search" class="space-y-4">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1 relative">
+                <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
+                <input type="text" 
+                       name="q" 
+                       value="{{ query }}"
+                       placeholder="Search topics, posts, or users..." 
+                       class="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50">
+            </div>
+            
+            <div class="flex gap-2">
+                <select name="category" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="sort" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300">
+                    <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                    <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Most Recent</option>
+                    <option value="views" {% if sort == 'views' %}selected{% endif %}>Most Viewed</option>
+                </select>
+                
+                <button type="submit" 
+                        class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    Search
+                </button>
+            </div>
+        </div>
+        
+        <!-- Advanced Filters -->
+        <div class="flex flex-wrap gap-4 pt-4">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="titles_only" {% if titles_only %}checked{% endif %}
+                       class="rounded border-slate-700 bg-slate-900 text-sky-500">
+                <span class="text-sm text-slate-300">Search titles only</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="include_comments" {% if include_comments %}checked{% endif %}
+                       class="rounded border-slate-700 bg-slate-900 text-sky-500">
+                <span class="text-sm text-slate-300">Include comments</span>
+            </label>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" name="from_last_week" {% if from_last_week %}checked{% endif %}
+                       class="rounded border-slate-700 bg-slate-900 text-sky-500">
+                <span class="text-sm text-slate-300">Last week only</span>
+            </label>
+        </div>
+    </form>
+</div>
+
+<!-- Results Header -->
+{% if query %}
+<div class="flex justify-between items-center mb-6" data-aos="fade-up" data-aos-delay="100">
+    <div class="text-slate-400">
+        Found <span class="text-white font-semibold">{{ total_results }}</span> results for 
+        <span class="text-sky-400">"{{ query }}"</span>
+    </div>
+    <div class="text-sm text-slate-500">
+        Page {{ page }} of {{ total_pages }}
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="space-y-4 mb-8">
+    {% if results %}
+        {% for result in results %}
+        <div class="glass-card rounded-xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+            <div class="flex items-start gap-4">
+                <!-- Type Icon -->
+                <div class="flex-shrink-0">
+                    {% if result.type == 'topic' %}
+                    <div class="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-file-alt text-sky-400"></i>
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-comment text-purple-400"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Result Content -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="text-lg font-semibold">
+                            <a href="{{ result.url }}" class="text-white hover:text-sky-400">
+                                {{ result.title }}
+                            </a>
+                        </h3>
+                        <span class="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full text-xs">
+                            {{ result.type }}
+                        </span>
+                    </div>
+                    
+                    <p class="text-slate-400 text-sm mb-2">{{ result.excerpt }}</p>
+                    
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                        <span class="text-slate-500">
+                            in <a href="/forum/category/{{ result.category_id }}" class="text-sky-400 hover:text-sky-300">{{ result.category }}</a>
+                        </span>
+                        <span class="text-slate-500">
+                            by <a href="/@{{ result.author }}" class="text-sky-400 hover:text-sky-300">{{ result.author }}</a>
+                        </span>
+                        <span class="text-slate-500">
+                            <i class="far fa-clock mr-1"></i>{{ result.created_at|timeago }}
+                        </span>
+                        {% if result.replies_count %}
+                        <span class="text-slate-500">
+                            <i class="far fa-comment mr-1"></i>{{ result.replies_count }} replies
+                        </span>
+                        {% endif %}
+                        <span class="text-slate-500">
+                            <i class="far fa-eye mr-1"></i>{{ result.views }} views
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Relevance Score -->
+                {% if result.score %}
+                <div class="flex-shrink-0 text-right">
+                    <div class="text-sm font-semibold text-sky-400">{{ result.score }}%</div>
+                    <div class="text-xs text-slate-500">match</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <!-- No Results -->
+    <div class="text-center py-16">
+        <div class="w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-search text-4xl text-slate-600"></i>
+        </div>
+        <h3 class="text-2xl font-semibold text-white mb-2">No results found</h3>
+        <p class="text-slate-400 mb-6">Try different keywords or filters</p>
+        <a href="/forum" 
+           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Forum
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="flex justify-center items-center space-x-2" data-aos="fade-up">
+    {% if page > 1 %}
+    <a href="?q={{ query }}&page={{ page-1 }}&category={{ category_id }}&sort={{ sort }}" 
+       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all">
+        <i class="fas fa-chevron-left"></i>
+    </a>
+    {% endif %}
+    
+    {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+        <span class="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl">
+            {{ p }}
+        </span>
+        {% elif p >= page-2 and p <= page+2 %}
+        <a href="?q={{ query }}&page={{ p }}&category={{ category_id }}&sort={{ sort }}" 
+           class="w-10 h-10 flex items-center justify-center bg-slate-800/50 text-slate-400 rounded-xl hover:bg-sky-500 hover:text-white">
+            {{ p }}
+        </a>
+        {% endif %}
+    {% endfor %}
+    
+    {% if page < total_pages %}
+    <a href="?q={{ query }}&page={{ page+1 }}&category={{ category_id }}&sort={{ sort }}" 
+       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white">
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<!-- Initial State (no query) -->
+<div class="text-center py-16" data-aos="fade-up" data-aos-delay="100">
+    <div class="w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-search text-4xl text-slate-600"></i>
+    </div>
+    <h3 class="text-2xl font-semibold text-white mb-2">Search the Forum</h3>
+    <p class="text-slate-400">Find answers, discussions, and community knowledge</p>
+</div>
+{% endif %}
+
+<!-- Popular Searches -->
+<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up">
+    <h3 class="text-lg font-semibold text-white mb-4">Popular Searches</h3>
+    <div class="flex flex-wrap gap-2">
+        <a href="/forum/search?q=apkm+install" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">apkm install</a>
+        <a href="/forum/search?q=PKGBUILD" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">PKGBUILD</a>
+        <a href="/forum/search?q=dependencies" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">dependencies</a>
+        <a href="/forum/search?q=error" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">error</a>
+        <a href="/forum/search?q=build" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">build</a>
+        <a href="/forum/search?q=package+creation" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">package creation</a>
+        <a href="/forum/search?q=tutorial" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">tutorial</a>
+    </div>
+</div>
+
+<script>
+// Live search suggestions
+const searchInput = document.querySelector('input[name="q"]');
+if (searchInput) {
+    let timeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeout);
+        const query = this.value;
+        
+        if (query.length > 2) {
+            timeout = setTimeout(() => {
+                fetch(`/api/forum/search/suggestions?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        // Afficher les suggestions
+                        console.log('Suggestions:', data);
+                    });
+            }, 300);
+        }
+    });
+}
+</script>
+{% endblock %}
