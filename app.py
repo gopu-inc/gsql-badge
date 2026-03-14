@@ -224,27 +224,29 @@ class CookieManager:
     def set_secure_cookie(response, name, value, max_age=3600):
         """Définit un cookie sécurisé avec chiffrement"""
         try:
-            # S'assurer que la valeur est une chaîne
             if not isinstance(value, str):
                 value = str(value)
             
             # Chiffrer la valeur
             encrypted = fernet.encrypt(value.encode()).decode()
             
-            # Définir le cookie avec les bons paramètres
+            # Supprimer l'ancien cookie d'abord (important !)
+            response.set_cookie(name, '', expires=0, path='/')
+            
+            # Définir le nouveau cookie
             response.set_cookie(
                 name,
                 encrypted,
                 max_age=max_age,
-                secure=app.config.get('SESSION_COOKIE_SECURE', False),  # Utiliser la config
+                secure=app.config.get('SESSION_COOKIE_SECURE', False),
                 httponly=True,
                 samesite=app.config.get('SESSION_COOKIE_SAMESITE', 'Lax'),
                 path='/'
             )
-            app.logger.info(f"Cookie {name} set successfully for user")
+            app.logger.info(f"✅ Cookie {name} set successfully")
             return response
         except Exception as e:
-            app.logger.error(f"Failed to set cookie {name}: {e}")
+            app.logger.error(f"❌ Failed to set cookie {name}: {e}")
             return response
     
     @staticmethod
@@ -252,33 +254,26 @@ class CookieManager:
         """Récupère et déchiffre un cookie"""
         encrypted = request.cookies.get(name)
         if not encrypted:
-            app.logger.debug(f"Cookie {name} not found")
             return None
         
         try:
-            # Nettoyer la valeur (enlever les espaces éventuels)
+            # Nettoyer la valeur
             encrypted = encrypted.strip()
             
-            # Vérifier que le cookie n'est pas vide
-            if not encrypted:
-                app.logger.warning(f"Empty cookie {name}")
-                return None
-            
-            # Déchiffrer
+            # Essayer de déchiffrer
             decrypted = fernet.decrypt(encrypted.encode()).decode()
-            app.logger.debug(f"Cookie {name} decrypted successfully")
             return decrypted
         except Exception as e:
-            app.logger.warning(f"Failed to decrypt cookie {name}: {str(e)}")
+            app.logger.warning(f"⚠️ Failed to decrypt cookie {name}: {str(e)[:50]}")
+            # Retourner None silencieusement - l'utilisateur devra se reconnecter
             return None
     
     @staticmethod
     def delete_secure_cookie(response, name):
         """Supprime un cookie"""
         response.set_cookie(name, '', expires=0, path='/')
-        app.logger.info(f"Cookie {name} deleted")
+        app.logger.info(f"🗑️ Cookie {name} deleted")
         return response
-
 # ============================================================================
 # CACHE & PERFORMANCE
 # ============================================================================
