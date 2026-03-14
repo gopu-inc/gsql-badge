@@ -6,7 +6,9 @@ Jinja2
 click
 blinker
 itsdangerous
-
+flask-socketio
+python-socketio
+eventlet
 semver
 
 # Base de données
