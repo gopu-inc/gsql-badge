@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Community Forum - Zarch Hub{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="mb-8" data-aos="fade-up">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-4xl font-bold text-white mb-2">Community Forum</h1>
+            <p class="text-slate-400">Discuss, share knowledge, and get help from the community</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="/forum/search" 
+               class="px-4 py-2 bg-slate-800/50 text-slate-300 rounded-xl hover:bg-slate-700/50 transition-all border border-slate-700">
+                <i class="fas fa-search mr-2"></i>Search
+            </a>
+            <a href="/forum/new" 
+               class="px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                <i class="fas fa-plus mr-2"></i>New Topic
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Forum Stats -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="50">
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">2,547</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Topics</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">18.3k</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Posts</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">1.2k</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Members</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
+        <div class="text-2xl font-bold text-sky-400">142</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Online</div>
+    </div>
+</div>
+
+<!-- Categories Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+    <!-- General Discussion -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="100">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-400 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-comments text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">General Discussion</h3>
+                    <p class="text-xs text-slate-400">2.3k topics</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">342 online</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">Talk about anything related to Zarch Hub, APKM, and package management</p>
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">Last post: 5 min ago</span>
+            <a href="/forum/category/general" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
+                Browse <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Package Development -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="150">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-400 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-cube text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Package Development</h3>
+                    <p class="text-xs text-slate-400">856 topics</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">124 online</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">Discuss package creation, PKGBUILD files, and build processes</p>
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">Last post: 12 min ago</span>
+            <a href="/forum/category/development" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
+                Browse <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Help & Support -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="200">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-400 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-life-ring text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Help & Support</h3>
+                    <p class="text-xs text-slate-400">1.1k topics</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">89 online</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">Get help with installation, configuration, and troubleshooting</p>
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">Last post: 2 min ago</span>
+            <a href="/forum/category/support" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
+                Browse <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="250">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-400 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-bullhorn text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Announcements</h3>
+                    <p class="text-xs text-slate-400">124 topics</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded-full text-xs border border-yellow-500/30">Official</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">Official announcements about Zarch Hub updates and events</p>
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">Last post: 1 hour ago</span>
+            <a href="/forum/category/announcements" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
+                Browse <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Feature Requests -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="300">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-400 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-lightbulb text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Feature Requests</h3>
+                    <p class="text-xs text-slate-400">342 topics</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 bg-pink-500/10 text-pink-400 rounded-full text-xs border border-pink-500/30">Voting</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">Suggest new features and improvements for Zarch Hub</p>
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">Last post: 30 min ago</span>
+            <a href="/forum/category/features" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
+                Browse <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Show & Tell -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="350">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-400 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-rocket text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Show & Tell</h3>
+                    <p class="text-xs text-slate-400">567 topics</p>
+                </div>
+            </div>
+            <span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs border border-indigo-500/30">Showcase</span>
+        </div>
+        <p class="text-sm text-slate-400 mb-4">Show off your packages and projects built with APKM</p>
+        <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">Last post: 15 min ago</span>
+            <a href="/forum/category/showcase" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
+                Browse <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Topics -->
+<div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="400">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-white">Recent Discussions</h2>
+        <a href="/forum/latest" class="text-sky-400 hover:text-sky-300 text-sm">
+            View all <i class="fas fa-arrow-right ml-1"></i>
+        </a>
+    </div>
+
+    <div class="space-y-4">
+        <!-- Topic 1 -->
+        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
+            <div class="flex-shrink-0 mr-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    JD
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="text-lg font-semibold text-white truncate">
+                        <a href="/forum/topic/1" class="hover:text-sky-400">How to create my first APKM package?</a>
+                    </h3>
+                    <span class="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-full text-xs border border-blue-500/30">New</span>
+                </div>
+                <div class="flex items-center text-sm text-slate-400 space-x-4">
+                    <span>by <span class="text-sky-400">JohnDoe</span></span>
+                    <span><i class="far fa-clock mr-1"></i>2 hours ago</span>
+                    <span><i class="far fa-comment mr-1"></i>12 replies</span>
+                    <span><i class="far fa-eye mr-1"></i>234 views</span>
+                </div>
+            </div>
+            <div class="flex-shrink-0 ml-4 text-right">
+                <span class="text-xs text-slate-500">Last reply</span>
+                <p class="text-sm text-slate-300">by <span class="text-sky-400">JaneSmith</span></p>
+                <p class="text-xs text-slate-500">5 min ago</p>
+            </div>
+        </div>
+
+        <!-- Topic 2 -->
+        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
+            <div class="flex-shrink-0 mr-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    MK
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="text-lg font-semibold text-white truncate">
+                        <a href="/forum/topic/2" class="hover:text-sky-400">PKGBUILD dependencies not resolving</a>
+                    </h3>
+                    <span class="px-2 py-0.5 bg-red-500/10 text-red-400 rounded-full text-xs border border-red-500/30">Urgent</span>
+                </div>
+                <div class="flex items-center text-sm text-slate-400 space-x-4">
+                    <span>by <span class="text-sky-400">MikeK</span></span>
+                    <span><i class="far fa-clock mr-1"></i>5 hours ago</span>
+                    <span><i class="far fa-comment mr-1"></i>8 replies</span>
+                    <span><i class="far fa-eye mr-1"></i>156 views</span>
+                </div>
+            </div>
+            <div class="flex-shrink-0 ml-4 text-right">
+                <span class="text-xs text-slate-500">Last reply</span>
+                <p class="text-sm text-slate-300">by <span class="text-sky-400">SarahDev</span></p>
+                <p class="text-xs text-slate-500">20 min ago</p>
+            </div>
+        </div>
+
+        <!-- Topic 3 -->
+        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
+            <div class="flex-shrink-0 mr-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    AL
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="text-lg font-semibold text-white truncate">
+                        <a href="/forum/topic/3" class="hover:text-sky-400">Announcing: Zarch Hub CLI Tool v2.0</a>
+                    </h3>
+                    <span class="px-2 py-0.5 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">Announcement</span>
+                </div>
+                <div class="flex items-center text-sm text-slate-400 space-x-4">
+                    <span>by <span class="text-sky-400">AlexL</span></span>
+                    <span><i class="far fa-clock mr-1"></i>1 day ago</span>
+                    <span><i class="far fa-comment mr-1"></i>24 replies</span>
+                    <span><i class="far fa-eye mr-1"></i>1.2k views</span>
+                </div>
+            </div>
+            <div class="flex-shrink-0 ml-4 text-right">
+                <span class="text-xs text-slate-500">Last reply</span>
+                <p class="text-sm text-slate-300">by <span class="text-sky-400">ChrisP</span></p>
+                <p class="text-xs text-slate-500">1 hour ago</p>
+            </div>
+        </div>
+
+        <!-- Topic 4 -->
+        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
+            <div class="flex-shrink-0 mr-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    EM
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="text-lg font-semibold text-white truncate">
+                        <a href="/forum/topic/4" class="hover:text-sky-400">Best practices for package versioning?</a>
+                    </h3>
+                    <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full text-xs border border-purple-500/30">Discussion</span>
+                </div>
+                <div class="flex items-center text-sm text-slate-400 space-x-4">
+                    <span>by <span class="text-sky-400">EmmaM</span></span>
+                    <span><i class="far fa-clock mr-1"></i>2 days ago</span>
+                    <span><i class="far fa-comment mr-1"></i>15 replies</span>
+                    <span><i class="far fa-eye mr-1"></i>345 views</span>
+                </div>
+            </div>
+            <div class="flex-shrink-0 ml-4 text-right">
+                <span class="text-xs text-slate-500">Last reply</span>
+                <p class="text-sm text-slate-300">by <span class="text-sky-400">TomW</span></p>
+                <p class="text-xs text-slate-500">3 hours ago</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Popular Tags -->
+<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="450">
+    <h2 class="text-lg font-semibold text-white mb-4">Popular Tags</h2>
+    <div class="flex flex-wrap gap-2">
+        <a href="/forum/tag/apkm" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#apkm</a>
+        <a href="/forum/tag/package" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#package</a>
+        <a href="/forum/tag/help" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#help</a>
+        <a href="/forum/tag/development" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#development</a>
+        <a href="/forum/tag/pkbuilder" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#pkbuilder</a>
+        <a href="/forum/tag/bug" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#bug</a>
+        <a href="/forum/tag/feature" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#feature</a>
+        <a href="/forum/tag/discord" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#discord</a>
+        <a href="/forum/tag/tutorial" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#tutorial</a>
+        <a href="/forum/tag/showcase" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#showcase</a>
+    </div>
+</div>
+
+<!-- Online Members -->
+<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="500">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-white">Online Members</h2>
+        <span class="text-sm text-green-400"><span class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2 animate-pulse"></span>142 online</span>
+    </div>
+    <div class="flex flex-wrap gap-2">
+        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
+            <div class="w-6 h-6 bg-gradient-to-br from-sky-500 to-sky-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">JD</div>
+            <span class="text-sm text-slate-300">JohnDoe</span>
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+        </div>
+        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
+            <div class="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">AS</div>
+            <span class="text-sm text-slate-300">AliceSmith</span>
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+        </div>
+        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
+            <div class="w-6 h-6 bg-gradient-to-br from-green-500 to-green-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">MK</div>
+            <span class="text-sm text-slate-300">MikeK</span>
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+        </div>
+        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
+            <div class="w-6 h-6 bg-gradient-to-br from-yellow-500 to-yellow-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">SR</div>
+            <span class="text-sm text-slate-300">SarahR</span>
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+        </div>
+        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
+            <div class="w-6 h-6 bg-gradient-to-br from-pink-500 to-pink-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">TL</span>
+            <span class="text-sm text-slate-300">TomL</span>
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+        </div>
+        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
+            <span class="text-sm text-slate-400">+137 others</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
