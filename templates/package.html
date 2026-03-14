@@ -1,162 +1,251 @@
 {% extends "base.html" %}
 
-{% block title %}{{ package.name }} {{ package.version }} - Zarch Hub{% endblock %}
+{% block title %}{{ package.name }} - Zarch Hub{% endblock %}
+
+{% block og_title %}{{ package.name }} v{{ package.get_latest_version().version }} - Zarch Hub{% endblock %}
+{% block og_description %}{{ package.description|default('APKM package by ' + package.author) }}{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="fade-in">
     <!-- Package Header -->
-    <div class="glass-card rounded-2xl p-8 mb-8" data-aos="fade-up">
-        <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
-            <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center">
-                    <i class="fas fa-cubes text-white text-3xl"></i>
+    <div class="glass-card p-8 mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-3xl md:text-4xl font-bold">{{ package.name }}</h1>
+                    <span class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-sm">
+                        {{ package.scope }}
+                    </span>
                 </div>
-                <div>
-                    <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        {{ package.name }}
-                    </h1>
-                    <p class="text-gray-600 dark:text-gray-400 mt-1">
-                        by <span data-author="{{ package.author }}">{{ package.author }}</span>
-                    </p>
+                
+                <p class="text-gray-600 dark:text-gray-400 text-lg mb-2" data-author="{{ package.author }}">
+                    by <span class="font-semibold">{{ package.author }}</span>
+                </p>
+                
+                <p class="text-gray-500 dark:text-gray-400 max-w-2xl">
+                    {{ package.description|default('No description provided.') }}
+                </p>
+                
+                <!-- Tags -->
+                {% if package.tags %}
+                <div class="flex flex-wrap gap-2 mt-4">
+                    {% for tag in package.tags %}
+                    <span class="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-sm">
+                        <i class="fas fa-tag mr-1"></i>{{ tag }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Package Stats -->
+            <div class="flex flex-wrap gap-4">
+                <div class="text-center px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600">{{ package.downloads }}</div>
+                    <div class="text-xs text-gray-500">Downloads</div>
+                </div>
+                <div class="text-center px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <div class="text-2xl font-bold text-pink-600">{{ package.versions|length }}</div>
+                    <div class="text-xs text-gray-500">Versions</div>
+                </div>
+                <div class="text-center px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <div class="text-2xl font-bold text-indigo-600">{{ package.stars }}</div>
+                    <div class="text-xs text-gray-500">Stars</div>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <span class="px-4 py-2 bg-{{ 'green' if package.scope == 'public' else 'gray' }}-100 text-{{ 'green' if package.scope == 'public' else 'gray' }}-600 rounded-full text-sm">
-                    <i class="fas fa-{{ 'globe' if package.scope == 'public' else 'lock' }} mr-1"></i>
-                    {{ package.scope }}
-                </span>
-                <span class="px-4 py-2 bg-purple-100 text-purple-600 rounded-full text-sm">
-                    <i class="fas fa-tag mr-1"></i>{{ package.version }}
-                </span>
-            </div>
         </div>
-
-        <!-- Quick Info -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-code-branch text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Release</div>
-                <div class="font-semibold">{{ package.release }}</div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-microchip text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Arch</div>
-                <div class="font-semibold">{{ package.arch }}</div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-download text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Downloads</div>
-                <div class="font-semibold">{{ package.downloads }}</div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
-                <i class="fas fa-calendar text-purple-600 mb-2"></i>
-                <div class="text-sm text-gray-500">Published</div>
-                <div class="font-semibold">{{ package.created_at[:10] }}</div>
-            </div>
-        </div>
-
-        <!-- Description -->
-        {% if package.description %}
-        <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-            <p class="text-gray-700 dark:text-gray-300">{{ package.description }}</p>
-        </div>
-        {% endif %}
-
-        <!-- Actions -->
-        <div class="flex flex-wrap gap-4">
-            <a href="/v6/packages/{{ package.name }}/download/{{ package.version }}/{{ package.release }}/{{ package.arch }}" 
-               class="flex-1 md:flex-none btn-primary px-6 py-3 rounded-xl text-white font-semibold text-center">
-                <i class="fas fa-download mr-2"></i>Download
+        
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 mt-6">
+            {% set latest = package.get_latest_version() %}
+            {% if latest %}
+            <a href="{{ latest.download_url }}" 
+               class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition shadow-lg font-semibold">
+                <i class="fas fa-download mr-2"></i> Download Latest (v{{ latest.version }})
             </a>
-            <button onclick="copyInstall('apkm install {{ package.name }}')" 
-                    class="flex-1 md:flex-none bg-gray-200 dark:bg-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition">
-                <i class="fas fa-copy mr-2"></i>Copy Install
-            </button>
-        </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav class="flex space-x-8">
-            <button onclick="showTab('readme')" class="tab-button active py-4 px-1 border-b-2 border-purple-600 text-purple-600 font-medium" id="tab-readme-btn">
-                README
-            </button>
-            <button onclick="showTab('files')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium" id="tab-files-btn">
-                Files
-            </button>
-            <button onclick="showTab('reviews')" class="tab-button py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium" id="tab-reviews-btn">
-                Reviews ({{ reviews|length }})
-            </button>
-        </nav>
-    </div>
-
-    <!-- Tab Contents -->
-    <div class="glass-card rounded-2xl p-8">
-        <!-- README Tab -->
-        <div id="tab-readme" class="tab-content active">
-            {% if readme_html %}
-                {{ readme_html|safe }}
-            {% else %}
-                <div class="text-center py-16">
-                    <i class="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
-                    <p class="text-gray-500">No README available</p>
-                </div>
             {% endif %}
+            
+            {% if session.user and session.user.username == package.author %}
+            <a href="/package/{{ package.name }}/edit" 
+               class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold">
+                <i class="fas fa-edit mr-2"></i> Edit Package
+            </a>
+            {% endif %}
+            
+            <a href="#" onclick="copyInstallCommand()" 
+               class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold">
+                <i class="fas fa-code mr-2"></i> Install Command
+            </a>
         </div>
-
-        <!-- Files Tab -->
-        <div id="tab-files" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-4">Package Contents</h3>
-            <div class="bg-gray-900 rounded-xl p-4">
-                <pre class="text-green-400 font-mono text-sm">tar -tvf {{ package.name }}-{{ package.version }}-{{ package.release }}-{{ package.arch }}.tar.bool</pre>
+        
+        <!-- Install Command (hidden) -->
+        <div id="installCommand" class="hidden mt-4 p-4 bg-gray-900 text-white rounded-lg font-mono text-sm relative">
+            <code>apkm install {{ package.name }}@{{ latest.version }}</code>
+            <button onclick="copyToClipboard('apkm install {{ package.name }}@{{ latest.version }}')" 
+                    class="absolute right-2 top-2 p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition">
+                <i class="far fa-copy"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column - README -->
+        <div class="lg:col-span-2">
+            <div class="glass-card p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-book-open mr-2 text-purple-600"></i>
+                    README
+                </h2>
+                
+                {% if readme_html %}
+                <div class="markdown-body prose dark:prose-invert max-w-none">
+                    {{ readme_html|safe }}
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-file-alt text-4xl mb-4"></i>
+                    <p>No README available for this version.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
-
-        <!-- Reviews Tab -->
-        <div id="tab-reviews" class="tab-content hidden">
-            <h3 class="text-xl font-semibold mb-4">Reviews</h3>
-            {% if reviews %}
-                {% for review in reviews %}
-                <div class="border-b border-gray-200 dark:border-gray-700 py-4 last:border-0">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <span class="font-semibold" data-author="{{ review.author }}">{{ review.author }}</span>
-                            <span class="text-sm text-gray-500 ml-2">{{ review.created_at[:10] }}</span>
+        
+        <!-- Right Column - Info -->
+        <div class="space-y-6">
+            <!-- Versions -->
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fas fa-tags mr-2 text-purple-600"></i>
+                    Versions
+                </h3>
+                
+                <div class="space-y-2">
+                    {% for version in package.versions|sort(attribute='created_at', reverse=true) %}
+                    <a href="?version={{ version.version }}" 
+                       class="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition {% if request.args.get('version') == version.version or (not request.args.get('version') and version.is_latest) %}bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800{% endif %}">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-mono font-semibold">{{ version.version }}-{{ version.release }}</span>
+                                <span class="ml-2 text-xs text-gray-500">{{ version.arch }}</span>
+                                {% if version.is_latest %}
+                                <span class="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs">
+                                    Latest
+                                </span>
+                                {% endif %}
+                            </div>
+                            <span class="text-sm text-gray-500">
+                                {{ version.created_at[:10] }}
+                            </span>
                         </div>
-                        <div class="flex">
-                            {% for i in range(review.rating) %}
-                            <i class="fas fa-star text-yellow-400"></i>
-                            {% endfor %}
-                            {% for i in range(5 - review.rating) %}
-                            <i class="far fa-star text-yellow-400"></i>
-                            {% endfor %}
+                        <div class="flex items-center justify-between mt-1 text-sm">
+                            <span class="text-gray-500">
+                                <i class="fas fa-database mr-1"></i> {{ (version.size / 1024)|round }} KB
+                            </span>
+                            <a href="{{ version.download_url }}" class="text-purple-600 hover:text-purple-700">
+                                <i class="fas fa-download"></i>
+                            </a>
                         </div>
-                    </div>
-                    {% if review.title %}<h4 class="font-medium">{{ review.title }}</h4>{% endif %}
-                    {% if review.comment %}<p class="text-gray-600 dark:text-gray-400">{{ review.comment }}</p>{% endif %}
+                        {% if version.changelog %}
+                        <div class="mt-2 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-2">
+                            <i class="fas fa-history mr-1"></i> {{ version.changelog }}
+                        </div>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-center text-gray-500 py-8">No reviews yet</p>
+            </div>
+            
+            <!-- Metadata -->
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fas fa-info-circle mr-2 text-purple-600"></i>
+                    Metadata
+                </h3>
+                
+                <dl class="space-y-3">
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">License</dt>
+                        <dd class="font-semibold">{{ package.license }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Created</dt>
+                        <dd>{{ package.created_at[:10] }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Updated</dt>
+                        <dd>{{ package.updated_at[:10] }}</dd>
+                    </div>
+                    {% if package.homepage %}
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Homepage</dt>
+                        <dd><a href="{{ package.homepage }}" target="_blank" class="text-purple-600 hover:underline">Visit <i class="fas fa-external-link-alt ml-1 text-xs"></i></a></dd>
+                    </div>
+                    {% endif %}
+                    {% if package.repository %}
+                    <div class="flex justify-between">
+                        <dt class="text-gray-500">Repository</dt>
+                        <dd><a href="{{ package.repository }}" target="_blank" class="text-purple-600 hover:underline">View <i class="fab fa-github ml-1"></i></a></dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+            
+            <!-- Dependencies -->
+            {% set latest = package.get_latest_version() %}
+            {% if latest and latest.dependencies %}
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fas fa-cubes mr-2 text-purple-600"></i>
+                    Dependencies
+                </h3>
+                
+                <div class="space-y-2">
+                    {% for dep in latest.dependencies %}
+                    <a href="/package/{{ dep.split('@')[0] }}" class="block p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                        <i class="fas fa-box mr-2 text-gray-500"></i>{{ dep }}
+                    </a>
+                    {% else %}
+                    <p class="text-gray-500 text-sm">No dependencies</p>
+                    {% endfor %}
+                </div>
+            </div>
             {% endif %}
+            
+            <!-- Share -->
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-semibold mb-4">Share</h3>
+                <div class="flex justify-center gap-4">
+                    <a href="https://discord.com/share?url={{ request.url|urlencode }}" target="_blank" 
+                       class="discord-btn text-white p-3 rounded-lg transition">
+                        <i class="fab fa-discord"></i>
+                    </a>
+                    <a href="https://twitter.com/intent/tweet?url={{ request.url|urlencode }}&text=Check out {{ package.name }} on Zarch Hub!" target="_blank"
+                       class="bg-black text-white p-3 rounded-lg hover:bg-gray-800 transition">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url|urlencode }}" target="_blank"
+                       class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-function showTab(tab) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-    document.querySelectorAll('.tab-button').forEach(b => {
-        b.classList.remove('active', 'border-purple-600', 'text-purple-600');
-        b.classList.add('border-transparent', 'text-gray-500');
-    });
-    document.getElementById(`tab-${tab}`).classList.remove('hidden');
-    document.getElementById(`tab-${tab}-btn`).classList.add('active', 'border-purple-600', 'text-purple-600');
+function copyInstallCommand() {
+    const commandDiv = document.getElementById('installCommand');
+    commandDiv.classList.remove('hidden');
+    setTimeout(() => {
+        commandDiv.classList.add('hidden');
+    }, 3000);
 }
 
-function copyInstall(cmd) {
-    navigator.clipboard.writeText(cmd);
-    alert('Command copied!');
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    alert('Copied to clipboard!');
 }
 </script>
 {% endblock %}
