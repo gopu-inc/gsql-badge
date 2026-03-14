@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} - Zarch Hub Forum{% endblock %}
+
+{% block content %}
+<!-- Navigation Breadcrumb -->
+<div class="mb-6 text-sm" data-aos="fade-up">
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2">
+            <li><a href="/forum" class="text-slate-400 hover:text-sky-400">Forum</a></li>
+            <li><i class="fas fa-chevron-right text-slate-600 text-xs"></i></li>
+            <li class="text-white">{{ category.name }}</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Category Header -->
+<div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50" data-aos="fade-up">
+    <div class="flex items-center gap-4 mb-4">
+        <div class="w-16 h-16 bg-gradient-to-br from-{{ category.color }}-500 to-{{ category.color }}-400 rounded-2xl flex items-center justify-center">
+            <i class="fas fa-{{ category.icon }} text-white text-2xl"></i>
+        </div>
+        <div>
+            <h1 class="text-3xl font-bold text-white">{{ category.name }}</h1>
+            <p class="text-slate-400">{{ category.description }}</p>
+        </div>
+    </div>
+    
+    <!-- Category Stats -->
+    <div class="flex flex-wrap gap-6 pt-4 border-t border-slate-800">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-file-alt text-sky-400"></i>
+            <span class="text-slate-300">{{ category.topics_count or 0 }} topics</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <i class="fas fa-comment text-sky-400"></i>
+            <span class="text-slate-300">{{ category.posts_count or 0 }} posts</span>
+        </div>
+        {% if category.last_post_at %}
+        <div class="flex items-center gap-2">
+            <i class="fas fa-clock text-sky-400"></i>
+            <span class="text-slate-300">Last post {{ category.last_post_at|timeago }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Controls Bar -->
+<div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6" data-aos="fade-up" data-aos-delay="50">
+    <!-- Sort Options -->
+    <div class="flex items-center gap-2">
+        <span class="text-slate-400 text-sm">Sort by:</span>
+        <div class="flex bg-slate-800/50 rounded-xl p-1">
+            <a href="?sort=recent" 
+               class="px-4 py-2 rounded-lg text-sm transition-all {% if sort == 'recent' %}bg-sky-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                Recent
+            </a>
+            <a href="?sort=popular" 
+               class="px-4 py-2 rounded-lg text-sm transition-all {% if sort == 'popular' %}bg-sky-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                Popular
+            </a>
+            <a href="?sort=unanswered" 
+               class="px-4 py-2 rounded-lg text-sm transition-all {% if sort == 'unanswered' %}bg-sky-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                Unanswered
+            </a>
+        </div>
+    </div>
+    
+    <!-- New Topic Button -->
+    {% if session.get('user') %}
+    <a href="/forum/new?category={{ category.id }}" 
+       class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+        <i class="fas fa-plus mr-2"></i>New Topic
+    </a>
+    {% else %}
+    <a href="/login?redirect=/forum/new?category={{ category.id }}" 
+       class="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all">
+        <i class="fas fa-sign-in-alt mr-2"></i>Login to Post
+    </a>
+    {% endif %}
+</div>
+
+<!-- Topics List -->
+<div class="space-y-4 mb-8">
+    {% if topics %}
+        {% for topic in topics %}
+        <div class="glass-card rounded-xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+            <div class="flex flex-col md:flex-row md:items-center gap-4">
+                <!-- Topic Icon -->
+                <div class="flex-shrink-0">
+                    {% if topic.is_pinned %}
+                    <div class="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-thumbtack text-yellow-400"></i>
+                    </div>
+                    {% elif topic.is_locked %}
+                    <div class="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-lock text-red-400"></i>
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-comment text-sky-400"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Topic Content -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="text-lg font-semibold truncate">
+                            <a href="/forum/topic/{{ topic.id }}" class="text-white hover:text-sky-400">
+                                {{ topic.title }}
+                            </a>
+                        </h3>
+                        {% if topic.is_pinned %}
+                        <span class="px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded-full text-xs border border-yellow-500/30">Pinned</span>
+                        {% endif %}
+                        {% if topic.is_locked %}
+                        <span class="px-2 py-0.5 bg-red-500/10 text-red-400 rounded-full text-xs border border-red-500/30">Locked</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                        <span class="text-slate-400">
+                            by <a href="/@{{ topic.author }}" class="text-sky-400 hover:text-sky-300">{{ topic.author }}</a>
+                        </span>
+                        <span class="text-slate-500">
+                            <i class="far fa-clock mr-1"></i>{{ topic.created_at|timeago }}
+                        </span>
+                        {% if topic.last_reply_at %}
+                        <span class="text-slate-500">
+                            <i class="far fa-clock mr-1"></i>last reply {{ topic.last_reply_at|timeago }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Tags -->
+                    {% if topic.tags %}
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% for tag in topic.tags %}
+                        <span class="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full text-xs border border-slate-700">
+                            #{{ tag }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Stats -->
+                <div class="flex md:flex-col items-center gap-4 md:gap-1 md:items-end text-sm">
+                    <div class="flex items-center gap-1 text-slate-400">
+                        <i class="far fa-eye"></i>
+                        <span>{{ topic.views }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-slate-400">
+                        <i class="far fa-comment"></i>
+                        <span>{{ topic.replies_count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <!-- No Topics -->
+    <div class="text-center py-16">
+        <div class="w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-comments text-4xl text-slate-600"></i>
+        </div>
+        <h3 class="text-2xl font-semibold text-white mb-2">No topics yet</h3>
+        <p class="text-slate-400 mb-6">Be the first to start a discussion in this category</p>
+        {% if session.get('user') %}
+        <a href="/forum/new?category={{ category.id }}" 
+           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-plus mr-2"></i>Create First Topic
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div class="flex justify-center items-center space-x-2" data-aos="fade-up">
+    {% if pagination.page > 1 %}
+    <a href="?page={{ pagination.page-1 }}&sort={{ sort }}" 
+       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-700">
+        <i class="fas fa-chevron-left"></i>
+    </a>
+    {% endif %}
+    
+    {% for p in range(1, pagination.pages + 1) %}
+        {% if p == pagination.page %}
+        <span class="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold">
+            {{ p }}
+        </span>
+        {% elif p >= pagination.page-2 and p <= pagination.page+2 %}
+        <a href="?page={{ p }}&sort={{ sort }}" 
+           class="w-10 h-10 flex items-center justify-center bg-slate-800/50 text-slate-400 rounded-xl hover:bg-sky-500 hover:text-white transition-all border border-slate-700">
+            {{ p }}
+        </a>
+        {% endif %}
+    {% endfor %}
+    
+    {% if pagination.page < pagination.pages %}
+    <a href="?page={{ pagination.page+1 }}&sort={{ sort }}" 
+       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-700">
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Category Stats Footer -->
+<div class="mt-8 glass-card rounded-xl p-4 border border-slate-700/50" data-aos="fade-up">
+    <div class="flex items-center justify-between text-sm">
+        <div class="flex items-center gap-4">
+            <span class="text-slate-400">
+                <i class="fas fa-file-alt mr-2 text-sky-400"></i>
+                {{ pagination.total }} topics
+            </span>
+            <span class="text-slate-400">
+                <i class="fas fa-users mr-2 text-sky-400"></i>
+                42 online
+            </span>
+        </div>
+        <a href="/forum" class="text-sky-400 hover:text-sky-300">
+            <i class="fas fa-arrow-left mr-1"></i>Back to Forum
+        </a>
+    </div>
+</div>
+
+<script>
+// Auto-refresh pour les stats en temps réel (toutes les 30 secondes)
+setInterval(() => {
+    fetch(`/api/forum/categories/{{ category.id }}/stats`)
+        .then(res => res.json())
+        .then(data => {
+            // Mettre à jour les stats
+            document.querySelectorAll('.online-count').forEach(el => {
+                el.textContent = data.online_users;
+            });
+        });
+}, 30000);
+</script>
+{% endblock %}
