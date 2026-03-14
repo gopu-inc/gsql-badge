@@ -56,6 +56,8 @@ import markdown
 from markdown.extensions import extra, codehilite, toc, tables
 
 
+
+from typing import Optional, List, Dict, Any
 # ============================================================================
 # CHARGEMENT DES VARIABLES D'ENVIRONNEMENT
 # ============================================================================
