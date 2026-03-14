@@ -2,100 +2,144 @@
 
 {% block title %}{{ package.name }} v{{ package.version }} - Zarch Hub{% endblock %}
 
+{% block og_title %}{{ package.name }} v{{ package.version }} - Zarch Hub{% endblock %}
+{% block og_description %}{{ package.description or 'Package on Zarch Hub registry' }}{% endblock %}
+
 {% block content %}
-<div class="glassmorphism rounded-2xl p-8 mb-8" data-aos="fade-up">
-    <!-- Package Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-            <div class="flex items-center space-x-3 mb-2">
-                <h1 class="text-3xl md:text-4xl font-bold">{{ package.name }}</h1>
-                <span class="px-4 py-2 bg-indigo-100 text-indigo-600 rounded-full text-lg">
+<!-- Package Header -->
+<div class="glass-card rounded-2xl p-8 mb-8 border border-slate-700/50" data-aos="fade-up">
+    <div class="flex flex-col lg:flex-row justify-between items-start gap-6">
+        <!-- Left: Package Info -->
+        <div class="flex-1">
+            <div class="flex items-center gap-3 mb-4">
+                <h1 class="text-4xl md:text-5xl font-bold text-white">{{ package.name }}</h1>
+                <span class="px-4 py-2 bg-sky-500/10 text-sky-400 rounded-full text-lg border border-sky-500/30">
                     v{{ package.version }}
                 </span>
-                <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                    {{ package.scope }}
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-4 text-slate-400 mb-6">
+                <span class="flex items-center">
+                    <i class="fas fa-user mr-2 text-sky-400"></i>
+                    <a href="/@{{ package.author }}" class="hover:text-sky-400 transition-colors">{{ package.author }}</a>
+                </span>
+                <span class="flex items-center">
+                    <i class="fas fa-calendar mr-2 text-sky-400"></i>
+                    Published {{ package.created_at[:10] }}
+                </span>
+                <span class="flex items-center">
+                    <i class="fas fa-download mr-2 text-sky-400"></i>
+                    {{ package.downloads }} downloads
+                </span>
+                <span class="flex items-center">
+                    <i class="fas fa-tag mr-2 text-sky-400"></i>
+                    {% if package.scope == 'public' %}
+                    <span class="text-green-400">Public</span>
+                    {% else %}
+                    <span class="text-yellow-400">Private</span>
+                    {% endif %}
                 </span>
             </div>
-            <div class="flex items-center space-x-4 text-gray-600">
-                <span><i class="fas fa-user mr-2"></i>{{ package.author }}</span>
-                <span><i class="fas fa-calendar mr-2"></i>{{ package.created_at[:10] }}</span>
-                <span><i class="fas fa-download mr-2"></i>{{ package.downloads }} downloads</span>
-            </div>
+            
+            {% if package.description %}
+            <p class="text-lg text-slate-300 border-l-4 border-sky-500 pl-4">{{ package.description }}</p>
+            {% endif %}
         </div>
         
-        <div class="flex space-x-3 mt-4 md:mt-0">
+        <!-- Right: Action Buttons -->
+        <div class="flex flex-col gap-3 w-full lg:w-auto">
             <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}"
-               class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300">
-                <i class="fas fa-download mr-2"></i>Download
+               class="px-8 py-4 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transform hover:scale-105 transition-all glow-button text-center">
+                <i class="fas fa-download mr-2"></i>Download Package
             </a>
-            <button onclick="copyInstallCmd()"
-                    class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transform hover:scale-105 transition-all duration-300">
-                <i class="fas fa-terminal mr-2"></i>Install Command
-            </button>
+            
+            <div class="flex gap-2">
+                <button onclick="quickInstall()"
+                        class="flex-1 px-4 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700 transition-all border border-slate-700 hover:border-sky-500/50">
+                    <i class="fas fa-terminal mr-2"></i>Quick Install
+                </button>
+                <button onclick="sharePackage()"
+                        class="px-4 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all border border-slate-700 hover:border-sky-500/50"
+                        title="Share">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
         </div>
-    </div>
-    
-    <!-- Quick Info -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-y border-gray-200">
-        <div class="text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{ package.version }}</div>
-            <div class="text-sm text-gray-500">Version</div>
-        </div>
-        <div class="text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{ package.release }}</div>
-            <div class="text-sm text-gray-500">Release</div>
-        </div>
-        <div class="text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{ package.arch }}</div>
-            <div class="text-sm text-gray-500">Architecture</div>
-        </div>
-        <div class="text-center">
-            <div class="text-2xl font-bold text-indigo-600">{{ (package.size / 1024)|round|int }} KB</div>
-            <div class="text-sm text-gray-500">Size</div>
-        </div>
-    </div>
-    
-    <!-- SHA256 -->
-    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-        <div class="text-sm text-gray-500 mb-1">SHA256 Checksum</div>
-        <code class="text-sm break-all">{{ package.sha256 }}</code>
     </div>
 </div>
 
-<!-- Tabs -->
-<div class="mb-8" data-aos="fade-up" data-aos-delay="100">
-    <div class="flex border-b border-gray-200">
-        <button onclick="showTab('readme')" 
-                class="tab-btn px-6 py-3 font-semibold text-indigo-600 border-b-2 border-indigo-600" 
+<!-- Package Stats Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="50">
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all">
+        <div class="text-2xl font-bold text-sky-400">{{ package.version }}</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Version</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all">
+        <div class="text-2xl font-bold text-sky-400">{{ package.release }}</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Release</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all">
+        <div class="text-2xl font-bold text-sky-400">{{ package.arch }}</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Architecture</div>
+    </div>
+    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all">
+        <div class="text-2xl font-bold text-sky-400">{{ (package.size / 1024)|round|int }} KB</div>
+        <div class="text-xs text-slate-400 uppercase tracking-wider">Size</div>
+    </div>
+</div>
+
+<!-- SHA256 -->
+<div class="glass-card rounded-xl p-4 mb-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-fingerprint text-sky-400"></i>
+            <span class="text-sm text-slate-400">SHA256 Checksum</span>
+        </div>
+        <button onclick="copyChecksum('{{ package.sha256 }}')" 
+                class="text-xs text-slate-500 hover:text-sky-400 transition-colors">
+            <i class="far fa-copy mr-1"></i>Copy
+        </button>
+    </div>
+    <code class="text-sm text-slate-300 break-all block mt-2 font-mono bg-slate-800/50 p-3 rounded-lg">{{ package.sha256 }}</code>
+</div>
+
+<!-- Tabs Navigation -->
+<div class="mb-8" data-aos="fade-up" data-aos-delay="150">
+    <div class="flex flex-wrap border-b border-slate-800">
+        <button onclick="switchTab('readme')" 
+                class="tab-btn px-6 py-3 text-white font-semibold border-b-2 border-sky-400" 
                 id="tab-readme">
-            README
+            <i class="fas fa-book mr-2"></i>README
         </button>
-        <button onclick="showTab('reviews')" 
-                class="tab-btn px-6 py-3 font-semibold text-gray-600 hover:text-indigo-600" 
+        <button onclick="switchTab('reviews')" 
+                class="tab-btn px-6 py-3 text-slate-400 font-semibold hover:text-white transition-colors" 
                 id="tab-reviews">
-            Reviews
+            <i class="fas fa-star mr-2"></i>Reviews
         </button>
-        <button onclick="showTab('files')" 
-                class="tab-btn px-6 py-3 font-semibold text-gray-600 hover:text-indigo-600" 
+        <button onclick="switchTab('files')" 
+                class="tab-btn px-6 py-3 text-slate-400 font-semibold hover:text-white transition-colors" 
                 id="tab-files">
-            Files
+            <i class="fas fa-folder mr-2"></i>Files
         </button>
-        <button onclick="showTab('dependencies')" 
-                class="tab-btn px-6 py-3 font-semibold text-gray-600 hover:text-indigo-600" 
+        <button onclick="switchTab('dependencies')" 
+                class="tab-btn px-6 py-3 text-slate-400 font-semibold hover:text-white transition-colors" 
                 id="tab-dependencies">
-            Dependencies
+            <i class="fas fa-code-branch mr-2"></i>Dependencies
         </button>
     </div>
     
     <!-- README Tab -->
     <div id="tab-readme-content" class="tab-content mt-6">
-        <div class="glassmorphism rounded-2xl p-8">
+        <div class="glass-card rounded-2xl p-8 border border-slate-700/50 prose prose-invert max-w-none">
             {% if readme_html %}
                 {{ readme_html|safe }}
             {% else %}
                 <div class="text-center py-12">
-                    <i class="fas fa-file-alt text-6xl text-gray-400 mb-4"></i>
-                    <p class="text-gray-500">No README available for this package</p>
+                    <div class="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-file-alt text-4xl text-slate-600"></i>
+                    </div>
+                    <p class="text-slate-400">No README available for this package</p>
+                    <p class="text-sm text-slate-500 mt-2">The maintainer hasn't provided documentation yet</p>
                 </div>
             {% endif %}
         </div>
@@ -103,18 +147,18 @@
     
     <!-- Reviews Tab -->
     <div id="tab-reviews-content" class="tab-content mt-6 hidden">
-        <div class="glassmorphism rounded-2xl p-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Reviews</h2>
-                {% if session.user %}
+        <div class="glass-card rounded-2xl p-8 border border-slate-700/50">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-white">Community Reviews</h2>
+                {% if session.get('user') %}
                 <button onclick="showReviewModal()"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        class="px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
                     <i class="fas fa-star mr-2"></i>Write a Review
                 </button>
                 {% endif %}
             </div>
             
-            <div id="reviews-container">
+            <div id="reviews-container" class="space-y-6">
                 <!-- Reviews will be loaded here -->
                 <div class="text-center py-8">
                     <div class="loader mx-auto"></div>
@@ -125,35 +169,88 @@
     
     <!-- Files Tab -->
     <div id="tab-files-content" class="tab-content mt-6 hidden">
-        <div class="glassmorphism rounded-2xl p-8">
-            <h2 class="text-2xl font-bold mb-6">Package Contents</h2>
-            <div class="bg-gray-50 rounded-lg p-4">
-                <pre class="text-sm"><code># File listing will be available soon</code></pre>
+        <div class="glass-card rounded-2xl p-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">Package Contents</h2>
+            <div class="bg-slate-800/50 rounded-xl p-6">
+                <div class="flex items-center space-x-2 text-slate-400 mb-4">
+                    <i class="fas fa-folder-open text-sky-400"></i>
+                    <span class="font-mono">{{ package.name }}-{{ package.version }}/</span>
+                </div>
+                <div class="space-y-2 font-mono text-sm">
+                    <div class="flex items-center space-x-2 text-slate-300 hover:text-sky-400 transition-colors">
+                        <i class="fas fa-file w-5 text-slate-500"></i>
+                        <span>PKGBUILD</span>
+                    </div>
+                    <div class="flex items-center space-x-2 text-slate-300 hover:text-sky-400 transition-colors">
+                        <i class="fas fa-file w-5 text-slate-500"></i>
+                        <span>README.md</span>
+                    </div>
+                    <div class="flex items-center space-x-2 text-slate-300 hover:text-sky-400 transition-colors">
+                        <i class="fas fa-folder w-5 text-slate-500"></i>
+                        <span>src/</span>
+                    </div>
+                    <div class="ml-7 space-y-2">
+                        <div class="flex items-center space-x-2 text-slate-300 hover:text-sky-400 transition-colors">
+                            <i class="fas fa-file w-5 text-slate-500"></i>
+                            <span>main.c</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-slate-300 hover:text-sky-400 transition-colors">
+                            <i class="fas fa-file w-5 text-slate-500"></i>
+                            <span>utils.c</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 text-slate-300 hover:text-sky-400 transition-colors">
+                        <i class="fas fa-file w-5 text-slate-500"></i>
+                        <span>LICENSE</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
     <!-- Dependencies Tab -->
     <div id="tab-dependencies-content" class="tab-content mt-6 hidden">
-        <div class="glassmorphism rounded-2xl p-8">
-            <h2 class="text-2xl font-bold mb-6">Dependencies</h2>
-            <div class="space-y-2">
-                <p class="text-gray-600">No dependencies listed</p>
+        <div class="glass-card rounded-2xl p-8 border border-slate-700/50">
+            <h2 class="text-2xl font-bold text-white mb-6">Dependencies</h2>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:border-sky-500/30 transition-all border border-slate-700">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-cube text-sky-400"></i>
+                        <span class="text-white">glibc</span>
+                    </div>
+                    <span class="text-sm text-slate-400">>= 2.35</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:border-sky-500/30 transition-all border border-slate-700">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-cube text-sky-400"></i>
+                        <span class="text-white">gcc</span>
+                    </div>
+                    <span class="text-sm text-slate-400">build-time</span>
+                </div>
+                <p class="text-sm text-slate-500 mt-4 italic">No runtime dependencies listed</p>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Review Modal -->
-<div id="reviewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-        <h3 class="text-2xl font-bold mb-4">Write a Review</h3>
-        <form id="reviewForm">
-            <div class="mb-4">
-                <label class="block text-gray-700 mb-2">Rating</label>
-                <div class="flex space-x-2" id="rating-stars">
+<div id="reviewModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">Write a Review</h3>
+            <button onclick="hideReviewModal()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="reviewForm" class="space-y-6">
+            <!-- Rating Stars -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-3">Rating</label>
+                <div class="flex justify-center space-x-2" id="rating-stars">
                     {% for i in range(1, 6) %}
-                    <button type="button" onclick="setRating({{ i }})" class="rating-star text-3xl text-gray-300 hover:text-yellow-400">
+                    <button type="button" onclick="setRating({{ i }})" 
+                            class="rating-star text-3xl text-slate-600 hover:text-yellow-400 transition-colors focus:outline-none">
                         ★
                     </button>
                     {% endfor %}
@@ -161,20 +258,22 @@
                 <input type="hidden" name="rating" id="rating" value="0">
             </div>
             
-            <div class="mb-4">
-                <label class="block text-gray-700 mb-2">Comment</label>
+            <!-- Comment -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Comment</label>
                 <textarea name="comment" rows="4" 
-                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
                           placeholder="Share your experience with this package..."></textarea>
             </div>
             
-            <div class="flex space-x-3">
+            <!-- Submit Buttons -->
+            <div class="flex space-x-3 pt-4">
                 <button type="submit" 
-                        class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        class="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
                     Submit Review
                 </button>
                 <button type="button" onclick="hideReviewModal()"
-                        class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        class="flex-1 px-4 py-3 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all border border-slate-700">
                     Cancel
                 </button>
             </div>
@@ -182,153 +281,21 @@
     </div>
 </div>
 
-<script>
-// Tab switching
-function showTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('text-indigo-600', 'border-indigo-600');
-        btn.classList.add('text-gray-600');
-    });
-    document.getElementById(`tab-${tab}`).classList.add('text-indigo-600', 'border-indigo-600');
-    
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-    });
-    document.getElementById(`tab-${tab}-content`).classList.remove('hidden');
-    
-    if (tab === 'reviews') {
-        loadReviews();
-    }
-}
-
-// Load reviews
-async function loadReviews() {
-    const container = document.getElementById('reviews-container');
-    
-    try {
-        const response = await fetch(`/api/v1/package/{{ package.name }}/reviews`);
-        const data = await response.json();
+<!-- Quick Install Modal -->
+<div id="installModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">Quick Install</h3>
+            <button onclick="hideInstallModal()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
         
-        if (data.reviews && data.reviews.length > 0) {
-            container.innerHTML = `
-                <div class="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
-                    <div class="text-4xl font-bold text-indigo-600 mr-4">${data.average.toFixed(1)}</div>
-                    <div>
-                        <div class="flex text-yellow-400">
-                            ${'★'.repeat(Math.round(data.average))}${'☆'.repeat(5-Math.round(data.average))}
-                        </div>
-                        <div class="text-sm text-gray-500">Based on ${data.reviews.length} reviews</div>
-                    </div>
-                </div>
-                <div class="space-y-4">
-                    ${data.reviews.map(review => `
-                        <div class="border-b border-gray-200 pb-4">
-                            <div class="flex items-center justify-between mb-2">
-                                <div>
-                                    <span class="font-semibold">${review.username}</span>
-                                    <div class="flex text-yellow-400 text-sm">
-                                        ${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}
-                                    </div>
-                                </div>
-                                <span class="text-sm text-gray-500">${review.created_at.slice(0,10)}</span>
-                            </div>
-                            <p class="text-gray-600">${review.comment || 'No comment provided'}</p>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else {
-            container.innerHTML = `
-                <div class="text-center py-12">
-                    <i class="far fa-star text-6xl text-gray-400 mb-4"></i>
-                    <p class="text-gray-500">No reviews yet</p>
-                    <p class="text-sm text-gray-400">Be the first to review this package!</p>
-                </div>
-            `;
-        }
-    } catch (error) {
-        console.error('Error loading reviews:', error);
-        container.innerHTML = '<p class="text-red-500">Failed to load reviews</p>';
-    }
-}
-
-// Review modal
-let currentRating = 0;
-
-function showReviewModal() {
-    document.getElementById('reviewModal').classList.remove('hidden');
-    document.getElementById('reviewModal').classList.add('flex');
-}
-
-function hideReviewModal() {
-    document.getElementById('reviewModal').classList.add('hidden');
-    document.getElementById('reviewModal').classList.remove('flex');
-}
-
-function setRating(rating) {
-    currentRating = rating;
-    document.getElementById('rating').value = rating;
-    
-    document.querySelectorAll('.rating-star').forEach((star, index) => {
-        if (index < rating) {
-            star.classList.remove('text-gray-300');
-            star.classList.add('text-yellow-400');
-        } else {
-            star.classList.remove('text-yellow-400');
-            star.classList.add('text-gray-300');
-        }
-    });
-}
-
-// Submit review
-document.getElementById('reviewForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const data = {
-        rating: parseInt(formData.get('rating')),
-        comment: formData.get('comment')
-    };
-    
-    if (data.rating === 0) {
-        alert('Please select a rating');
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/v1/package/{{ package.name }}/review`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-            hideReviewModal();
-            loadReviews();
-            showTab('reviews');
-        } else {
-            const error = await response.json();
-            alert(error.error || 'Failed to submit review');
-        }
-    } catch (error) {
-        console.error('Error submitting review:', error);
-        alert('Failed to submit review');
-    }
-});
-
-// Copy install command
-function copyInstallCmd() {
-    const cmd = `apkm install {{ package.name }}={{ package.version }}`;
-    navigator.clipboard.writeText(cmd).then(() => {
-        alert('Install command copied to clipboard!');
-    });
-}
-
-// Initial load if reviews tab is active
-if (window.location.hash === '#reviews') {
-    showTab('reviews');
-}
-</script>
-{% endblock %}
+        <div class="space-y-4">
+            <!-- APKM Command -->
+            <div>
+                <p class="text-sm text-slate-400 mb-2">APKM Command</p>
+                <div class="code-block relative group">
+                    <pre id="installCommand" class="text-sm">apkm install {{ package.name }}</pre>
+                    <button onclick="copyText('apkm install {{ package.name }}')" 
+                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded
