@@ -2,6 +2,41 @@
 
 {% block title %}Créer un Badge - Zarch Hub{% endblock %}
 
+{% block extra_css %}
+<style>
+    .color-preset {
+        transition: all 0.2s ease;
+    }
+    .color-preset:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px currentColor;
+    }
+    .color-preset.selected {
+        ring: 2px solid white;
+        transform: scale(1.05);
+    }
+    .badge-preview-container {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .badge-preview-container::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, transparent 70%);
+        animation: rotate 10s linear infinite;
+    }
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto">
     <!-- Header -->
@@ -13,382 +48,353 @@
         <p class="text-slate-400">Concevez votre propre badge pour votre profil ou vos packages</p>
     </div>
 
-    <!-- Create Badge Form -->
+    <!-- Main Card -->
     <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
-        <form id="createBadgeForm" class="space-y-6">
-            <!-- Alert Box -->
-            <div id="alertBox" class="hidden p-4 rounded-xl border flex items-start gap-3"></div>
+        <form id="badgeForm" class="space-y-8">
+            <!-- Preview Section -->
+            <div class="badge-preview-container rounded-xl p-8 border border-slate-700/50 text-center">
+                <h2 class="text-lg font-semibold text-white mb-4">Aperçu en direct</h2>
+                <div class="flex justify-center items-center min-h-[80px]">
+                    <img id="livePreview" src="/badge/label-value-blue.svg" alt="Badge preview" class="h-10 transform hover:scale-110 transition-transform">
+                </div>
+                <p class="text-sm text-slate-400 mt-4">L'aperçu se met à jour automatiquement</p>
+            </div>
 
             <!-- Badge Name -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Nom du badge <span class="text-red-400">*</span>
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-300">
+                    <i class="fas fa-tag mr-2 text-sky-400"></i>Nom du badge
                 </label>
                 <input type="text" 
                        id="badgeName" 
                        name="name" 
                        required
                        pattern="[a-z0-9_-]+"
-                       maxlength="30"
-                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
-                       placeholder="ex: rust-expert, docker-captain">
-                <p class="text-xs text-slate-500 mt-1">
+                       title="Lettres minuscules, chiffres, tirets et underscores uniquement"
+                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
+                       placeholder="ex: rust-expert">
+                <p class="text-xs text-slate-500">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Uniquement lettres minuscules, chiffres, tirets et underscores (pas d'espaces)
+                    Identifiant unique (minuscules, chiffres, tirets)
                 </p>
             </div>
 
-            <!-- Label -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Label <span class="text-red-400">*</span>
-                </label>
-                <input type="text" 
-                       id="badgeLabel" 
-                       name="label" 
-                       required
-                       maxlength="20"
-                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
-                       placeholder="ex: Rust, Docker, Python">
-                <p class="text-xs text-slate-500 mt-1">Texte affiché à gauche du badge (max 20 caractères)</p>
-            </div>
+            <!-- Label and Value -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-300">
+                        <i class="fas fa-tag mr-2 text-sky-400"></i>Label
+                    </label>
+                    <input type="text" 
+                           id="badgeLabel" 
+                           name="label" 
+                           required
+                           value="label"
+                           class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                           placeholder="ex: version">
+                    <p class="text-xs text-slate-500">Texte à gauche</p>
+                </div>
 
-            <!-- Value -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Valeur <span class="text-red-400">*</span>
-                </label>
-                <input type="text" 
-                       id="badgeValue" 
-                       name="value" 
-                       required
-                       maxlength="20"
-                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
-                       placeholder="ex: expert, captain, master">
-                <p class="text-xs text-slate-500 mt-1">Texte affiché à droite du badge (max 20 caractères)</p>
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-300">
+                        <i class="fas fa-tag mr-2 text-sky-400"></i>Valeur
+                    </label>
+                    <input type="text" 
+                           id="badgeValue" 
+                           name="value" 
+                           required
+                           value="value"
+                           class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                           placeholder="ex: 1.0.0">
+                    <p class="text-xs text-slate-500">Texte à droite</p>
+                </div>
             </div>
 
             <!-- Color Selection -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-3">
-                    Couleur <span class="text-red-400">*</span>
+            <div class="space-y-4">
+                <label class="block text-sm font-medium text-slate-300">
+                    <i class="fas fa-palette mr-2 text-sky-400"></i>Couleur
                 </label>
                 
-                <!-- Color Picker Grid -->
-                <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-4">
-                    <button type="button" onclick="setColor('blue')" class="color-btn relative h-12 rounded-xl bg-blue-500 hover:scale-105 transition-all" data-color="blue">
-                        <span class="absolute inset-0 flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('green')" class="color-btn h-12 rounded-xl bg-green-500 hover:scale-105 transition-all" data-color="green">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('red')" class="color-btn h-12 rounded-xl bg-red-500 hover:scale-105 transition-all" data-color="red">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('yellow')" class="color-btn h-12 rounded-xl bg-yellow-500 hover:scale-105 transition-all" data-color="yellow">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('orange')" class="color-btn h-12 rounded-xl bg-orange-500 hover:scale-105 transition-all" data-color="orange">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('purple')" class="color-btn h-12 rounded-xl bg-purple-500 hover:scale-105 transition-all" data-color="purple">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('pink')" class="color-btn h-12 rounded-xl bg-pink-500 hover:scale-105 transition-all" data-color="pink">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
-                    <button type="button" onclick="setColor('gray')" class="color-btn h-12 rounded-xl bg-gray-500 hover:scale-105 transition-all" data-color="gray">
-                        <span class="flex items-center justify-center text-white opacity-0 hover:opacity-100">✓</span>
-                    </button>
+                <!-- Preset Colors -->
+                <div class="grid grid-cols-4 md:grid-cols-8 gap-3">
+                    <button type="button" onclick="selectColor('blue')" class="color-preset w-full aspect-square rounded-lg bg-blue-500 hover:ring-2 hover:ring-white" data-color="blue"></button>
+                    <button type="button" onclick="selectColor('green')" class="color-preset w-full aspect-square rounded-lg bg-green-500 hover:ring-2 hover:ring-white" data-color="green"></button>
+                    <button type="button" onclick="selectColor('red')" class="color-preset w-full aspect-square rounded-lg bg-red-500 hover:ring-2 hover:ring-white" data-color="red"></button>
+                    <button type="button" onclick="selectColor('yellow')" class="color-preset w-full aspect-square rounded-lg bg-yellow-500 hover:ring-2 hover:ring-white" data-color="yellow"></button>
+                    <button type="button" onclick="selectColor('orange')" class="color-preset w-full aspect-square rounded-lg bg-orange-500 hover:ring-2 hover:ring-white" data-color="orange"></button>
+                    <button type="button" onclick="selectColor('purple')" class="color-preset w-full aspect-square rounded-lg bg-purple-500 hover:ring-2 hover:ring-white" data-color="purple"></button>
+                    <button type="button" onclick="selectColor('pink')" class="color-preset w-full aspect-square rounded-lg bg-pink-500 hover:ring-2 hover:ring-white" data-color="pink"></button>
+                    <button type="button" onclick="selectColor('gray')" class="color-preset w-full aspect-square rounded-lg bg-gray-500 hover:ring-2 hover:ring-white" data-color="gray"></button>
                 </div>
 
-                <!-- Color Names -->
-                <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 text-center text-xs text-slate-400">
-                    <span>Blue</span>
-                    <span>Green</span>
-                    <span>Red</span>
-                    <span>Yellow</span>
-                    <span>Orange</span>
-                    <span>Purple</span>
-                    <span>Pink</span>
-                    <span>Gray</span>
-                </div>
+                <!-- Color Picker -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <select id="colorSelect" name="color" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50">
+                        <option value="blue">Blue</option>
+                        <option value="green">Green</option>
+                        <option value="red">Red</option>
+                        <option value="yellow">Yellow</option>
+                        <option value="orange">Orange</option>
+                        <option value="purple">Purple</option>
+                        <option value="pink">Pink</option>
+                        <option value="gray">Gray</option>
+                        <option value="brightgreen">Bright Green</option>
+                        <option value="yellowgreen">Yellow Green</option>
+                    </select>
 
-                <!-- Hidden color input -->
-                <input type="hidden" id="badgeColor" name="color" value="blue">
+                    <!-- Custom Color -->
+                    <div class="relative">
+                        <input type="color" id="customColor" value="#38bdf8" class="w-full h-12 rounded-xl cursor-pointer">
+                    </div>
+                </div>
             </div>
 
             <!-- Description -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">
-                    Description <span class="text-slate-500">(optionnel)</span>
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-300">
+                    <i class="fas fa-align-left mr-2 text-sky-400"></i>Description
                 </label>
                 <textarea id="badgeDescription" 
                           name="description" 
                           rows="3"
-                          maxlength="200"
-                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
-                          placeholder="Décrivez ce que représente ce badge..."></textarea>
-                <p class="text-xs text-slate-500 mt-1">Max 200 caractères</p>
+                          class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                          placeholder="À quoi sert ce badge ?"></textarea>
+                <p class="text-xs text-slate-500">Optionnel - expliquez la signification du badge</p>
             </div>
 
-            <!-- Preview Section -->
-            <div class="pt-6 border-t border-slate-800">
-                <h3 class="text-lg font-semibold text-white mb-4">Aperçu en direct</h3>
+            <!-- Style Options -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-800/30 rounded-xl border border-slate-700">
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" id="isGradient" class="w-5 h-5 rounded border-slate-700 bg-slate-900 text-sky-500">
+                    <span class="text-slate-300">Dégradé</span>
+                </label>
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" id="hasShadow" class="w-5 h-5 rounded border-slate-700 bg-slate-900 text-sky-500">
+                    <span class="text-slate-300">Ombre</span>
+                </label>
+            </div>
+
+            <!-- Code Snippets -->
+            <div class="space-y-4 p-6 bg-slate-800/50 rounded-xl border border-slate-700">
+                <h3 class="text-lg font-semibold text-white">Intégration</h3>
                 
-                <div class="flex flex-col items-center p-6 bg-slate-800/50 rounded-xl border border-slate-700">
-                    <!-- Badge Preview -->
-                    <div class="flex items-center font-mono text-sm mb-4" id="badgePreview">
-                        <span class="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-l-lg" id="previewLabel">label</span>
-                        <span class="bg-blue-500 text-white px-3 py-1.5 rounded-r-lg" id="previewValue">value</span>
+                <!-- Markdown -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Markdown</label>
+                    <div class="code-block relative group">
+                        <pre id="markdownCode" class="text-sm">![label](https://gsql-badge.onrender.com/badge/label-value-blue.svg)</pre>
+                        <button onclick="copyCode('markdownCode')" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copier
+                        </button>
                     </div>
+                </div>
 
-                    <!-- SVG Preview -->
-                    <div class="mt-4 p-4 bg-slate-900 rounded-lg w-full overflow-x-auto">
-                        <p class="text-xs text-slate-400 mb-2">SVG Preview:</p>
-                        <img id="svgPreview" src="" alt="Badge preview" class="h-8 mx-auto">
+                <!-- HTML -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">HTML</label>
+                    <div class="code-block relative group">
+                        <pre id="htmlCode" class="text-sm">&lt;img src="https://gsql-badge.onrender.com/badge/label-value-blue.svg" alt="label"&gt;</pre>
+                        <button onclick="copyCode('htmlCode')" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copier
+                        </button>
                     </div>
+                </div>
 
-                    <!-- Badge URL -->
-                    <div class="mt-4 w-full">
-                        <p class="text-xs text-slate-400 mb-1">Badge URL:</p>
-                        <div class="code-block text-xs relative group">
-                            <pre id="badgeUrlPreview" class="text-slate-300 break-all">https://gsql-badge.onrender.com/badge/label-value-blue.svg</pre>
-                            <button onclick="copyToClipboard('badgeUrlPreview')" 
-                                    class="absolute top-1 right-1 px-2 py-1 bg-slate-700 rounded text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
-                                <i class="far fa-copy"></i>
-                            </button>
-                        </div>
+                <!-- BBCode (forums) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">BBCode</label>
+                    <div class="code-block relative group">
+                        <pre id="bbCode" class="text-sm">[img]https://gsql-badge.onrender.com/badge/label-value-blue.svg[/img]</pre>
+                        <button onclick="copyCode('bbCode')" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copier
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Submit Buttons -->
-            <div class="flex justify-end space-x-3 pt-6">
+            <!-- Action Buttons -->
+            <div class="flex flex-col md:flex-row gap-4 pt-4">
+                <button type="submit" 
+                        class="flex-1 px-6 py-4 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    <i class="fas fa-save mr-2"></i>Créer le badge
+                </button>
                 <a href="/settings/badges" 
-                   class="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all">
+                   class="flex-1 px-6 py-4 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all text-center">
                     Annuler
                 </a>
-                <button type="submit" 
-                        id="submitBtn"
-                        class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-                    <i class="fas fa-save mr-2"></i>Créer le Badge
-                </button>
             </div>
         </form>
     </div>
 
-    <!-- Tips Section -->
+    <!-- Tips Card -->
     <div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="150">
         <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
             <i class="fas fa-lightbulb text-yellow-400 mr-2"></i>
-            Conseils pour créer un bon badge
+            Conseils pour un bon badge
         </h3>
         <ul class="space-y-2 text-sm text-slate-400">
-            <li class="flex items-start gap-2">
-                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
-                <span><strong class="text-white">Soyez concis</strong> - Le label et la valeur doivent être courts et percutants</span>
-            </li>
-            <li class="flex items-start gap-2">
-                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
-                <span><strong class="text-white">Utilisez des couleurs cohérentes</strong> - Associez la couleur à la thématique (ex: bleu pour technique, vert pour validation)</span>
-            </li>
-            <li class="flex items-start gap-2">
-                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
-                <span><strong class="text-white">Nom unique</strong> - Le nom du badge doit être unique dans votre collection</span>
-            </li>
-            <li class="flex items-start gap-2">
-                <i class="fas fa-check-circle text-green-400 mt-0.5"></i>
-                <span><strong class="text-white">Description utile</strong> - Expliquez ce que le badge représente pour les visiteurs</span>
-            </li>
+            <li><i class="fas fa-check-circle text-green-400 mr-2"></i>Choisissez un label court et descriptif</li>
+            <li><i class="fas fa-check-circle text-green-400 mr-2"></i>Utilisez des couleurs qui correspondent à votre projet</li>
+            <li><i class="fas fa-check-circle text-green-400 mr-2"></i>Évitez les caractères spéciaux dans le nom</li>
+            <li><i class="fas fa-check-circle text-green-400 mr-2"></i>Testez l'affichage sur fond clair et sombre</li>
         </ul>
-    </div>
-
-    <!-- Examples -->
-    <div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="200">
-        <h3 class="text-lg font-semibold text-white mb-4">Exemples de badges populaires</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="p-3 bg-slate-800/50 rounded-xl text-center">
-                <img src="/badge/rust-expert-orange.svg" alt="Rust Expert" class="h-8 mx-auto mb-2">
-                <p class="text-xs text-slate-400">rust-expert-orange</p>
-            </div>
-            <div class="p-3 bg-slate-800/50 rounded-xl text-center">
-                <img src="/badge/docker-captain-blue.svg" alt="Docker Captain" class="h-8 mx-auto mb-2">
-                <p class="text-xs text-slate-400">docker-captain-blue</p>
-            </div>
-            <div class="p-3 bg-slate-800/50 rounded-xl text-center">
-                <img src="/badge/python-guru-yellow.svg" alt="Python Guru" class="h-8 mx-auto mb-2">
-                <p class="text-xs text-slate-400">python-guru-yellow</p>
-            </div>
-            <div class="p-3 bg-slate-800/50 rounded-xl text-center">
-                <img src="/badge/js-wizard-green.svg" alt="JS Wizard" class="h-8 mx-auto mb-2">
-                <p class="text-xs text-slate-400">js-wizard-green</p>
-            </div>
-        </div>
     </div>
 </div>
 
 <script>
-// Variables globales
-let selectedColor = 'blue';
+let currentColor = 'blue';
 
-// Initialisation au chargement
-document.addEventListener('DOMContentLoaded', function() {
-    updatePreview();
-    setColor('blue');
-});
-
-// Définir la couleur sélectionnée
-function setColor(color) {
-    selectedColor = color;
-    document.getElementById('badgeColor').value = color;
-    
-    // Mettre à jour l'affichage des boutons
-    document.querySelectorAll('.color-btn').forEach(btn => {
-        btn.classList.remove('ring-2', 'ring-white', 'scale-110');
-        if (btn.dataset.color === color) {
-            btn.classList.add('ring-2', 'ring-white', 'scale-110');
-        }
-    });
-    
-    // Mettre à jour l'aperçu
-    updatePreview();
-}
-
-// Mettre à jour l'aperçu en direct
+// Live preview update
 function updatePreview() {
     const label = document.getElementById('badgeLabel').value || 'label';
     const value = document.getElementById('badgeValue').value || 'value';
-    const color = selectedColor;
-    const name = document.getElementById('badgeName').value || 'custom-badge';
+    const color = document.getElementById('colorSelect').value;
+    const isGradient = document.getElementById('isGradient').checked;
+    const hasShadow = document.getElementById('hasShadow').checked;
     
-    // Mettre à jour l'aperçu texte
-    document.getElementById('previewLabel').textContent = label;
-    document.getElementById('previewValue').textContent = value;
-    document.getElementById('previewValue').className = `bg-${color}-500 text-white px-3 py-1.5 rounded-r-lg`;
+    let badgeUrl = `/badge/${label}-${value}-${color}.svg`;
     
-    // Mettre à jour l'aperçu SVG
-    const svgUrl = `/badge/${label}-${value}-${color}.svg`;
-    document.getElementById('svgPreview').src = svgUrl;
+    // Add options
+    const params = new URLSearchParams();
+    if (isGradient) params.append('style', 'gradient');
+    if (hasShadow) params.append('shadow', 'true');
     
-    // Mettre à jour l'URL du badge
-    const badgeUrl = `https://gsql-badge.onrender.com/badge/${label}-${value}-${color}.svg`;
-    document.getElementById('badgeUrlPreview').textContent = badgeUrl;
-    
-    // Générer automatiquement le nom du badge à partir du label si vide
-    if (!document.getElementById('badgeName').value && label !== 'label') {
-        const generatedName = label.toLowerCase().replace(/\s+/g, '-');
-        document.getElementById('badgeName').value = generatedName;
+    if (params.toString()) {
+        badgeUrl += '?' + params.toString();
     }
+    
+    document.getElementById('livePreview').src = badgeUrl;
+    
+    // Update code snippets
+    const baseUrl = `https://gsql-badge.onrender.com${badgeUrl}`;
+    document.getElementById('markdownCode').textContent = `![${label}](${baseUrl})`;
+    document.getElementById('htmlCode').textContent = `<img src="${baseUrl}" alt="${label}">`;
+    document.getElementById('bbCode').textContent = `[img]${baseUrl}[/img]`;
 }
 
-// Copier dans le presse-papier
-function copyToClipboard(elementId) {
+// Color selection
+function selectColor(color) {
+    currentColor = color;
+    document.getElementById('colorSelect').value = color;
+    
+    // Update visual selection
+    document.querySelectorAll('.color-preset').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-white', 'scale-105');
+        if (btn.dataset.color === color) {
+            btn.classList.add('ring-2', 'ring-white', 'scale-105');
+        }
+    });
+    
+    updatePreview();
+}
+
+// Custom color picker
+document.getElementById('customColor').addEventListener('input', function(e) {
+    // Convert hex to color name (simplified)
+    const colorMap = {
+        '#3b82f6': 'blue',
+        '#22c55e': 'green',
+        '#ef4444': 'red',
+        '#eab308': 'yellow',
+        '#f97316': 'orange',
+        '#a855f7': 'purple',
+        '#ec4899': 'pink',
+        '#6b7280': 'gray'
+    };
+    
+    const hex = e.target.value;
+    const colorName = colorMap[hex] || 'blue';
+    selectColor(colorName);
+});
+
+// Auto-generate badge name from label
+document.getElementById('badgeLabel').addEventListener('input', function() {
+    const nameInput = document.getElementById('badgeName');
+    if (!nameInput.value) {
+        nameInput.value = this.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    }
+});
+
+// Live preview on all inputs
+['badgeLabel', 'badgeValue', 'colorSelect', 'isGradient', 'hasShadow'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updatePreview);
+    document.getElementById(id)?.addEventListener('change', updatePreview);
+});
+
+// Copy code
+function copyCode(elementId) {
     const text = document.getElementById(elementId).textContent;
     navigator.clipboard.writeText(text).then(() => {
-        showNotification('Copié dans le presse-papier !', 'success');
+        showNotification('Code copié !', 'success');
     });
 }
 
-// Afficher une notification
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
-        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 
-        'border-red-500/50 bg-red-500/10 text-red-400'
-    }`;
-    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
-}
-
-// Validation du formulaire
-document.getElementById('createBadgeForm').addEventListener('submit', async (e) => {
+// Form submission
+document.getElementById('badgeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const alertBox = document.getElementById('alertBox');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Validation du nom
-    const nameInput = document.getElementById('badgeName');
-    const nameRegex = /^[a-z0-9_-]+$/;
-    if (!nameRegex.test(nameInput.value)) {
-        alertBox.classList.remove('hidden');
-        alertBox.className = 'p-4 rounded-xl border flex items-start gap-3 bg-red-500/10 border-red-500/50 text-red-400';
-        alertBox.innerHTML = '<i class="fas fa-exclamation-circle mt-0.5"></i><span>Le nom du badge ne peut contenir que des lettres minuscules, chiffres, tirets et underscores</span>';
-        return;
-    }
-    
-    // Désactiver le bouton
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Création...';
-    
-    // Préparer les données
     const formData = {
         name: document.getElementById('badgeName').value,
         label: document.getElementById('badgeLabel').value,
         value: document.getElementById('badgeValue').value,
-        color: selectedColor,
-        description: document.getElementById('badgeDescription').value
+        color: document.getElementById('colorSelect').value,
+        description: document.getElementById('badgeDescription').value,
+        gradient: document.getElementById('isGradient').checked,
+        shadow: document.getElementById('hasShadow').checked
     };
+    
+    // Validation
+    if (!formData.name.match(/^[a-z0-9_-]+$/)) {
+        showNotification('Nom invalide (minuscules, chiffres, tirets uniquement)', 'error');
+        return;
+    }
     
     try {
         const response = await fetch('/api/badges/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': 'Bearer {{ session.get("token") }}'
             },
             body: JSON.stringify(formData)
         });
         
-        const result = await response.json();
-        
         if (response.ok) {
-            // Succès
-            alertBox.classList.remove('hidden', 'bg-red-500/10', 'border-red-500/50', 'text-red-400');
-            alertBox.classList.add('bg-green-500/10', 'border-green-500/50', 'text-green-400');
-            alertBox.innerHTML = '<i class="fas fa-check-circle mt-0.5"></i><span>Badge créé avec succès ! Redirection...</span>';
-            
-            // Rediriger vers la page des badges
+            showNotification('Badge créé avec succès !', 'success');
             setTimeout(() => {
                 window.location.href = '/settings/badges';
             }, 1500);
         } else {
-            // Erreur
-            alertBox.classList.remove('hidden');
-            alertBox.className = 'p-4 rounded-xl border flex items-start gap-3 bg-red-500/10 border-red-500/50 text-red-400';
-            alertBox.innerHTML = `<i class="fas fa-exclamation-circle mt-0.5"></i><span>${result.error || 'Erreur lors de la création'}</span>`;
-            
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Créer le Badge';
+            const error = await response.json();
+            showNotification(error.error || 'Erreur lors de la création', 'error');
         }
     } catch (error) {
-        alertBox.classList.remove('hidden');
-        alertBox.className = 'p-4 rounded-xl border flex items-start gap-3 bg-red-500/10 border-red-500/50 text-red-400';
-        alertBox.innerHTML = '<i class="fas fa-exclamation-circle mt-0.5"></i><span>Erreur de connexion au serveur</span>';
-        
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Créer le Badge';
+        showNotification('Erreur de connexion', 'error');
     }
 });
 
-// Événements pour mise à jour en direct
-document.getElementById('badgeLabel').addEventListener('input', updatePreview);
-document.getElementById('badgeValue').addEventListener('input', updatePreview);
-document.getElementById('badgeName').addEventListener('input', function() {
-    // Remplacer les espaces par des tirets automatiquement
-    this.value = this.value.toLowerCase().replace(/\s+/g, '-');
-});
-</script>
+// Notification helper
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 
+        type === 'error' ? 'border-red-500/50 bg-red-500/10 text-red-400' :
+        'border-sky-500/50 bg-sky-500/10 text-sky-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-${
+        type === 'success' ? 'check-circle' : 
+        type === 'error' ? 'exclamation-circle' :
+        'info-circle'
+    } mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
 
-<style>
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-}
-.animate-float {
-    animation: float 3s ease-in-out infinite;
-}
-</style>
+// Initialize preview
+updatePreview();
+</script>
 {% endblock %}
