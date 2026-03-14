@@ -1,130 +1,55 @@
 {% extends "base.html" %}
 
-{% block title %}Settings - {{ user.username }} | Zarch Hub{% endblock %}
+{% block title %}Settings - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <!-- En-tête -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Settings
-        </h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your account settings and preferences
-        </p>
-    </div>
-
-    <!-- Grille des paramètres -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Profil -->
-        <a href="/settings/profile" class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 group">
-            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-user text-purple-600 text-xl"></i>
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-4xl font-bold mb-8" data-aos="fade-up">Account Settings</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Sidebar Navigation -->
+        <div class="md:col-span-1" data-aos="fade-up" data-aos-delay="100">
+            <div class="glassmorphism rounded-2xl p-4">
+                <nav class="space-y-2">
+                    <a href="/settings/profile" 
+                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/profile' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
+                        <i class="fas fa-user"></i>
+                        <span>Profile</span>
+                    </a>
+                    <a href="/settings/security" 
+                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/security' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Security</span>
+                    </a>
+                    <a href="/settings/notifications" 
+                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/notifications' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                    <a href="/settings/badges" 
+                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/badges' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
+                        <i class="fas fa-medal"></i>
+                        <span>Badges</span>
+                    </a>
+                    <a href="/settings/api" 
+                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/api' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
+                        <i class="fas fa-key"></i>
+                        <span>API Keys</span>
+                    </a>
+                    <hr class="my-2 border-gray-200">
+                    <a href="/settings/danger" 
+                       class="flex items-center space-x-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Danger Zone</span>
+                    </a>
+                </nav>
             </div>
-            <h2 class="text-xl font-semibold mb-2">Profile</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Manage your public profile information
-            </p>
-            <div class="flex items-center text-purple-600 text-sm">
-                <span>Edit profile</span>
-                <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-            </div>
-        </a>
-
-        <!-- Sécurité -->
-        <a href="/settings/security" class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 group">
-            <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-shield-alt text-green-600 text-xl"></i>
-            </div>
-            <h2 class="text-xl font-semibold mb-2">Security</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Password, 2FA, and session management
-            </p>
-            <div class="flex items-center text-green-600 text-sm">
-                <span>Security settings</span>
-                <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-            </div>
-        </a>
-
-        <!-- Notifications -->
-        <a href="/settings/notifications" class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 group">
-            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-bell text-blue-600 text-xl"></i>
-            </div>
-            <h2 class="text-xl font-semibold mb-2">Notifications</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Configure email and in-app notifications
-            </p>
-            <div class="flex items-center text-blue-600 text-sm">
-                <span>Notification preferences</span>
-                <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-            </div>
-        </a>
-
-        <!-- Badges personnalisés -->
-        <a href="/settings/badges" class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 group">
-            <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-award text-yellow-600 text-xl"></i>
-            </div>
-            <h2 class="text-xl font-semibold mb-2">Custom Badges</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Create and manage your custom badges
-            </p>
-            <div class="flex items-center text-yellow-600 text-sm">
-                <span>Badge workshop</span>
-                <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-            </div>
-        </a>
-
-        <!-- API Tokens -->
-        <a href="/settings/tokens" class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all hover:-translate-y-1 group opacity-50 pointer-events-none">
-            <div class="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center mb-4">
-                <i class="fas fa-key text-gray-400 text-xl"></i>
-            </div>
-            <h2 class="text-xl font-semibold mb-2 text-gray-400">API Tokens</h2>
-            <p class="text-sm text-gray-400 mb-4">
-                Manage your API access tokens (coming soon)
-            </p>
-            <div class="flex items-center text-gray-400 text-sm">
-                <span>Coming soon</span>
-            </div>
-        </a>
-
-        <!-- Danger Zone -->
-        <a href="/settings/danger" class="glass-card rounded-2xl p-6 border-2 border-red-200 dark:border-red-900/50 hover:shadow-xl transition-all hover:-translate-y-1 group">
-            <div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-            </div>
-            <h2 class="text-xl font-semibold mb-2 text-red-600">Danger Zone</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Delete account and sensitive actions
-            </p>
-            <div class="flex items-center text-red-600 text-sm">
-                <span>Account management</span>
-                <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-            </div>
-        </a>
-    </div>
-
-    <!-- Informations du compte -->
-    <div class="mt-8 glass-card rounded-2xl p-6">
-        <h2 class="text-xl font-semibold mb-4">Account Information</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <p class="text-sm text-gray-500">Username</p>
-                <p class="font-medium">{{ user.username }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500">Email</p>
-                <p class="font-medium">{{ user.email or 'Not provided' }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500">Member since</p>
-                <p class="font-medium">{{ user.created_at[:10] if user.created_at else '2026' }}</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500">Last login</p>
-                <p class="font-medium">{{ user.last_login[:10] if user.last_login else 'Today' }}</p>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="md:col-span-3" data-aos="fade-up" data-aos-delay="150">
+            <div class="glassmorphism rounded-2xl p-8">
+                {% block settings_content %}{% endblock %}
             </div>
         </div>
     </div>
