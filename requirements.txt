@@ -5,6 +5,7 @@ Werkzeug
 Jinja2
 click
 blinker
+redis
 itsdangerous
 flask-socketio
 python-socketio
