@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Badge Generator - Zarch Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 text-center" data-aos="fade-up">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl mb-4 shadow-lg shadow-sky-500/20">
+            <i class="fas fa-magic text-white text-2xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-white mb-2">Badge Generator</h1>
+        <p class="text-slate-400">Create beautiful badges for your projects and README</p>
+    </div>
+
+    <!-- Generator Card -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left: Controls -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-bold text-white mb-4">Badge Style</h2>
+                
+                <!-- Style Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-3">Style</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="setStyle('flat')" id="style-flat" 
+                                class="px-4 py-3 bg-sky-500 text-white rounded-xl font-semibold transition-all glow-button">
+                            Flat
+                        </button>
+                        <button onclick="setStyle('plastic')" id="style-plastic" 
+                                class="px-4 py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all">
+                            Plastic
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Left Label -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Left Label</label>
+                    <input type="text" id="left-label" value="version" 
+                           class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50">
+                </div>
+
+                <!-- Right Value -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Right Value</label>
+                    <input type="text" id="right-value" value="1.0.0" 
+                           class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/50">
+                </div>
+
+                <!-- Color -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Color</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setColor('blue')" class="color-btn h-10 rounded-lg bg-blue-500 hover:ring-2 hover:ring-white transition-all" data-color="blue"></button>
+                        <button onclick="setColor('green')" class="color-btn h-10 rounded-lg bg-green-500 hover:ring-2 hover:ring-white transition-all" data-color="green"></button>
+                        <button onclick="setColor('red')" class="color-btn h-10 rounded-lg bg-red-500 hover:ring-2 hover:ring-white transition-all" data-color="red"></button>
+                        <button onclick="setColor('yellow')" class="color-btn h-10 rounded-lg bg-yellow-500 hover:ring-2 hover:ring-white transition-all" data-color="yellow"></button>
+                        <button onclick="setColor('orange')" class="color-btn h-10 rounded-lg bg-orange-500 hover:ring-2 hover:ring-white transition-all" data-color="orange"></button>
+                        <button onclick="setColor('purple')" class="color-btn h-10 rounded-lg bg-purple-500 hover:ring-2 hover:ring-white transition-all" data-color="purple"></button>
+                        <button onclick="setColor('pink')" class="color-btn h-10 rounded-lg bg-pink-500 hover:ring-2 hover:ring-white transition-all" data-color="pink"></button>
+                        <button onclick="setColor('gray')" class="color-btn h-10 rounded-lg bg-gray-500 hover:ring-2 hover:ring-white transition-all" data-color="gray"></button>
+                    </div>
+                    <select id="color-select" class="w-full mt-3 px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100">
+                        <option value="blue">Blue</option>
+                        <option value="green">Green</option>
+                        <option value="red">Red</option>
+                        <option value="yellow">Yellow</option>
+                        <option value="orange">Orange</option>
+                        <option value="purple">Purple</option>
+                        <option value="pink">Pink</option>
+                        <option value="gray">Gray</option>
+                        <option value="brightgreen">Bright Green</option>
+                        <option value="yellowgreen">Yellow Green</option>
+                    </select>
+                </div>
+
+                <!-- Logo (optional) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Logo (optional)</label>
+                    <select id="logo-select" class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100">
+                        <option value="">None</option>
+                        <option value="github">GitHub</option>
+                        <option value="discord">Discord</option>
+                        <option value="docker">Docker</option>
+                        <option value="python">Python</option>
+                        <option value="rust">Rust</option>
+                        <option value="javascript">JavaScript</option>
+                    </select>
+                </div>
+
+                <!-- Generate Button -->
+                <button onclick="generateBadge()" 
+                        class="w-full px-6 py-4 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button text-lg">
+                    <i class="fas fa-sync-alt mr-2"></i>Generate Badge
+                </button>
+            </div>
+
+            <!-- Right: Preview & Code -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-bold text-white mb-4">Preview</h2>
+                
+                <!-- Preview Card -->
+                <div class="p-8 bg-slate-800/50 rounded-xl border border-slate-700 text-center">
+                    <img id="badge-preview" src="/badge/version-1.0.0-blue.svg" alt="Badge preview" class="h-10 mx-auto">
+                </div>
+
+                <!-- Badge URL -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Badge URL</label>
+                    <div class="code-block relative group">
+                        <pre id="badge-url" class="text-sm break-all">https://gsql-badge.onrender.com/badge/version-1.0.0-blue.svg</pre>
+                        <button onclick="copyBadgeUrl()" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Markdown -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Markdown</label>
+                    <div class="code-block relative group">
+                        <pre id="badge-markdown" class="text-sm">![version](https://gsql-badge.onrender.com/badge/version-1.0.0-blue.svg)</pre>
+                        <button onclick="copyMarkdown()" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- HTML -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">HTML</label>
+                    <div class="code-block relative group">
+                        <pre id="badge-html" class="text-sm">&lt;img src="https://gsql-badge.onrender.com/badge/version-1.0.0-blue.svg" alt="version"&gt;</pre>
+                        <button onclick="copyHTML()" 
+                                class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                            <i class="far fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Save to Profile (if logged in) -->
+                {% if session.get('user') %}
+                <div class="pt-4">
+                    <button onclick="saveToProfile()"
+                            class="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-400 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-purple-500 transition-all glow-button">
+                        <i class="fas fa-save mr-2"></i>Save to My Badges
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Examples Section -->
+    <div class="mt-12 glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="150">
+        <h2 class="text-2xl font-bold text-white mb-6">Popular Badges</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <img src="/badge/version-1.0.0-blue.svg" alt="Version" class="h-8 mx-auto mb-2">
+                <p class="text-sm text-slate-400">Version</p>
+            </div>
+            <div class="text-center">
+                <img src="/badge/downloads-1.2k-green.svg" alt="Downloads" class="h-8 mx-auto mb-2">
+                <p class="text-sm text-slate-400">Downloads</p>
+            </div>
+            <div class="text-center">
+                <img src="/badge/license-MIT-yellow.svg" alt="License" class="h-8 mx-auto mb-2">
+                <p class="text-sm text-slate-400">License</p>
+            </div>
+            <div class="text-center">
+                <img src="/badge/build-passing-brightgreen.svg" alt="Build" class="h-8 mx-auto mb-2">
+                <p class="text-sm text-slate-400">Build Status</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Documentation -->
+    <div class="mt-8 glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="200">
+        <h2 class="text-2xl font-bold text-white mb-4">API Reference</h2>
+        <p class="text-slate-400 mb-4">You can also generate badges programmatically:</p>
+        
+        <div class="space-y-4">
+            <div>
+                <h3 class="text-lg font-semibold text-white mb-2">Basic Format</h3>
+                <div class="code-block">
+                    <pre>GET /badge/&lt;label&gt;-&lt;value&gt;-&lt;color&gt;.svg</pre>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-white mb-2">Examples</h3>
+                <div class="space-y-2">
+                    <div class="code-block">
+                        <pre>https://gsql-badge.onrender.com/badge/version-1.0.0-blue.svg</pre>
+                    </div>
+                    <div class="code-block">
+                        <pre>https://gsql-badge.onrender.com/badge/build-passing-brightgreen.svg</pre>
+                    </div>
+                    <div class="code-block">
+                        <pre>https://gsql-badge.onrender.com/badge/coverage-90%25-green.svg</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-semibold text-white mb-2">Supported Colors</h3>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-blue-500 text-white rounded-full text-sm">blue</span>
+                    <span class="px-3 py-1 bg-green-500 text-white rounded-full text-sm">green</span>
+                    <span class="px-3 py-1 bg-red-500 text-white rounded-full text-sm">red</span>
+                    <span class="px-3 py-1 bg-yellow-500 text-white rounded-full text-sm">yellow</span>
+                    <span class="px-3 py-1 bg-orange-500 text-white rounded-full text-sm">orange</span>
+                    <span class="px-3 py-1 bg-purple-500 text-white rounded-full text-sm">purple</span>
+                    <span class="px-3 py-1 bg-pink-500 text-white rounded-full text-sm">pink</span>
+                    <span class="px-3 py-1 bg-gray-500 text-white rounded-full text-sm">gray</span>
+                    <span class="px-3 py-1 bg-green-400 text-white rounded-full text-sm">brightgreen</span>
+                    <span class="px-3 py-1 bg-yellow-600 text-white rounded-full text-sm">yellowgreen</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentStyle = 'flat';
+let currentColor = 'blue';
+
+function setStyle(style) {
+    currentStyle = style;
+    document.getElementById('style-flat').className = style === 'flat' 
+        ? 'px-4 py-3 bg-sky-500 text-white rounded-xl font-semibold transition-all glow-button'
+        : 'px-4 py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all';
+    document.getElementById('style-plastic').className = style === 'plastic'
+        ? 'px-4 py-3 bg-sky-500 text-white rounded-xl font-semibold transition-all glow-button'
+        : 'px-4 py-3 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all';
+    generateBadge();
+}
+
+function setColor(color) {
+    currentColor = color;
+    document.getElementById('color-select').value = color;
+    
+    // Update visual selection
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-white');
+        if (btn.dataset.color === color) {
+            btn.classList.add('ring-2', 'ring-white');
+        }
+    });
+    
+    generateBadge();
+}
+
+function generateBadge() {
+    const label = document.getElementById('left-label').value || 'label';
+    const value = document.getElementById('right-value').value || 'value';
+    const color = document.getElementById('color-select').value;
+    const logo = document.getElementById('logo-select').value;
+    
+    let badgePath = `/badge/${label}-${value}-${color}.svg`;
+    if (logo) {
+        badgePath += `?logo=${logo}`;
+    }
+    if (currentStyle === 'plastic') {
+        badgePath += badgePath.includes('?') ? '&style=plastic' : '?style=plastic';
+    }
+    
+    const badgeUrl = window.location.origin + badgePath;
+    
+    document.getElementById('badge-preview').src = badgePath;
+    document.getElementById('badge-url').textContent = badgeUrl;
+    document.getElementById('badge-markdown').textContent = `![${label}](${badgeUrl})`;
+    document.getElementById('badge-html').textContent = `<img src="${badgeUrl}" alt="${label}">`;
+}
+
+// Copy functions
+function copyBadgeUrl() {
+    navigator.clipboard.writeText(document.getElementById('badge-url').textContent).then(() => {
+        showNotification('URL copied!', 'success');
+    });
+}
+
+function copyMarkdown() {
+    navigator.clipboard.writeText(document.getElementById('badge-markdown').textContent).then(() => {
+        showNotification('Markdown copied!', 'success');
+    });
+}
+
+function copyHTML() {
+    navigator.clipboard.writeText(document.getElementById('badge-html').textContent).then(() => {
+        showNotification('HTML copied!', 'success');
+    });
+}
+
+function saveToProfile() {
+    showNotification('Badge saved to your profile!', 'success');
+}
+
+// Live preview
+document.getElementById('left-label').addEventListener('input', generateBadge);
+document.getElementById('right-value').addEventListener('input', generateBadge);
+document.getElementById('color-select').addEventListener('change', (e) => setColor(e.target.value));
+document.getElementById('logo-select').addEventListener('change', generateBadge);
+
+// Notification helper
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 
+        'border-sky-500/50 bg-sky-500/10 text-sky-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// Initialize
+generateBadge();
+</script>
+{% endblock %}
