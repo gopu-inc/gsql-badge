@@ -218,9 +218,6 @@ class PackageUpload(BaseModel):
         if not v:
             raise ValueError('Version is required')
         return v
-# ============================================================================
-# GESTION DES COOKIES SÉCURISÉS (VERSION CORRIGÉE)
-# ============================================================================
 
 class CookieManager:
     @staticmethod
@@ -239,12 +236,12 @@ class CookieManager:
                 name,
                 encrypted,
                 max_age=max_age,
-                secure=SecurityConfig.COOKIE_SECURE,
+                secure=app.config.get('SESSION_COOKIE_SECURE', False),  # Utiliser la config
                 httponly=True,
-                samesite=SecurityConfig.COOKIE_SAMESITE,
+                samesite=app.config.get('SESSION_COOKIE_SAMESITE', 'Lax'),
                 path='/'
             )
-            app.logger.info(f"Cookie {name} set successfully")
+            app.logger.info(f"Cookie {name} set successfully for user")
             return response
         except Exception as e:
             app.logger.error(f"Failed to set cookie {name}: {e}")
@@ -262,12 +259,17 @@ class CookieManager:
             # Nettoyer la valeur (enlever les espaces éventuels)
             encrypted = encrypted.strip()
             
+            # Vérifier que le cookie n'est pas vide
+            if not encrypted:
+                app.logger.warning(f"Empty cookie {name}")
+                return None
+            
             # Déchiffrer
             decrypted = fernet.decrypt(encrypted.encode()).decode()
             app.logger.debug(f"Cookie {name} decrypted successfully")
             return decrypted
         except Exception as e:
-            app.logger.warning(f"Failed to decrypt cookie {name}: {e}")
+            app.logger.warning(f"Failed to decrypt cookie {name}: {str(e)}")
             return None
     
     @staticmethod
