@@ -2296,7 +2296,7 @@ def settings_delete_account():
 # ROUTES DE TEST POUR LES COOKIES
 # ============================================================================
 
-@app.route('/debug/cookiess')
+@app.route('/debug/cookies')
 def debug_cookies():
     """Route de debug pour vérifier les cookies"""
     if not app.debug:
