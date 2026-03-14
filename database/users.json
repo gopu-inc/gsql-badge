@@ -57,6 +57,14 @@
       "password": "$2b$12$DRLckV18DpNiYIfWlg4UjeWYQhx5eabnxtODwFGf3.hIdBkZoECUy",
       "role": "user",
       "created_at": "2026-03-14T03:36:39.050494"
+    },
+    {
+      "id": "d10f1fa5-27ea-47b1-a763-59623dccc151",
+      "username": "tukss",
+      "email": "mauricio@example.com",
+      "password": "$2b$12$/Yx3VzHStcd3q8v/5eHbd.gwMPw9hXA0HhRAlhMtxFG3755ND6cxS",
+      "role": "user",
+      "created_at": "2026-03-14T08:53:34.756880"
     }
   ]
 }
