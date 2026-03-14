@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}How to create my first APKM package? - Zarch Hub Forum{% endblock %}
+
+{% block content %}
+<!-- Navigation Breadcrumb -->
+<div class="mb-6 text-sm" data-aos="fade-up">
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2">
+            <li><a href="/forum" class="text-slate-400 hover:text-sky-400">Forum</a></li>
+            <li><i class="fas fa-chevron-right text-slate-600 text-xs"></i></li>
+            <li><a href="/forum/category/general" class="text-slate-400 hover:text-sky-400">General Discussion</a></li>
+            <li><i class="fas fa-chevron-right text-slate-600 text-xs"></i></li>
+            <li class="text-white">How to create my first APKM package?</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Topic Header -->
+<div class="glass-card rounded-2xl p-8 mb-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="50">
+    <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+        <div>
+            <div class="flex items-center gap-3 mb-3">
+                <h1 class="text-3xl md:text-4xl font-bold text-white">How to create my first APKM package?</h1>
+                <span class="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm border border-blue-500/30">New</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 text-sm text-slate-400">
+                <span class="flex items-center">
+                    <i class="fas fa-user mr-2 text-sky-400"></i>
+                    <span>Posted by <a href="/@johndoe" class="text-sky-400 hover:text-sky-300">JohnDoe</a></span>
+                </span>
+                <span class="flex items-center">
+                    <i class="far fa-clock mr-2 text-sky-400"></i>
+                    2 hours ago
+                </span>
+                <span class="flex items-center">
+                    <i class="far fa-eye mr-2 text-sky-400"></i>
+                    234 views
+                </span>
+                <span class="flex items-center">
+                    <i class="far fa-comment mr-2 text-sky-400"></i>
+                    12 replies
+                </span>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-sky-500 hover:text-white transition-all" onclick="followTopic()">
+                <i class="far fa-bookmark mr-2"></i>Follow
+            </button>
+            <button class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-sky-500 hover:text-white transition-all" onclick="shareTopic()">
+                <i class="fas fa-share-alt mr-2"></i>Share
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Main Post -->
+<div class="glass-card rounded-2xl p-8 mb-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
+    <div class="flex gap-6">
+        <!-- Author Sidebar -->
+        <div class="hidden md:block w-48 flex-shrink-0">
+            <div class="text-center">
+                <div class="w-24 h-24 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl flex items-center justify-center text-white text-4xl font-bold mx-auto mb-3">
+                    JD
+                </div>
+                <h3 class="font-semibold text-white">JohnDoe</h3>
+                <p class="text-xs text-slate-400 mb-2">Joined Mar 2026</p>
+                <div class="flex justify-center gap-2 mb-3">
+                    <span class="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-full text-xs">Package Developer</span>
+                </div>
+                <div class="text-sm text-slate-400">
+                    <div class="flex justify-between py-1">
+                        <span>Posts:</span>
+                        <span class="text-white">156</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span>Packages:</span>
+                        <span class="text-white">12</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span>Reputation:</span>
+                        <span class="text-yellow-400">342</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Post Content -->
+        <div class="flex-1">
+            <div class="prose prose-invert max-w-none">
+                <p>Hi everyone! 👋</p>
+                
+                <p>I'm new to APKM package development and I'd like to create my first package. I've read the documentation but I'm still a bit confused about the process.</p>
+                
+                <p>Here's what I've understood so far:</p>
+                
+                <ul>
+                    <li>I need to create a PKGBUILD file</li>
+                    <li>The package should follow a specific directory structure</li>
+                    <li>I need to use BOOL to build the package</li>
+                </ul>
+                
+                <p>But I have some questions:</p>
+                
+                <ol>
+                    <li>What's the minimal PKGBUILD for a simple C program?</li>
+                    <li>How do I test my package locally before uploading?</li>
+                    <li>What's the difference between release (r0, r1) and version?</li>
+                </ol>
+                
+                <p>Here's my current PKGBUILD attempt:</p>
+                
+                <pre><code>pkgname=hello-world
+pkgver=1.0.0
+pkgrel=r0
+pkgdesc="A simple hello world program"
+arch=('x86_64')
+license=('MIT')
+
+build() {
+    gcc -o hello hello.c
+}
+
+package() {
+    install -Dm755 hello "$pkgdir/usr/bin/hello"
+}</code></pre>
+                
+                <p>Is this correct? Any help would be greatly appreciated! 🙏</p>
+            </div>
+
+            <!-- Post Footer -->
+            <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <button class="text-slate-400 hover:text-green-400 transition-colors" onclick="likePost()">
+                        <i class="far fa-thumbs-up mr-1"></i>24
+                    </button>
+                    <button class="text-slate-400 hover:text-red-400 transition-colors" onclick="dislikePost()">
+                        <i class="far fa-thumbs-down mr-1"></i>2
+                    </button>
+                </div>
+                <span class="text-xs text-slate-500">#post-1</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Replies -->
+<div class="space-y-6 mb-8">
+    <!-- Reply 1 -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="150">
+        <div class="flex gap-4">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    JS
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <span class="font-semibold text-white">JaneSmith</span>
+                        <span class="text-xs text-slate-500 ml-2">• 1 hour ago</span>
+                        <span class="ml-2 px-2 py-0.5 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">Maintainer</span>
+                    </div>
+                    <span class="text-xs text-slate-500">#2</span>
+                </div>
+                <div class="prose prose-invert prose-sm max-w-none">
+                    <p>Hey John! Your PKGBUILD looks good for a start! Here are some suggestions:</p>
+                    
+                    <p>1. Add a `source` array to specify where your source code comes from:</p>
+                    <pre><code>source=("hello-world-$pkgver.tar.gz")
+sha256sums=('SKIP')</code></pre>
+                    
+                    <p>2. For local testing, you can use `bool --verify` to check your package:</p>
+                    <pre><code>bool --verify hello-world-1.0.0-r0-x86_64.tar.bool</code></pre>
+                    
+                    <p>3. Release (r0, r1) is for rebuilds without version change (like fixing a build issue), while version changes when the software itself updates.</p>
+                    
+                    <p>Hope this helps! 😊</p>
+                </div>
+                <div class="mt-3 flex items-center space-x-4">
+                    <button class="text-xs text-slate-400 hover:text-green-400 transition-colors">
+                        <i class="far fa-thumbs-up mr-1"></i>12
+                    </button>
+                    <button class="text-xs text-slate-400 hover:text-sky-400 transition-colors" onclick="replyTo('JaneSmith')">
+                        <i class="far fa-comment mr-1"></i>Reply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply 2 -->
+    <div class="glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="200">
+        <div class="flex gap-4">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    MK
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <span class="font-semibold text-white">MikeK</span>
+                        <span class="text-xs text-slate-500 ml-2">• 45 min ago</span>
+                        <span class="ml-2 px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-full text-xs border border-blue-500/30">Expert</span>
+                    </div>
+                    <span class="text-xs text-slate-500">#3</span>
+                </div>
+                <div class="prose prose-invert prose-sm max-w-none">
+                    <p>Great question! Also make sure to:</p>
+                    
+                    <ul>
+                        <li>Add a `license` array with the appropriate license</li>
+                        <li>Include a README.md file in your package</li>
+                        <li>Test installation with `apkm install ./hello-world-1.0.0-r0-x86_64.tar.bool`</li>
+                    </ul>
+                    
+                    <p>Here's an enhanced PKGBUILD:</p>
+                    
+                    <pre><code>pkgname=hello-world
+pkgver=1.0.0
+pkgrel=r0
+pkgdesc="A simple hello world program"
+arch=('x86_64')
+url="https://github.com/johndoe/hello-world"
+license=('MIT')
+depends=('glibc')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/johndoe/hello-world/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver"
+    gcc -o hello hello.c
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -Dm755 hello "$pkgdir/usr/bin/hello"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}</code></pre>
+                </div>
+                <div class="mt-3 flex items-center space-x-4">
+                    <button class="text-xs text-slate-400 hover:text-green-400 transition-colors">
+                        <i class="far fa-thumbs-up mr-1"></i>8
+                    </button>
+                    <button class="text-xs text-slate-400 hover:text-sky-400 transition-colors" onclick="replyTo('MikeK')">
+                        <i class="far fa-comment mr-1"></i>Reply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply from OP -->
+    <div class="glass-card rounded-2xl p-6 border border-sky-500/30 bg-sky-500/5" data-aos="fade-up" data-aos-delay="250">
+        <div class="flex gap-4">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-400 rounded-lg flex items-center justify-center text-white font-bold">
+                    JD
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <span class="font-semibold text-white">JohnDoe</span>
+                        <span class="text-xs text-slate-500 ml-2">• 15 min ago</span>
+                        <span class="ml-2 px-2 py-0.5 bg-sky-500/20 text-sky-400 rounded-full text-xs border border-sky-500/30">OP</span>
+                    </div>
+                    <span class="text-xs text-slate-500">#4</span>
+                </div>
+                <div class="prose prose-invert prose-sm max-w-none">
+                    <p>Thank you both so much! 🙌 This is incredibly helpful. I'll try these suggestions and let you know how it goes!</p>
+                    
+                    <p>One more question: How do I publish my package to the registry once it's ready?</p>
+                </div>
+                <div class="mt-3 flex items-center space-x-4">
+                    <button class="text-xs text-slate-400 hover:text-green-400 transition-colors">
+                        <i class="far fa-thumbs-up mr-1"></i>3
+                    </button>
+                    <button class="text-xs text-slate-400 hover:text-sky-400 transition-colors" onclick="replyTo('JohnDoe')">
+                        <i class="far fa-comment mr-1"></i>Reply
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reply Form -->
+<div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="300">
+    <h3 class="text-xl font-bold text-white mb-4">Post a Reply</h3>
+    
+    {% if session.get('user') %}
+    <form id="replyForm" class="space-y-4">
+        <div>
+            <textarea id="replyContent" rows="6" 
+                      class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
+                      placeholder="Write your reply... (Markdown supported)"></textarea>
+        </div>
+        
+        <div class="flex items-center justify-between">
+            <div class="flex space-x-2 text-slate-400">
+                <button type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 transition-colors" title="Bold">
+                    <i class="fas fa-bold"></i>
+                </button>
+                <button type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 transition-colors" title="Italic">
+                    <i class="fas fa-italic"></i>
+                </button>
+                <button type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 transition-colors" title="Code">
+                    <i class="fas fa-code"></i>
+                </button>
+                <button type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 transition-colors" title="Link">
+                    <i class="fas fa-link"></i>
+                </button>
+                <button type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 transition-colors" title="List">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="button" onclick="previewReply()" 
+                        class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all">
+                    Preview
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    Post Reply
+                </button>
+            </div>
+        </div>
+    </form>
+    {% else %}
+    <div class="text-center py-8">
+        <p class="text-slate-400 mb-4">You need to be logged in to reply</p>
+        <a href="/login" class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+            <i class="fas fa-sign-in-alt mr-2"></i>Login to Reply
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-2xl w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-white">Preview</h3>
+            <button onclick="hidePreview()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div id="previewContent" class="prose prose-invert max-w-none mb-6">
+            <!-- Preview content will be inserted here -->
+        </div>
+        
+        <div class="flex justify-end">
+            <button onclick="hidePreview()"
+                    class="px-6 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Markdown preview
+function previewReply() {
+    const content = document.getElementById('replyContent')?.value;
+    if (!content) {
+        showNotification('Write something to preview', 'info');
+        return;
+    }
+    
+    // Simple markdown conversion (you'd want a proper library in production)
+    let html = content
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+        .replace(/\n/g, '<br>');
+    
+    document.getElementById('previewContent').innerHTML = html;
+    document.getElementById('previewModal').classList.remove('hidden');
+    document.getElementById('previewModal').classList.add('flex');
+}
+
+function hidePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+    document.getElementById('previewModal').classList.remove('flex');
+}
+
+// Reply to specific user
+function replyTo(username) {
+    const replyArea = document.getElementById('replyContent');
+    if (replyArea) {
+        replyArea.value += `@${username} `;
+        replyArea.focus();
+    }
+}
+
+// Follow topic
+function followTopic() {
+    showNotification('You are now following this topic', 'success');
+}
+
+// Share topic
+function shareTopic() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        showNotification('Link copied to clipboard!', 'success');
+    });
+}
+
+// Like/Dislike
+function likePost() {
+    showNotification('Thanks for your feedback!', 'success');
+}
+
+function dislikePost() {
+    showNotification('Feedback recorded', 'info');
+}
+
+// Notification helper
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 
+        type === 'info' ? 'border-sky-500/50 bg-sky-500/10 text-sky-400' :
+        'border-red-500/50 bg-red-500/10 text-red-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-${
+        type === 'success' ? 'check-circle' : 
+        type === 'info' ? 'info-circle' :
+        'exclamation-circle'
+    } mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+// Handle reply form submission
+document.getElementById('replyForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    showNotification('Reply posted successfully!', 'success');
+    document.getElementById('replyContent').value = '';
+});
+</script>
+{% endblock %}
