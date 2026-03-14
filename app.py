@@ -2003,8 +2003,6 @@ apkm --version
 @app.route('/badge/<path:badge_name>')
 def serve_badge_svg(badge_name):
     """Génère un badge SVG dynamique"""
-    from badges import BadgeGenerator
-    
     # Parser le format [label]-[value]-[color]
     parts = badge_name.replace('.svg', '').split('-')
     
@@ -2020,9 +2018,22 @@ def serve_badge_svg(badge_name):
         value = 'unknown'
         color = 'gray'
     
-    svg = BadgeGenerator.generate(label, value, color)
+    # Générer le SVG (simplifié pour l'exemple)
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{len(label)*7 + len(value)*7 + 20}" height="20">
+        <linearGradient id="smooth" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#bbb" stop-opacity=".1"/>
+            <stop offset="100%" stop-opacity=".1"/>
+        </linearGradient>
+        <rect rx="3" width="{len(label)*7 + 10}" height="20" fill="#555"/>
+        <rect rx="3" x="{len(label)*7 + 10}" width="{len(value)*7 + 10}" height="20" fill="#{color}"/>
+        <rect rx="3" width="{len(label)*7 + len(value)*7 + 20}" height="20" fill="url(#smooth)"/>
+        <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+            <text x="{len(label)*7/2 + 5}" y="14">{label}</text>
+            <text x="{len(label)*7 + len(value)*7/2 + 15}" y="14">{value}</text>
+        </g>
+    </svg>'''
+    
     return Response(svg, mimetype='image/svg+xml')
-
 @app.route('/badge/package/<name>')
 def package_badge(name):
     """Badge dynamique pour un package"""
