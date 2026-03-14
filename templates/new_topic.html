@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}New Topic - Zarch Hub Forum{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8 text-center" data-aos="fade-up">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl mb-4 shadow-lg shadow-sky-500/20">
+            <i class="fas fa-plus text-white text-2xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-white mb-2">Create New Topic</h1>
+        <p class="text-slate-400">Start a discussion with the community</p>
+    </div>
+
+    <!-- New Topic Form -->
+    <div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
+        <form id="newTopicForm" class="space-y-6">
+            <!-- Category -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Category</label>
+                <select name="category" required
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
+                    <option value="" disabled selected>Select a category</option>
+                    <option value="general">💬 General Discussion</option>
+                    <option value="development">📦 Package Development</option>
+                    <option value="support">🆘 Help & Support</option>
+                    <option value="announcements">📢 Announcements</option>
+                    <option value="features">💡 Feature Requests</option>
+                    <option value="showcase">🚀 Show & Tell</option>
+                </select>
+            </div>
+
+            <!-- Title -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Title</label>
+                <input type="text" name="title" required
+                       maxlength="100"
+                       class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
+                       placeholder="e.g., How to create my first APKM package?">
+                <p class="text-xs text-slate-500 mt-1">Be specific and descriptive (max 100 characters)</p>
+            </div>
+
+            <!-- Tags -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Tags</label>
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button type="button" onclick="addTag('apkm')" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#apkm</button>
+                    <button type="button" onclick="addTag('help')" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#help</button>
+                    <button type="button" onclick="addTag('development')" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#development</button>
+                    <button type="button" onclick="addTag('bug')" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#bug</button>
+                    <button type="button" onclick="addTag('feature')" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#feature</button>
+                    <button type="button" onclick="addTag('question')" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#question</button>
+                </div>
+                <div id="tags-container" class="flex flex-wrap gap-2 mb-3"></div>
+                <input type="hidden" name="tags" id="tags-input">
+                <input type="text" id="custom-tag" 
+                       class="w-full px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 text-sm"
+                       placeholder="Add custom tag and press Enter">
+            </div>
+
+            <!-- Content -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Content</label>
+                <div class="border border-slate-700 rounded-xl overflow-hidden">
+                    <!-- Toolbar -->
+                    <div class="flex flex-wrap gap-1 p-2 bg-slate-800/50 border-b border-slate-700">
+                        <button type="button" onclick="formatText('bold')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Bold">
+                            <i class="fas fa-bold"></i>
+                        </button>
+                        <button type="button" onclick="formatText('italic')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Italic">
+                            <i class="fas fa-italic"></i>
+                        </button>
+                        <button type="button" onclick="formatText('code')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Code">
+                            <i class="fas fa-code"></i>
+                        </button>
+                        <span class="w-px h-6 bg-slate-700 mx-1"></span>
+                        <button type="button" onclick="formatText('h1')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Heading 1">
+                            <span class="text-sm font-bold">H1</span>
+                        </button>
+                        <button type="button" onclick="formatText('h2')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Heading 2">
+                            <span class="text-sm font-bold">H2</span>
+                        </button>
+                        <button type="button" onclick="formatText('h3')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Heading 3">
+                            <span class="text-sm font-bold">H3</span>
+                        </button>
+                        <span class="w-px h-6 bg-slate-700 mx-1"></span>
+                        <button type="button" onclick="formatText('link')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Link">
+                            <i class="fas fa-link"></i>
+                        </button>
+                        <button type="button" onclick="formatText('ul')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Bullet List">
+                            <i class="fas fa-list-ul"></i>
+                        </button>
+                        <button type="button" onclick="formatText('ol')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Numbered List">
+                            <i class="fas fa-list-ol"></i>
+                        </button>
+                        <span class="w-px h-6 bg-slate-700 mx-1"></span>
+                        <button type="button" onclick="formatText('quote')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Quote">
+                            <i class="fas fa-quote-right"></i>
+                        </button>
+                        <button type="button" onclick="formatText('hr')" class="w-8 h-8 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors" title="Horizontal Rule">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Textarea -->
+                    <textarea id="content" name="content" rows="12" required
+                              class="w-full px-4 py-3 bg-slate-900/50 text-slate-100 placeholder-slate-500 focus:outline-none resize-y"
+                              placeholder="Write your topic content here... (Markdown supported)"></textarea>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div>
+                <button type="button" onclick="previewTopic()"
+                        class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all">
+                    <i class="fas fa-eye mr-2"></i>Preview
+                </button>
+            </div>
+
+            <!-- Options -->
+            <div class="flex items-center space-x-4 pt-4 border-t border-slate-800">
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="notify" checked class="rounded border-slate-700 bg-slate-900 text-sky-500">
+                    <span class="text-sm text-slate-300">Notify me of replies</span>
+                </label>
+                <label class="flex items-center space-x-2">
+                    <input type="checkbox" name="pin" class="rounded border-slate-700 bg-slate-900 text-sky-500">
+                    <span class="text-sm text-slate-300">Pin this topic (moderators only)</span>
+                </label>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="/forum" 
+                   class="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-semibold hover:bg-slate-700 transition-all">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                    <i class="fas fa-paper-plane mr-2"></i>Create Topic
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
+    <div class="glass-card rounded-2xl p-8 max-w-3xl w-full mx-4 border border-slate-700/50 max-h-[90vh] overflow-y-auto" data-aos="zoom-in">
+        <div class="flex items-center justify-between mb-6 sticky top-0 bg-slate-800/50 backdrop-blur -mt-4 pt-4 pb-2 border-b border-slate-700">
+            <h3 class="text-2xl font-bold text-white">Preview</h3>
+            <button onclick="hidePreview()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div id="previewTitle" class="text-2xl font-bold text-white mb-4"></div>
+        <div id="previewContent" class="prose prose-invert max-w-none">
+            <!-- Preview content will be inserted here -->
+        </div>
+        
+        <div class="mt-6 flex justify-end sticky bottom-0 bg-slate-800/50 backdrop-blur -mb-4 pb-4 pt-2">
+            <button onclick="hidePreview()"
+                    class="px-6 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let tags = [];
+
+// Tags management
+function addTag(tag) {
+    if (!tags.includes(tag) && tags.length < 5) {
+        tags.push(tag);
+        updateTagsDisplay();
+    }
+}
+
+function removeTag(tag) {
+    tags = tags.filter(t => t !== tag);
+    updateTagsDisplay();
+}
+
+function updateTagsDisplay() {
+    const container = document.getElementById('tags-container');
+    const input = document.getElementById('tags-input');
+    
+    container.innerHTML = tags.map(tag => `
+        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30 flex items-center">
+            #${tag}
+            <button type="button" onclick="removeTag('${tag}')" class="ml-2 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </span>
+    `).join('');
+    
+    input.value = tags.join(',');
+}
+
+// Custom tag input
+const customTagInput = document.getElementById('custom-tag');
+customTagInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const tag = customTagInput.value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (tag && tags.length < 5 && !tags.includes(tag)) {
+            addTag(tag);
+            customTagInput.value = '';
+        }
+    }
+});
+
+// Text formatting
+function formatText(type) {
+    const textarea = document.getElementById('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = textarea.value.substring(start, end);
+    let formatted = '';
+    
+    switch(type) {
+        case 'bold':
+            formatted = `**${selected || 'bold text'}**`;
+            break;
+        case 'italic':
+            formatted = `*${selected || 'italic text'}*`;
+            break;
+        case 'code':
+            formatted = selected.includes('\n') ? 
+                `\`\`\`\n${selected || 'code block'}\n\`\`\`` : 
+                `\`${selected || 'code'}\``;
+            break;
+        case 'h1':
+            formatted = `# ${selected || 'Heading 1'}`;
+            break;
+        case 'h2':
+            formatted = `## ${selected || 'Heading 2'}`;
+            break;
+        case 'h3':
+            formatted = `### ${selected || 'Heading 3'}`;
+            break;
+        case 'link':
+            formatted = `[${selected || 'link text'}](url)`;
+            break;
+        case 'ul':
+            formatted = selected.split('\n').map(line => `- ${line}`).join('\n');
+            break;
+        case 'ol':
+            formatted = selected.split('\n').map((line, i) => `${i+1}. ${line}`).join('\n');
+            break;
+        case 'quote':
+            formatted = selected.split('\n').map(line => `> ${line}`).join('\n');
+            break;
+        case 'hr':
+            formatted = '---\n';
+            break;
+    }
+    
+    textarea.value = textarea.value.substring(0, start) + formatted + textarea.value.substring(end);
+}
+
+// Preview
+function previewTopic() {
+    const title = document.querySelector('input[name="title"]').value;
+    const content = document.getElementById('content').value;
+    
+    if (!title || !content) {
+        showNotification('Please fill in title and content', 'info');
+        return;
+    }
+    
+    // Simple markdown conversion
+    let html = content
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+        .replace(/\n/g, '<br>');
+    
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewContent').innerHTML = html;
+    document.getElementById('previewModal').classList.remove('hidden');
+    document.getElementById('previewModal').classList.add('flex');
+}
+
+function hidePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+    document.getElementById('previewModal').classList.remove('flex');
+}
+
+// Form submission
+document.getElementById('newTopicForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    data.tags = tags;
+    
+    console.log('New topic:', data);
+    showNotification('Topic created successfully! Redirecting...', 'success');
+    
+    setTimeout(() => {
+        window.location.href = '/forum/topic/1';
+    }, 1500);
+});
+
+// Notification helper
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
+        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 
+        'border-sky-500/50 bg-sky-500/10 text-sky-400'
+    }`;
+    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+</script>
+{% endblock %}
