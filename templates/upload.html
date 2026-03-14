@@ -3,169 +3,248 @@
 {% block title %}Upload Package - Zarch Hub{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <div class="glass-card rounded-2xl p-8" data-aos="fade-up">
-        <h1 class="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Upload Package
+<div class="max-w-3xl mx-auto fade-in">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">
+            <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Upload Package
+            </span>
         </h1>
-        
-        <form id="uploadForm" class="space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+            Share your APKM package with the community
+        </p>
+    </div>
+    
+    <!-- Upload Form -->
+    <div class="glass-card p-8">
+        <form method="POST" action="/api/v5.4/package/create" enctype="multipart/form-data" id="uploadForm" class="space-y-6">
             <!-- Package Name -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Package Name
-                </label>
-                <input type="text" id="name" required
-                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
-                       placeholder="e.g., my-package">
+                <label class="block text-sm font-medium mb-2">Package Name</label>
+                <input type="text" 
+                       name="name" 
+                       required 
+                       pattern="[a-z0-9_-]+"
+                       class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                       placeholder="e.g., my-awesome-tool">
+                <p class="text-xs text-gray-500 mt-1">Lowercase letters, numbers, hyphens, and underscores only</p>
             </div>
             
             <!-- Version -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Version
-                </label>
-                <input type="text" id="version" required
-                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
+                <label class="block text-sm font-medium mb-2">Version</label>
+                <input type="text" 
+                       name="version" 
+                       required 
+                       pattern="^\d+\.\d+\.\d+$"
+                       class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
                        placeholder="1.0.0">
+                <p class="text-xs text-gray-500 mt-1">Semantic versioning (major.minor.patch)</p>
             </div>
             
-            <!-- Release -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Release
-                </label>
-                <input type="text" id="release" value="r0"
-                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
-            </div>
-            
-            <!-- Architecture -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Architecture
-                </label>
-                <select id="arch" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
-                    <option value="x86_64">x86_64</option>
-                    <option value="i386">i386</option>
-                    <option value="arm64">arm64</option>
-                    <option value="armv7">armv7</option>
-                </select>
-            </div>
-            
-            <!-- Scope -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Scope
-                </label>
-                <select id="scope" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                </select>
+            <!-- Release & Arch -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Release</label>
+                    <input type="text" 
+                           name="release" 
+                           value="r0"
+                           pattern="^r\d+$"
+                           class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                           placeholder="r0">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Architecture</label>
+                    <select name="arch" class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none">
+                        <option value="x86_64">x86_64</option>
+                        <option value="arm64">ARM64</option>
+                        <option value="armv7">ARMv7</option>
+                        <option value="i386">i386</option>
+                        <option value="universal">Universal</option>
+                    </select>
+                </div>
             </div>
             
             <!-- Description -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Description
-                </label>
-                <textarea id="description" rows="3"
-                          class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
-                          placeholder="Short description of your package"></textarea>
+                <label class="block text-sm font-medium mb-2">Description</label>
+                <textarea name="description" 
+                          rows="3"
+                          class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                          placeholder="Brief description of your package"></textarea>
             </div>
             
-            <!-- License -->
+            <!-- Tags -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    License
-                </label>
-                <input type="text" id="license" value="MIT"
-                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800">
+                <label class="block text-sm font-medium mb-2">Tags</label>
+                <input type="text" 
+                       name="tags" 
+                       class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                       placeholder="cli, tool, development (comma separated)">
+            </div>
+            
+            <!-- Scope -->
+            <div>
+                <label class="block text-sm font-medium mb-2">Scope</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="scope" value="public" checked class="mr-2">
+                        <span>Public</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="scope" value="private" class="mr-2">
+                        <span>Private</span>
+                    </label>
+                </div>
             </div>
             
             <!-- File Upload -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Package File (.tar.bool)
-                </label>
-                <input type="file" id="file" accept=".tar.bool" required
-                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                <label class="block text-sm font-medium mb-2">Package File (.tar.bool)</label>
+                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-purple-500 transition cursor-pointer"
+                     onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                    <p class="text-gray-600 dark:text-gray-400">Click to select or drag and drop</p>
+                    <p class="text-xs text-gray-500 mt-1">.tar.bool files only, max 100MB</p>
+                </div>
+                <input type="file" 
+                       id="fileInput" 
+                       name="file" 
+                       accept=".tar.bool" 
+                       required 
+                       class="hidden"
+                       onchange="updateFileName(this)">
+                <div id="fileName" class="mt-2 text-sm text-gray-600 hidden">
+                    Selected: <span class="font-mono"></span>
+                </div>
+            </div>
+            
+            <!-- Changelog -->
+            <div>
+                <label class="block text-sm font-medium mb-2">Changelog</label>
+                <textarea name="changelog" 
+                          rows="3"
+                          class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                          placeholder="What's new in this version?"></textarea>
+            </div>
+            
+            <!-- Dependencies -->
+            <div>
+                <label class="block text-sm font-medium mb-2">Dependencies</label>
+                <input type="text" 
+                       name="dependencies" 
+                       class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                       placeholder="package1, package2@1.0.0 (comma separated)">
+            </div>
+            
+            <!-- License -->
+            <div>
+                <label class="block text-sm font-medium mb-2">License</label>
+                <input type="text" 
+                       name="license" 
+                       value="MIT"
+                       class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                       placeholder="MIT">
+            </div>
+            
+            <!-- Homepage & Repository -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Homepage</label>
+                    <input type="url" 
+                           name="homepage" 
+                           class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                           placeholder="https://...">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Repository</label>
+                    <input type="url" 
+                           name="repository" 
+                           class="w-full px-4 py-3 rounded-lg glass-card border-0 focus:ring-2 focus:ring-purple-600 outline-none"
+                           placeholder="https://github.com/...">
+                </div>
+            </div>
+            
+            <!-- Terms -->
+            <div class="flex items-start">
+                <input type="checkbox" name="terms" required class="mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-600">
+                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                    I confirm that I have the right to distribute this package and it complies with the 
+                    <a href="/terms" class="text-purple-600 hover:underline">Terms of Service</a>
+                </span>
             </div>
             
             <!-- Submit -->
             <button type="submit" 
-                    class="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition transform hover:scale-105">
-                <i class="fas fa-cloud-upload-alt mr-2"></i>
-                Upload Package
+                    class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition font-semibold shadow-lg">
+                <i class="fas fa-cloud-upload-alt mr-2"></i> Upload Package
             </button>
         </form>
-        
-        <div id="message" class="mt-4 text-center hidden"></div>
+    </div>
+    
+    <!-- Tips -->
+    <div class="mt-8 glass-card p-6">
+        <h3 class="text-lg font-semibold mb-4 flex items-center">
+            <i class="fas fa-lightbulb mr-2 text-yellow-500"></i>
+            Upload Tips
+        </h3>
+        <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Use semantic versioning (e.g., 1.0.0, 2.1.3)</li>
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Include a README.md in your .tar.bool file</li>
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Add meaningful tags to help discovery</li>
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Write clear changelog messages</li>
+            <li><i class="fas fa-check-circle text-green-500 mr-2"></i> Test your package before uploading</li>
+        </ul>
     </div>
 </div>
 
 <script>
-const token = localStorage.getItem('zarch_token');
-if (!token) {
-    window.location.href = '/login';
+function updateFileName(input) {
+    const fileNameDiv = document.getElementById('fileName');
+    const span = fileNameDiv.querySelector('span');
+    
+    if (input.files && input.files[0]) {
+        span.textContent = input.files[0].name;
+        fileNameDiv.classList.remove('hidden');
+    } else {
+        fileNameDiv.classList.add('hidden');
+    }
 }
 
+// Handle form submission
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const formData = new FormData();
-    formData.append('name', document.getElementById('name').value);
-    formData.append('version', document.getElementById('version').value);
-    formData.append('release', document.getElementById('release').value);
-    formData.append('arch', document.getElementById('arch').value);
-    formData.append('scope', document.getElementById('scope').value);
-    formData.append('description', document.getElementById('description').value);
-    formData.append('license', document.getElementById('license').value);
-    formData.append('file', document.getElementById('file').files[0]);
+    const formData = new FormData(e.target);
     
-    const msg = document.getElementById('message');
-    msg.classList.remove('hidden', 'text-green-600', 'text-red-600');
-    msg.textContent = 'Uploading...';
-    msg.classList.add('text-purple-600');
+    // Parse tags
+    const tagsInput = formData.get('tags');
+    if (tagsInput) {
+        formData.set('tags', JSON.stringify(tagsInput.split(',').map(t => t.trim())));
+    }
+    
+    // Parse dependencies
+    const depsInput = formData.get('dependencies');
+    if (depsInput) {
+        formData.set('dependencies', JSON.stringify(depsInput.split(',').map(d => d.trim())));
+    }
     
     try {
-        // 1. Créer le package
-        const pkgRes = await fetch('/v6/packages', {
+        const response = await fetch('/api/v5.4/package/create', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                name: document.getElementById('name').value,
-                version: document.getElementById('version').value,
-                release: document.getElementById('release').value,
-                arch: document.getElementById('arch').value,
-                scope: document.getElementById('scope').value,
-                description: document.getElementById('description').value,
-                license: document.getElementById('license').value,
-                author: '{{ user.username }}'
-            })
-        });
-        
-        const pkgData = await pkgRes.json();
-        if (!pkgRes.ok) throw new Error(pkgData.error);
-        
-        // 2. Uploader le fichier
-        const fileRes = await fetch(`/v6/packages/${document.getElementById('name').value}/upload`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
         
-        const fileData = await fileRes.json();
-        if (!fileRes.ok) throw new Error(fileData.error);
+        const result = await response.json();
         
-        msg.textContent = '✅ Package uploaded successfully!';
-        msg.classList.add('text-green-600');
-        setTimeout(() => window.location.href = `/package/${document.getElementById('name').value}`, 2000);
-    } catch (err) {
-        msg.textContent = `❌ Error: ${err.message}`;
-        msg.classList.add('text-red-600');
+        if (response.ok) {
+            window.location.href = `/package/${result.package.name}`;
+        } else {
+            alert(result.error || 'Upload failed');
+        }
+    } catch (error) {
+        alert('Network error. Please try again.');
     }
 });
 </script>
