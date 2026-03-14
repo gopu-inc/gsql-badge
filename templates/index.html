@@ -1,336 +1,171 @@
 {% extends "base.html" %}
 
-{% block title %}Zarch Hub - The Ultimate APKM Package Registry{% endblock %}
+{% block title %}Home - APKM Package Registry{% endblock %}
+
+{% block og_title %}Zarch Hub - The Ultimate APKM Package Registry{% endblock %}
+{% block og_description %}Discover, share, and manage APKM packages with ease. Join our community of developers and users.{% endblock %}
 
 {% block content %}
-<!-- =========================================================================
-     HERO SECTION
-     ========================================================================= -->
-<div class="relative hero-section min-h-[80vh] flex items-center justify-center overflow-hidden">
-    <!-- Background blobs animés -->
-    <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div class="absolute top-0 -right-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-    </div>
-
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center" data-aos="fade-up">
-        <!-- Badge "Now in Beta" -->
-        <div class="inline-flex items-center px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-sm font-medium mb-6 sm:mb-8 animate-float">
-            <i class="fas fa-rocket mr-2"></i>
-            <span>🚀 Now in Beta - Join the Revolution!</span>
-        </div>
-
-        <!-- Titre principal -->
-        <h1 class="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
-            <span class="gradient-text">Zarch Hub</span>
+<div class="fade-in">
+    <!-- Hero Section -->
+    <section class="text-center py-16 md:py-24" data-aos="fade-up">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6">
+            <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Zarch Hub
+            </span>
         </h1>
-
-        <!-- Sous-titre -->
-        <p class="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-            The ultimate package registry for 
-            <span class="font-bold text-purple-600 dark:text-purple-400">APKM</span> - 
-            Alpine Package Manager
+        <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8 max-w-3xl mx-auto">
+            The ultimate package registry for <span class="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">APKM</span> - 
+            Alpine Package Manager. Share your packages with the world.
         </p>
-
-        <!-- Barre de recherche -->
-        <div class="max-w-2xl mx-auto px-4 mb-8 sm:mb-12">
-            <form action="/packages" method="get" class="relative group">
-                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-purple-600 transition-colors"></i>
-                <input type="text" 
-                       name="q" 
-                       placeholder="Search packages... (e.g., apkm, bool, apsm)" 
-                       class="w-full pl-12 pr-32 py-3 sm:py-4 rounded-2xl glass-card text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-900/50 transition-all duration-300 shadow-lg"
-                       value="{{ request.args.get('q', '') }}">
-                <button type="submit" 
-                        class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 hover:scale-105 shadow-lg text-sm sm:text-base">
-                    Search
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto mb-12">
+            <div class="glass-card p-6">
+                <div class="text-3xl font-bold text-purple-600">{{ total_packages }}</div>
+                <div class="text-gray-600 dark:text-gray-400">Total Packages</div>
+            </div>
+            <div class="glass-card p-6">
+                <div class="text-3xl font-bold text-pink-600">{{ total_downloads }}</div>
+                <div class="text-gray-600 dark:text-gray-400">Downloads</div>
+            </div>
+            <div class="glass-card p-6">
+                <div class="text-3xl font-bold text-indigo-600">{{ total_authors }}</div>
+                <div class="text-gray-600 dark:text-gray-400">Authors</div>
+            </div>
+        </div>
+        
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="/packages" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition shadow-lg text-lg font-semibold">
+                <i class="fas fa-search mr-2"></i> Browse Packages
+            </a>
+            <a href="/docs" class="px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition shadow-lg text-lg font-semibold border border-gray-200 dark:border-gray-700">
+                <i class="fas fa-book mr-2"></i> Read Docs
+            </a>
+        </div>
+        
+        <!-- Quick Install -->
+        <div class="mt-12 max-w-2xl mx-auto glass-card p-6 text-left">
+            <h3 class="text-lg font-semibold mb-3">Quick Install</h3>
+            <div class="bg-gray-900 text-white p-4 rounded-lg font-mono text-sm relative group">
+                <code>curl -sSL https://gsql-badge.onrender.com/install.sh | sh</code>
+                <button onclick="navigator.clipboard.writeText('curl -sSL https://gsql-badge.onrender.com/install.sh | sh')" 
+                        class="absolute right-2 top-2 p-2 bg-gray-800 rounded-lg opacity-0 group-hover:opacity-100 transition">
+                    <i class="far fa-copy"></i>
                 </button>
-            </form>
-
-            <!-- Tags populaires -->
-            <div class="flex flex-wrap gap-2 justify-center mt-4 text-xs sm:text-sm">
-                <span class="text-gray-500 dark:text-gray-400">Popular:</span>
-                <a href="/packages?q=apkm" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                    apkm
-                </a>
-                <a href="/packages?q=bool" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                    bool
-                </a>
-                <a href="/packages?q=apsm" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                    apsm
-                </a>
-                <a href="/packages?q=alpine" class="px-3 py-1 glass-card rounded-full hover:bg-purple-600 hover:text-white transition-all duration-300 text-gray-700 dark:text-gray-300">
-                    alpine
-                </a>
             </div>
         </div>
-
-        <!-- Statistiques -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto px-4">
-            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                <div class="text-xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">{{ total_packages }}</div>
-                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Packages</div>
-            </div>
-            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                <div class="text-xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{{ total_downloads }}</div>
-                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Downloads</div>
-            </div>
-            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                <div class="text-xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">{{ total_authors }}</div>
-                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Authors</div>
-            </div>
-            <div class="glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 transform hover:scale-105 transition-all duration-300">
-                <div class="text-xl sm:text-3xl font-bold text-pink-600 dark:text-pink-400">2026</div>
-                <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Founded</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     FEATURES SECTION
-     ========================================================================= -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-    <div class="text-center mb-8 sm:mb-12" data-aos="fade-up">
-        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-            <span class="gradient-text">Why Choose Zarch Hub?</span>
+    </section>
+    
+    <!-- Recent Packages -->
+    <section class="py-16" data-aos="fade-up">
+        <h2 class="text-3xl font-bold mb-8 text-center">
+            <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Recent Packages
+            </span>
         </h2>
-        <p class="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Built for developers, designed for performance and security
-        </p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <!-- Feature 1 -->
-        <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group" data-aos="fade-up" data-aos-delay="100">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-rocket text-xl sm:text-2xl text-purple-600"></i>
-            </div>
-            <h3 class="text-base sm:text-lg font-bold mb-1 sm:mb-2">Lightning Fast</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                Optimized delivery with global CDN and smart caching
-            </p>
-        </div>
-
-        <!-- Feature 2 -->
-        <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group" data-aos="fade-up" data-aos-delay="200">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-shield-alt text-xl sm:text-2xl text-green-600"></i>
-            </div>
-            <h3 class="text-base sm:text-lg font-bold mb-1 sm:mb-2">Secure by Design</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                SHA256 verification and secure token authentication
-            </p>
-        </div>
-
-        <!-- Feature 3 -->
-        <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group" data-aos="fade-up" data-aos-delay="300">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-code-branch text-xl sm:text-2xl text-orange-600"></i>
-            </div>
-            <h3 class="text-base sm:text-lg font-bold mb-1 sm:mb-2">Easy Publishing</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                Publish with a single command using APSM
-            </p>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="glass-card rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group" data-aos="fade-up" data-aos-delay="400">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fas fa-heart text-xl sm:text-2xl text-blue-600"></i>
-            </div>
-            <h3 class="text-base sm:text-lg font-bold mb-1 sm:mb-2">Community Driven</h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                Active Discord community and open source
-            </p>
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     HOW IT WORKS SECTION
-     ========================================================================= -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-    <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12">
-        <div class="text-center mb-8 sm:mb-12" data-aos="fade-up">
-            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-                <span class="gradient-text">How It Works</span>
-            </h2>
-            <p class="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400">
-                Get started in minutes with these simple steps
-            </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            <!-- Step 1 -->
-            <div class="relative text-center" data-aos="fade-right" data-aos-delay="100">
-                <div class="absolute -top-3 -right-3 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg">
-                    1
-                </div>
-                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <i class="fas fa-user-plus text-2xl sm:text-3xl text-purple-600"></i>
-                </div>
-                <h3 class="text-base sm:text-lg font-bold mb-2">Create an Account</h3>
-                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
-                    Sign up for free and get your API token
-                </p>
-                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-2 sm:p-3 font-mono text-xs sm:text-sm">
-                    <code class="text-purple-600">apsm login</code>
-                </div>
-            </div>
-
-            <!-- Step 2 -->
-            <div class="relative text-center" data-aos="fade-up" data-aos-delay="200">
-                <div class="absolute -top-3 -right-3 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg">
-                    2
-                </div>
-                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-pink-100 dark:bg-pink-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <i class="fas fa-cubes text-2xl sm:text-3xl text-pink-600"></i>
-                </div>
-                <h3 class="text-base sm:text-lg font-bold mb-2">Build Your Package</h3>
-                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
-                    Create an APKMBUILD file and build with BOOL
-                </p>
-                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-2 sm:p-3 font-mono text-xs sm:text-sm">
-                    <code class="text-pink-600">bool --build</code>
-                </div>
-            </div>
-
-            <!-- Step 3 -->
-            <div class="relative text-center" data-aos="fade-left" data-aos-delay="300">
-                <div class="absolute -top-3 -right-3 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg">
-                    3
-                </div>
-                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-orange-100 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <i class="fas fa-upload text-2xl sm:text-3xl text-orange-600"></i>
-                </div>
-                <h3 class="text-base sm:text-lg font-bold mb-2">Publish to Hub</h3>
-                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-4">
-                    Share your package with the community
-                </p>
-                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-2 sm:p-3 font-mono text-xs sm:text-sm">
-                    <code class="text-orange-600">apsm push package.tar.bool</code>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- =========================================================================
-     RECENT PACKAGES SECTION
-     ========================================================================= -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-4">
-        <h2 class="text-2xl sm:text-3xl font-bold">
-            <span class="gradient-text">Recent Packages</span>
-        </h2>
-        <a href="/packages" class="text-purple-600 hover:text-purple-700 font-medium flex items-center group text-sm sm:text-base">
-            View all 
-            <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
-        </a>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {% for pkg in packages %}
-        <a href="/package/{{ pkg.name }}" 
-           class="glass-card rounded-xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group"
-           data-aos="fade-up" 
-           data-aos-delay="{{ loop.index * 50 }}">
-            
-            <div class="flex items-start justify-between mb-3 sm:mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center">
-                        <i class="fas fa-cubes text-purple-600 text-lg sm:text-xl"></i>
-                    </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for package in packages %}
+            <a href="/package/{{ package.name }}" class="glass-card p-6 hover:scale-105 transition-transform group">
+                <div class="flex items-start justify-between mb-4">
                     <div>
-                        <h3 class="font-bold text-sm sm:text-base truncate max-w-[120px] sm:max-w-[150px]">{{ pkg.name }}</h3>
-                        <p class="text-xs text-gray-500">by <span data-author="{{ pkg.author }}">{{ pkg.author }}</span></p>
+                        <h3 class="text-xl font-semibold group-hover:text-purple-600 transition">
+                            {{ package.name }}
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400" data-author="{{ package.author }}">
+                            by {{ package.author }}
+                        </p>
                     </div>
+                    <span class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full text-xs">
+                        {{ package.scope }}
+                    </span>
                 </div>
-                <span class="text-xs px-2 py-1 rounded-full 
-                    {% if pkg.scope == 'public' %}
-                        bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
-                    {% else %}
-                        bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400
-                    {% endif %}">
-                    <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }} mr-1"></i>
-                    {{ pkg.scope }}
-                </span>
+                
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                    {{ package.description|default('No description provided') }}
+                </p>
+                
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-tag mr-1"></i> v{{ package.get_latest_version().version }}
+                    </span>
+                    <span class="text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-download mr-1"></i> {{ package.downloads }}
+                    </span>
+                </div>
+            </a>
+            {% else %}
+            <div class="col-span-full text-center py-12 text-gray-500 dark:text-gray-400">
+                <i class="fas fa-box-open text-4xl mb-4"></i>
+                <p>No packages available yet. Be the first to upload!</p>
             </div>
-
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3 sm:mb-4 line-clamp-2">
-                {{ pkg.description or 'No description provided' }}
+            {% endfor %}
+        </div>
+    </section>
+    
+    <!-- Discord Section -->
+    <section class="py-16" data-aos="fade-up">
+        <div class="glass-card p-8 md:p-12 text-center">
+            <i class="fab fa-discord text-6xl text-indigo-600 mb-4"></i>
+            <h2 class="text-3xl font-bold mb-4">Join our Discord Community</h2>
+            <p class="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+                Connect with other developers, get help, and stay updated with the latest packages.
             </p>
-
-            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span><i class="fas fa-tag mr-1"></i>v{{ pkg.version }}</span>
-                <span><i class="fas fa-download mr-1"></i>{{ pkg.downloads }}</span>
-                <span><i class="fas fa-calendar mr-1"></i>{{ pkg.created_at[:10] if pkg.created_at else 'N/A' }}</span>
-            </div>
-        </a>
-        {% else %}
-        <div class="col-span-full text-center py-8 sm:py-12">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-box-open text-2xl sm:text-3xl text-gray-400"></i>
-            </div>
-            <h3 class="text-lg sm:text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">No packages yet</h3>
-            <p class="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-4">Be the first to share your package!</p>
-            <a href="/upload" class="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl text-sm sm:text-base font-medium hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg">
-                <i class="fas fa-upload mr-2"></i>
-                Upload Package
+            <a href="https://discord.gg/W2xN49q9h" target="_blank" 
+               class="discord-btn text-white px-8 py-4 rounded-xl inline-flex items-center text-lg font-semibold">
+                <i class="fab fa-discord mr-2"></i> Join Discord Server
+                <span class="ml-3 px-3 py-1 bg-white/20 rounded-full text-sm">387 online</span>
             </a>
         </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- =========================================================================
-     CTA SECTION
-     ========================================================================= -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-    <div class="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 text-center" data-aos="fade-up">
-        <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
-            <span class="gradient-text">Ready to Get Started?</span>
+    </section>
+    
+    <!-- Features -->
+    <section class="py-16">
+        <h2 class="text-3xl font-bold mb-12 text-center">
+            <span class="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Why Choose Zarch Hub?
+            </span>
         </h2>
-        <p class="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 mb-6 sm:mb-8">
-            Join thousands of developers using Zarch Hub today
-        </p>
-
-        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-            <a href="/register" 
-               class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all hover:scale-105 shadow-lg text-sm sm:text-base">
-                <i class="fas fa-user-plus mr-2"></i>
-                Create Account
-            </a>
-            
-            <a href="/packages" 
-               class="px-6 sm:px-8 py-3 sm:py-4 glass-card text-gray-900 dark:text-white rounded-xl font-bold hover:bg-white/30 transition-all hover:scale-105 text-sm sm:text-base">
-                <i class="fas fa-box mr-2"></i>
-                Browse Packages
-            </a>
-            
-            <a href="https://discord.gg/W2xN49q9h" target="_blank"
-               class="px-6 sm:px-8 py-3 sm:py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all hover:scale-105 shadow-lg text-sm sm:text-base">
-                <i class="fab fa-discord mr-2"></i>
-                Join Discord
-            </a>
-        </div>
-
-        <div class="flex flex-wrap justify-center gap-4 sm:gap-6 mt-6 sm:mt-8 text-xs sm:text-sm text-gray-500">
-            <div class="flex items-center">
-                <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                Free forever
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center p-6" data-aos="fade-up">
+                <div class="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-rocket text-2xl text-purple-600"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Lightning Fast</h3>
+                <p class="text-gray-600 dark:text-gray-400">Powered by GitHub's global CDN for blazing fast downloads worldwide.</p>
             </div>
-            <div class="flex items-center">
-                <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                No credit card
+            
+            <div class="text-center p-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="w-16 h-16 bg-pink-100 dark:bg-pink-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-2xl text-pink-600"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Secure by Default</h3>
+                <p class="text-gray-600 dark:text-gray-400">SHA256 checksums, JWT authentication, and encrypted cookies.</p>
             </div>
-            <div class="flex items-center">
-                <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                Open source
+            
+            <div class="text-center p-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-code-branch text-2xl text-indigo-600"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Semantic Versioning</h3>
+                <p class="text-gray-600 dark:text-gray-400">Automatic update checks and version management with semver.</p>
             </div>
         </div>
-    </div>
+    </section>
+    
+    <!-- GitHub Stats -->
+    <section class="py-8 text-center text-sm text-gray-500 dark:text-gray-400" data-aos="fade-up">
+        <i class="fab fa-github mr-1"></i>
+        <a href="https://github.com/gopu-inc/gsql-badge" target="_blank" class="hover:text-purple-600 transition">
+            gopu-inc/gsql-badge
+        </a>
+        <span class="mx-2">•</span>
+        <i class="fas fa-database mr-1"></i> GitHub as Database
+        <span class="mx-2">•</span>
+        <i class="fas fa-code-branch mr-1"></i> branch: package-data
+    </section>
 </div>
 {% endblock %}
