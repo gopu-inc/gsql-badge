@@ -146,6 +146,19 @@
       "created_at": "2026-03-12T22:35:53.285640",
       "updated_at": "2026-03-12T22:35:53.285648",
       "downloads": 0
+    },
+    {
+      "name": "httplib",
+      "scope": "public",
+      "version": "1.1.0",
+      "release": "r0",
+      "arch": "x86_64",
+      "author": "testeur_zarch",
+      "sha256": "ac926563e83094f33e93d59e0f96ebaa35cdb827bb4b1c3ea8d182b2f16c3282",
+      "size": 1177,
+      "created_at": "2026-04-25T13:01:47.113749",
+      "updated_at": "2026-04-25T13:01:47.113756",
+      "downloads": 0
     }
   ],
   "badges": [],
