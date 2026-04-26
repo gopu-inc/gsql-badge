@@ -65,6 +65,21 @@
       "password": "$2b$12$/Yx3VzHStcd3q8v/5eHbd.gwMPw9hXA0HhRAlhMtxFG3755ND6cxS",
       "role": "user",
       "created_at": "2026-03-14T08:53:34.756880"
+    },
+    {
+      "id": "9a231488-fcd0-44ae-affb-cb4709db8fc3",
+      "username": "mauricio_tukss1231",
+      "email": "didimbanza714@gmail.com",
+      "discord_id": "1394106069139325009",
+      "discord_username": "mauricio_tukss1231",
+      "discord_avatar": "https://cdn.discordapp.com/avatars/1394106069139325009/c60975992c691ed0c45a9222791468b1.png",
+      "discord_token": "MTQ2NzU0MjkyMjEzOTUzNzQ2OQ.X2QrJ68rIU92wlcZhJZYaE9uxzQFFx",
+      "discord_refresh_token": "pTWrVpBYy75zEN9EPB8ojkEmX3BiQf",
+      "discord_token_expires": "2026-05-03T15:10:06.192285",
+      "role": "user",
+      "created_at": "2026-04-26T15:10:06.192294",
+      "last_login": "2026-04-26T15:10:06.192296",
+      "provider": "discord"
     }
   ]
 }
