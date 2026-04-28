@@ -1810,7 +1810,7 @@ def community_page():
                              realtime_stats={},
                              welcome_message="Welcome to the community!",
                              user=session.get('user'))
-@app.route('/package/download/<scope>/<name>/<version>/')
+@app.route('/package/download/<scope>/<name>/<version>/<release>/<arch>')
 @rate_limit()
 def download_package(scope, name, version, release, arch):
     """Télécharge un fichier package en utilisant tous les identifiants."""
@@ -1926,22 +1926,58 @@ BLUE='\\033[0;34m'
 NC='\\033[0m'
 
 # Vérification des permissions
-ls /usr
-git clone https://github.com/gopu-inc/apkm-gest.git
-cd apkm-gest
-cd es
-cmake ..
-make -j$(nproc)
-make install
-echo "${GREEN} APKM INSTALL SUSSEFULL ${NC}"
-git clone https://github.com/gopu-inc/goscript.git
-cd goscript
-mkdir setup
-cd setup
-cmake ..
-make -j$(nproc)
-make install
-echo "${GREEN} GOSCRIPT INSTALL SUSSEFULL ${NC}"
+if [ "$EUID" -ne 0 ]; then 
+    echo "${RED}❌ Please run as root${NC}"
+    exit 1
+fi
+
+echo "${BLUE}📦 Installing APKM Tools...${NC}"
+
+# Détection de l'architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)  ARCH="x86_64" ;;
+    aarch64) ARCH="arm64" ;;
+    armv7l)  ARCH="armv7" ;;
+    *)       echo "${RED}❌ Unsupported architecture: $ARCH${NC}"; exit 1 ;;
+esac
+
+echo "${YELLOW}🔧 Architecture detected: $ARCH${NC}"
+
+# URLs des binaires
+BASE_URL="https://gsql-badge.onrender.com/package/download/public"
+VERSION="2.0.0"
+RELEASE="r1"
+
+# Installation d'APKM
+echo "${BLUE}📥 Downloading APKM...${NC}"
+curl -L -o /tmp/apkm.tar.bool "$BASE_URL/apkm/$VERSION/$RELEASE/$ARCH"
+tar -xzf /tmp/apkm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apkm.tar.bool -C /usr/local/bin/
+chmod +x /usr/local/bin/apkm
+rm -f /tmp/apkm.tar.bool
+
+# Installation d'APSM
+echo "${BLUE}📥 Downloading APSM...${NC}"
+curl -L -o /tmp/apsm.tar.bool "$BASE_URL/apsm/$VERSION/$RELEASE/$ARCH"
+tar -xzf /tmp/apsm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apsm.tar.bool -C /usr/local/bin/
+chmod +x /usr/local/bin/apsm
+rm -f /tmp/apsm.tar.bool
+
+# Installation de BOOL
+echo "${BLUE}📥 Downloading BOOL...${NC}"
+curl -L -o /tmp/bool.tar.bool "$BASE_URL/bool/$VERSION/$RELEASE/$ARCH"
+tar -xzf /tmp/bool.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/bool.tar.bool -C /usr/local/bin/
+chmod +x /usr/local/bin/bool
+rm -f /tmp/bool.tar.bool
+
+# Création des répertoires
+mkdir -p /usr/local/share/apkm/{database,cache,PROTOCOLE/security/tokens}
+
+# Configuration initiale
+echo "${BLUE}⚙️  Configuring APKM...${NC}"
+cat > /etc/apkm/repositories.conf << EOF
+# APKM Repositories
+zarch-hub https://gsql-badge.onrender.com 5
 EOF
 
 # Vérification
