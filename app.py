@@ -1810,7 +1810,7 @@ def community_page():
                              realtime_stats={},
                              welcome_message="Welcome to the community!",
                              user=session.get('user'))
-@app.route('/package/download/<scope>/<name>/<version>/<release>/<arch>')
+@app.route('/package/download/<scope>/<name>/<version>/')
 @rate_limit()
 def download_package(scope, name, version, release, arch):
     """Télécharge un fichier package en utilisant tous les identifiants."""
