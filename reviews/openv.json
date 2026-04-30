@@ -1,0 +1,13 @@
+{
+  "reviews": [
+    {
+      "id": "f41d7d99-b797-42be-86f8-05b8d3158e41",
+      "username": "gopu",
+      "rating": 5,
+      "comment": "Je suis le cr\u00e9ateur @gopu",
+      "created_at": "2026-04-30T09:03:06.408292",
+      "updated_at": "2026-04-30T09:03:06.408304"
+    }
+  ],
+  "average": 5.0
+}
