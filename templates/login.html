@@ -1,165 +1,704 @@
-
 {% extends "base.html" %}
 
-{% block title %}Connexion - Zarch Hub{% endblock %}
+{% block head_extra %}
+<meta property="og:title" content="Login - Zarch Hub">
+<meta property="og:description" content="Sign in to your Zarch Hub account to manage packages, publish, and join the community.">
+<meta property="og:url" content="https://gsql-badge.onrender.com/login">
+<meta name="description" content="Login to Zarch Hub - Access your packages, dashboard, and community features.">
+<link rel="canonical" href="https://gsql-badge.onrender.com/login">
+{% endblock %}
+
+{% block title %}Login - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+    AUTH PAGE LAYOUT
+    ============================================================ */
+    .auth-page {
+        min-height: calc(100vh - var(--navbar-height) - 300px);
+        min-height: calc(100dvh - var(--navbar-height) - 300px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem var(--container-padding);
+        background: var(--gradient-hero);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .auth-page::before {
+        content: '';
+        position: absolute;
+        top: -20%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(88, 166, 255, 0.04) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .auth-page::after {
+        content: '';
+        position: absolute;
+        bottom: -15%;
+        left: -8%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(188, 140, 255, 0.03) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .auth-container {
+        width: 100%;
+        max-width: 460px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ============================================================
+    AUTH CARD
+    ============================================================ */
+    .auth-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-2xl);
+        padding: 2.5rem 2rem;
+        box-shadow: var(--shadow-xl);
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-logo {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .auth-logo img {
+        width: 72px;
+        height: 72px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        margin-bottom: 0.75rem;
+        object-fit: contain;
+    }
+
+    .auth-logo h2 {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 1.5rem;
+        letter-spacing: -0.02em;
+    }
+
+    .auth-logo p {
+        color: var(--text-tertiary);
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+
+    /* ============================================================
+    SOCIAL LOGIN BUTTONS
+    ============================================================ */
+    .social-login {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .social-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: var(--transition);
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .social-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .social-btn.discord {
+        border-color: #5865F2;
+    }
+
+    .social-btn.discord:hover {
+        background: #5865F2;
+        color: #fff;
+        border-color: #5865F2;
+        box-shadow: 0 8px 25px rgba(88, 101, 242, 0.4);
+    }
+
+    .social-btn.github {
+        border-color: #6e7681;
+    }
+
+    .social-btn.github:hover {
+        background: #333;
+        color: #fff;
+        border-color: #333;
+        box-shadow: 0 8px 25px rgba(51, 51, 51, 0.4);
+    }
+
+    .social-btn.google {
+        border-color: #ea4335;
+    }
+
+    .social-btn.google:hover {
+        background: #ea4335;
+        color: #fff;
+        border-color: #ea4335;
+        box-shadow: 0 8px 25px rgba(234, 67, 53, 0.4);
+    }
+
+    .social-btn i {
+        font-size: 1.3rem;
+    }
+
+    .social-btn span {
+        display: none;
+    }
+
+    @media (min-width: 400px) {
+        .social-btn span {
+            display: inline;
+        }
+    }
+
+    /* ============================================================
+    DIVIDER
+    ============================================================ */
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        color: var(--text-tertiary);
+        font-size: 0.85rem;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
+
+    /* ============================================================
+    FORM
+    ============================================================ */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+        letter-spacing: 0.01em;
+    }
+
+    .input-wrapper {
+        position: relative;
+    }
+
+    .input-wrapper i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-tertiary);
+        font-size: 0.9rem;
+        transition: var(--transition);
+        pointer-events: none;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.8rem 1rem 0.8rem 2.75rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+    }
+
+    .form-input:focus + i,
+    .input-wrapper:focus-within i {
+        color: var(--accent-blue);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-tertiary);
+        opacity: 0.6;
+    }
+
+    /* Password toggle */
+    .password-toggle {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        padding: 0.25rem;
+        font-size: 0.9rem;
+        transition: var(--transition);
+    }
+
+    .password-toggle:hover {
+        color: var(--text-primary);
+    }
+
+    /* ============================================================
+    FORM OPTIONS
+    ============================================================ */
+    .form-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+
+    .remember-me input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent-blue);
+        border-radius: var(--radius-xs);
+        cursor: pointer;
+    }
+
+    .forgot-password {
+        font-size: 0.85rem;
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .forgot-password:hover {
+        text-decoration: underline;
+        color: #4090e0;
+    }
+
+    /* ============================================================
+    SUBMIT BUTTON
+    ============================================================ */
+    .btn-submit {
+        width: 100%;
+        padding: 0.9rem;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: var(--radius-md);
+        background: var(--gradient-blue);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(88, 166, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(88, 166, 255, 0.45);
+    }
+
+    .btn-submit:active {
+        transform: scale(0.98);
+    }
+
+    .btn-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* ============================================================
+    LOADING SPINNER
+    ============================================================ */
+    .spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .btn-submit.loading .spinner {
+        display: block;
+    }
+
+    .btn-submit.loading .btn-text {
+        display: none;
+    }
+
+    /* ============================================================
+    ERROR MESSAGE
+    ============================================================ */
+    .form-error {
+        background: rgba(248, 81, 73, 0.1);
+        border: 1px solid rgba(248, 81, 73, 0.3);
+        color: var(--accent-red);
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-5px); }
+        40% { transform: translateX(5px); }
+        60% { transform: translateX(-3px); }
+        80% { transform: translateX(3px); }
+    }
+
+    .form-error i {
+        flex-shrink: 0;
+    }
+
+    /* ============================================================
+    REGISTER LINK
+    ============================================================ */
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+        color: var(--text-tertiary);
+    }
+
+    .auth-footer a {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    /* ============================================================
+    RESPONSIVE
+    ============================================================ */
+    @media (max-width: 480px) {
+        .auth-card {
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+        }
+
+        .auth-logo img {
+            width: 56px;
+            height: 56px;
+        }
+
+        .auth-logo h2 {
+            font-size: 1.3rem;
+        }
+
+        .form-input {
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="min-h-[80vh] flex items-center justify-center" data-aos="fade-up">
-    <div class="w-full max-w-md">
-        <!-- Logo / Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl mb-4 shadow-lg shadow-sky-500/20 animate-float">
-                <i class="fas fa-layer-group text-white text-3xl"></i>
+<!-- ================================================================
+LOGIN PAGE
+================================================================ -->
+<section class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png" 
+                     alt="Zarch Hub Logo"
+                     onerror="this.style.display='none';">
+                <h2>Welcome Back</h2>
+                <p>Sign in to your Zarch Hub account</p>
             </div>
-            <h1 class="text-3xl font-bold text-white tracking-tight">Zarch Hub <span class="text-sky-400">v5.2</span></h1>
-            <p class="text-slate-400 mt-2">Access your package registry</p>
-        </div>
 
-        <!-- Login Card -->
-        <div class="glass-card p-8 rounded-3xl border border-slate-700/50">
-            <form id="loginForm" class="space-y-6">
-                <!-- Alert Box -->
-                <div id="alertBox" class="hidden p-4 rounded-xl border flex items-start gap-3"></div>
+            <!-- Social Login -->
+            <div class="social-login">
+                <a href="{{ url_for('auth_discord') }}" class="social-btn discord" title="Login with Discord">
+                    <i class="fab fa-discord"></i>
+                    <span>Discord</span>
+                </a>
+                <a href="#" class="social-btn github" title="Login with GitHub" onclick="showToast('GitHub login coming soon', 'info'); return false;">
+                    <i class="fab fa-github"></i>
+                    <span>GitHub</span>
+                </a>
+                <a href="#" class="social-btn google" title="Login with Google" onclick="showToast('Google login coming soon', 'info'); return false;">
+                    <i class="fab fa-google"></i>
+                    <span>Google</span>
+                </a>
+            </div>
 
-                <div class="input-group">
-                    <label class="block text-sm font-medium text-slate-300 mb-2 ml-1">Username</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
-                            <i class="fas fa-user"></i>
-                        </span>
-                        <input type="text" id="username" name="username" required
-                            class="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
-                            placeholder="Enter username">
+            <div class="divider">
+                <span>or continue with email</span>
+            </div>
+
+            <!-- Error Message (hidden by default) -->
+            <div class="form-error" id="formError" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="formErrorMessage"></span>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" method="POST" action="/v5.2/auth/login" novalidate>
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i> Username
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" 
+                               id="username" 
+                               name="username" 
+                               class="form-input" 
+                               placeholder="Your username"
+                               autocomplete="username"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               required
+                               minlength="3"
+                               autofocus>
                     </div>
                 </div>
 
-                <div class="input-group">
-                    <div class="flex justify-between mb-2 ml-1">
-                        <label class="text-sm font-medium text-slate-300">Password</label>
-                        <a href="#" class="text-xs text-sky-400 hover:text-sky-300">Forgot?</a>
-                    </div>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500">
-                            <i class="fas fa-lock"></i>
-                        </span>
-                        <input type="password" id="password" name="password" required
-                            class="block w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all"
-                            placeholder="••••••••">
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i> Password
+                    </label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" 
+                               id="password" 
+                               name="password" 
+                               class="form-input" 
+                               placeholder="Your password"
+                               autocomplete="current-password"
+                               required
+                               minlength="8">
+                        <button type="button" class="password-toggle" id="passwordToggle" tabindex="-1" aria-label="Toggle password visibility">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                 </div>
 
-                <div class="flex items-center">
-                    <input id="remember-me" name="remember-me" type="checkbox" 
-                        class="h-4 w-4 text-sky-500 focus:ring-sky-500 border-slate-700 rounded bg-slate-900">
-                    <label for="remember-me" class="ml-2 block text-sm text-slate-400">Remember me</label>
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" name="remember" id="remember" checked>
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password" onclick="showToast('Password reset coming soon', 'info'); return false;">
+                        Forgot password?
+                    </a>
                 </div>
 
-                <button type="submit" id="submitBtn"
-                    class="glow-button w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-sky-400 hover:from-sky-600 hover:to-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <span id="btnText">Sign In</span>
-                    <i id="loadingIcon" class="hidden fas fa-circle-notch fa-spin ml-2"></i>
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Sign In</span>
+                    <span class="spinner"></span>
                 </button>
             </form>
 
-            <!-- Social Login -->
-            <div class="mt-8">
-                <div class="relative">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-slate-700"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-4 bg-slate-800/50 text-slate-400 rounded-full">Or continue with</span>
-                    </div>
-                </div>
-
-                <div class="mt-6 grid grid-cols-3 gap-3">
-                    <a href="{{ url_for('auth_discord') }}" 
-                       class="flex justify-center py-3 px-4 bg-slate-800/50 border border-slate-700 rounded-xl hover:bg-sky-500/10 hover:border-sky-500/50 transition-all group">
-                        <i class="fab fa-discord text-2xl text-slate-400 group-hover:text-sky-400"></i>
-                    </a>
-                    <a href="#" 
-                       class="flex justify-center py-3 px-4 bg-slate-800/50 border border-slate-700 rounded-xl hover:bg-sky-500/10 hover:border-sky-500/50 transition-all group">
-                        <i class="fab fa-github text-2xl text-slate-400 group-hover:text-sky-400"></i>
-                    </a>
-                    <a href="#" 
-                       class="flex justify-center py-3 px-4 bg-slate-800/50 border border-slate-700 rounded-xl hover:bg-sky-500/10 hover:border-sky-500/50 transition-all group">
-                        <i class="fab fa-google text-2xl text-slate-400 group-hover:text-sky-400"></i>
-                    </a>
-                </div>
+            <div class="auth-footer">
+                Don't have an account? 
+                <a href="/register">Create one here</a>
             </div>
-
-            <div class="mt-8 pt-6 border-t border-slate-800 text-center">
-                <p class="text-sm text-slate-400">
-                    Don't have an account? 
-                    <a href="/register" class="font-medium text-sky-400 hover:text-sky-300">Create one</a>
-                </p>
-            </div>
-        </div>
-
-        <!-- Demo Credentials -->
-        <div class="mt-6 text-center">
-            <p class="text-xs text-slate-500">
-                <i class="fas fa-info-circle mr-1"></i>
-                Demo: username: <span class="text-sky-400">demo</span> | password: <span class="text-sky-400">demo123</span>
-            </p>
         </div>
     </div>
-</div>
+</section>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const loginForm = document.getElementById('loginForm');
-const alertBox = document.getElementById('alertBox');
-const submitBtn = document.getElementById('submitBtn');
-const btnText = document.getElementById('btnText');
-const loadingIcon = document.getElementById('loadingIcon');
+    // ============================================================
+    // PASSWORD TOGGLE
+    // ============================================================
+    const passwordToggle = document.getElementById('passwordToggle');
+    const passwordInput = document.getElementById('password');
 
-function showAlert(message, type = 'error') {
-    alertBox.classList.remove('hidden', 'bg-red-500/10', 'border-red-500/50', 'text-red-400', 'bg-green-500/10', 'border-green-500/50', 'text-green-400');
-    
-    if (type === 'error') {
-        alertBox.classList.add('bg-red-500/10', 'border-red-500/50', 'text-red-400');
-        alertBox.innerHTML = `<i class="fas fa-exclamation-circle mt-0.5"></i><span>${message}</span>`;
-    } else {
-        alertBox.classList.add('bg-green-500/10', 'border-green-500/50', 'text-green-400');
-        alertBox.innerHTML = `<i class="fas fa-check-circle mt-0.5"></i><span>${message}</span>`;
-    }
-}
-
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    submitBtn.disabled = true;
-    btnText.textContent = "Authenticating...";
-    loadingIcon.classList.remove('hidden');
-    alertBox.classList.add('hidden');
-
-    const formData = new FormData(loginForm);
-    const data = Object.fromEntries(formData.entries());
-
-    try {
-        const response = await fetch('/v5.2/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+    if (passwordToggle && passwordInput) {
+        passwordToggle.addEventListener('click', function() {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            passwordToggle.innerHTML = isPassword ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
         });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            showAlert('Login successful! Redirecting...', 'success');
-            setTimeout(() => window.location.href = '/dashboard', 1000);
-        } else {
-            showAlert(result.error || 'Invalid credentials');
-            submitBtn.disabled = false;
-            btnText.textContent = "Sign In";
-            loadingIcon.classList.add('hidden');
-        }
-    } catch (error) {
-        showAlert('Connection error');
-        submitBtn.disabled = false;
-        btnText.textContent = "Sign In";
-        loadingIcon.classList.add('hidden');
     }
-});
+
+    // ============================================================
+    // FORM SUBMISSION WITH AJAX
+    // ============================================================
+    const loginForm = document.getElementById('loginForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const formError = document.getElementById('formError');
+    const formErrorMessage = document.getElementById('formErrorMessage');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Reset error
+            formError.style.display = 'none';
+            formErrorMessage.textContent = '';
+
+            // Validate form
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || username.length < 3) {
+                showFormError('Username must be at least 3 characters');
+                document.getElementById('username').focus();
+                return;
+            }
+
+            if (!password || password.length < 8) {
+                showFormError('Password must be at least 8 characters');
+                document.getElementById('password').focus();
+                return;
+            }
+
+            // Show loading state
+            setLoading(true);
+
+            try {
+                const response = await fetch('/v5.2/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    }),
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Login successful
+                    showToast('Login successful! Redirecting...', 'success');
+                    
+                    // Store token in cookie is handled by server
+                    // Redirect to dashboard or previous page
+                    setTimeout(() => {
+                        const redirectUrl = new URLSearchParams(window.location.search).get('next') || '/dashboard';
+                        window.location.href = redirectUrl;
+                    }, 500);
+                } else {
+                    // Login failed
+                    showFormError(data.error || 'Invalid username or password');
+                    setLoading(false);
+                    
+                    // Shake the card
+                    const card = document.querySelector('.auth-card');
+                    card.style.animation = 'none';
+                    card.offsetHeight; // Trigger reflow
+                    card.style.animation = 'fadeInUp 0.5s ease';
+                }
+            } catch (error) {
+                // Network error or server error
+                showFormError('Unable to connect to server. Please try again.');
+                setLoading(false);
+                console.error('Login error:', error);
+            }
+        });
+    }
+
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+    function setLoading(isLoading) {
+        if (isLoading) {
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+        } else {
+            submitBtn.classList.remove('loading');
+            submitBtn.disabled = false;
+        }
+    }
+
+    function showFormError(message) {
+        formErrorMessage.textContent = message;
+        formError.style.display = 'flex';
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            formError.style.display = 'none';
+        }, 5000);
+    }
+
+    // ============================================================
+    // KEYBOARD SHORTCUTS
+    // ============================================================
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter to submit
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            loginForm.dispatchEvent(new Event('submit'));
+        }
+    });
 </script>
 {% endblock %}
