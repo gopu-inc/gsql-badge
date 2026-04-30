@@ -1279,6 +1279,359 @@ def index():
                          packages=recent_packages,
                          now=datetime.now())
 
+
+
+
+
+# ============================================================================
+# ROUTE DOCUMENTATION GOSCRIPT (depuis GitHub)
+# ============================================================================
+
+@app.route('/goscript/doc')
+def goscript_doc():
+    """Serve the full Goscript documentation from the GitHub README"""
+    try:
+        app.logger.info("📖 Fetching Goscript documentation from GitHub...")
+        
+        # Attempt 1: Read from GitHub repository (configured branch)
+        app.logger.debug("🔍 Attempt 1: Reading docs/README-GOSCRIPT.md from configured branch...")
+        readme_content = GitHubManager.read_from_github(
+            'docs/README-GOSCRIPT.md',
+            default=None
+        )
+        
+        if readme_content is not None:
+            app.logger.debug("✅ Found docs/README-GOSCRIPT.md via GitHubManager")
+        else:
+            # Attempt 2: Try root of the repo
+            app.logger.debug("🔍 Attempt 2: Trying README-GOSCRIPT.md at repo root...")
+            readme_content = GitHubManager.read_from_github(
+                'README-GOSCRIPT.md',
+                default=None
+            )
+            
+            if readme_content is not None:
+                app.logger.debug("✅ Found README-GOSCRIPT.md at repo root")
+        
+        if readme_content is None:
+            # Attempt 3: Direct raw GitHub API on the configured branch
+            raw_url = f"https://raw.githubusercontent.com/{SecurityConfig.GITHUB_REPO}/{SecurityConfig.GITHUB_BRANCH}/docs/README-GOSCRIPT.md"
+            app.logger.debug(f"🔍 Attempt 3: Fetching from raw URL on configured branch: {raw_url}")
+            
+            import requests as req
+            resp = req.get(raw_url, timeout=10)
+            
+            if resp.status_code == 200:
+                readme_content = resp.text
+                app.logger.debug(f"✅ Fetched from raw URL ({len(readme_content)} bytes)")
+            else:
+                # Attempt 4: Try the 'main' branch as last resort
+                raw_url = f"https://raw.githubusercontent.com/{SecurityConfig.GITHUB_REPO}/main/docs/README-GOSCRIPT.md"
+                app.logger.debug(f"🔍 Attempt 4: Trying main branch: {raw_url}")
+                
+                resp = req.get(raw_url, timeout=10)
+                if resp.status_code == 200:
+                    readme_content = resp.text
+                    app.logger.debug(f"✅ Fetched from main branch ({len(readme_content)} bytes)")
+                else:
+                    app.logger.warning(f"❌ All fetch attempts failed. Last status: {resp.status_code}")
+        
+        # If we still have nothing, return 404
+        if readme_content is None:
+            app.logger.error("❌ Goscript documentation not found. Please ensure docs/README-GOSCRIPT.md exists in the repository.")
+            abort(404, description="Goscript documentation not found. The file docs/README-GOSCRIPT.md does not exist in the repository.")
+        
+        # Clean content if it's a dict (accidental JSON parsing)
+        if isinstance(readme_content, dict):
+            app.logger.debug("⚠️ Content was parsed as JSON dict, extracting raw content...")
+            readme_content = readme_content.get('content', '') or str(readme_content)
+        
+        if isinstance(readme_content, str):
+            app.logger.debug(f"📄 Processing markdown content ({len(readme_content)} characters, {readme_content.count(chr(10)) + 1} lines)")
+        
+        # Render markdown to HTML
+        app.logger.debug("🖌️ Rendering markdown to HTML...")
+        readme_html = MarkdownRenderer.render(readme_content)
+        app.logger.debug(f"✅ Markdown rendered successfully ({len(readme_html)} bytes of HTML)")
+        
+        app.logger.info(f"📖 Serving Goscript documentation ({len(readme_content)} chars)")
+        
+        return render_template('goscript_doc.html',
+                             readme_html=readme_html,
+                             readme_raw=readme_content,
+                             now=datetime.now(),
+                             user=session.get('user'))
+    
+    except Exception as e:
+        app.logger.error(f"❌ Goscript doc error: {type(e).__name__}: {str(e)}")
+        app.logger.debug(f"Stack trace: {e.__traceback__}")
+        abort(500, description=f"Error loading documentation: {str(e)}")
+
+
+# ============================================================================
+# ROUTE API POUR LES DÉPENDANCES D'UN PACKAGE
+# ============================================================================
+
+@app.route('/api/v1/package/<name>/dependencies')
+def api_package_dependencies(name):
+    """Return package dependencies extracted from Manifest.toml"""
+    try:
+        app.logger.debug(f"📦 Fetching dependencies for package: {name}")
+        
+        db = safe_read_json('database/zenv_hub.json', {'packages': []})
+        
+        if not isinstance(db, dict):
+            app.logger.warning(f"⚠️ DB is not a dict, type: {type(db)}")
+            db = {'packages': []}
+        
+        package = next((p for p in db.get('packages', []) if p.get('name') == name), None)
+        
+        if not package:
+            app.logger.warning(f"⚠️ Package '{name}' not found in zenv_hub.json")
+            return jsonify({'dependencies': [], 'dev_dependencies': []})
+        
+        app.logger.debug(f"📦 Found package: {name} v{package.get('version')} (scope: {package.get('scope')})")
+        
+        # Build filename and path
+        filename = f"{name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
+        pkg_path = f"packages/{package['scope']}/{name}/{filename}"
+        
+        app.logger.debug(f"🔍 Looking for package archive: {pkg_path}")
+        
+        content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
+        deps = []
+        dev_deps = []
+        
+        if content:
+            app.logger.debug(f"✅ Package archive found ({len(content)} bytes), extracting Manifest.toml...")
+            
+            temp_dir = tempfile.mkdtemp()
+            temp_path = os.path.join(temp_dir, filename)
+            
+            try:
+                with open(temp_path, 'wb') as f:
+                    f.write(content)
+                
+                manifest_found = False
+                with tarfile.open(temp_path, 'r:*') as tar:
+                    for member in tar.getmembers():
+                        if member.name.endswith('Manifest.toml') or member.name == 'Manifest.toml':
+                            manifest_found = True
+                            app.logger.debug(f"📄 Found Manifest.toml at: {member.name}")
+                            
+                            manifest_content = tar.extractfile(member).read().decode('utf-8', errors='ignore')
+                            app.logger.debug(f"📄 Manifest.toml size: {len(manifest_content)} bytes")
+                            
+                            # Simple TOML parser
+                            current_section = ''
+                            line_number = 0
+                            
+                            for line in manifest_content.split('\n'):
+                                line_number += 1
+                                line = line.strip()
+                                
+                                # Skip comments and empty lines
+                                if not line or line.startswith('#'):
+                                    continue
+                                
+                                # Section header detection
+                                if line.startswith('['):
+                                    current_section = line.strip('[]').strip()
+                                    app.logger.debug(f"  📂 Section: [{current_section}] (line {line_number})")
+                                
+                                # Parse key = value in dependencies section
+                                elif '=' in line and current_section == 'dependencies':
+                                    key, val = line.split('=', 1)
+                                    dep_name = key.strip().strip('"').strip("'")
+                                    dep_version = val.strip().strip('"').strip("'")
+                                    deps.append({
+                                        'name': dep_name,
+                                        'version': dep_version,
+                                        'dev': False
+                                    })
+                                    app.logger.debug(f"  📦 Production dependency: {dep_name} = {dep_version}")
+                                
+                                # Parse key = value in dev-dependencies section
+                                elif '=' in line and current_section == 'dev-dependencies':
+                                    key, val = line.split('=', 1)
+                                    dep_name = key.strip().strip('"').strip("'")
+                                    dep_version = val.strip().strip('"').strip("'")
+                                    dev_deps.append({
+                                        'name': dep_name,
+                                        'version': dep_version,
+                                        'dev': True
+                                    })
+                                    app.logger.debug(f"  🛠️ Dev dependency: {dep_name} = {dep_version}")
+                
+                if not manifest_found:
+                    app.logger.debug(f"⚠️ No Manifest.toml found in archive for {name}")
+                
+            except tarfile.ReadError as e:
+                app.logger.warning(f"⚠️ Failed to read tar archive for {name}: {e}")
+            except Exception as e:
+                app.logger.error(f"❌ Error processing archive for {name}: {type(e).__name__}: {e}")
+            finally:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                app.logger.debug(f"🧹 Cleaned up temp directory: {temp_dir}")
+        else:
+            app.logger.debug(f"⚠️ Package archive not found at: {pkg_path}")
+        
+        app.logger.debug(f"📊 Dependencies for {name}: {len(deps)} production, {len(dev_deps)} dev")
+        
+        return jsonify({
+            'dependencies': deps,
+            'dev_dependencies': dev_deps
+        })
+    
+    except Exception as e:
+        app.logger.error(f"❌ Dependencies API error for {name}: {type(e).__name__}: {str(e)}")
+        app.logger.debug(f"Stack trace: {e.__traceback__}")
+        return jsonify({'dependencies': [], 'dev_dependencies': [], 'error': str(e)})
+
+
+# ============================================================================
+# ROUTE API POUR LES REVIEWS D'UN PACKAGE
+# ============================================================================
+
+@app.route('/api/v1/package/<name>/reviews')
+def api_package_reviews(name):
+    """Return all reviews for a package"""
+    try:
+        app.logger.debug(f"⭐ Fetching reviews for package: {name}")
+        
+        reviews_db = safe_read_json(f'reviews/{name}.json', {'reviews': [], 'average': 0})
+        
+        if not isinstance(reviews_db, dict):
+            app.logger.warning(f"⚠️ Reviews DB for {name} is not a dict, type: {type(reviews_db)}")
+            reviews_db = {'reviews': [], 'average': 0}
+        
+        review_count = len(reviews_db.get('reviews', []))
+        average = reviews_db.get('average', 0)
+        
+        app.logger.debug(f"📊 Reviews for {name}: {review_count} reviews, average: {average}")
+        
+        return jsonify({
+            'reviews': reviews_db.get('reviews', []),
+            'average': average,
+            'count': review_count
+        })
+    
+    except Exception as e:
+        app.logger.error(f"❌ Reviews API error for {name}: {type(e).__name__}: {str(e)}")
+        app.logger.debug(f"Stack trace: {e.__traceback__}")
+        return jsonify({'reviews': [], 'average': 0, 'count': 0, 'error': str(e)})
+
+
+# ============================================================================
+# ROUTE POUR AJOUTER UNE REVIEW (POST)
+# ============================================================================
+
+@app.route('/api/v1/package/<name>/review', methods=['POST'])
+@token_required
+def api_add_review(name):
+    """Add or update a review for a package"""
+    try:
+        user = g.user
+        username = user.get('username', 'unknown')
+        
+        app.logger.info(f"⭐ {username} is submitting a review for: {name}")
+        
+        data = request.get_json()
+        
+        if not data:
+            app.logger.warning(f"⚠️ No JSON data in review request for {name}")
+            return jsonify({'error': 'No data provided'}), 400
+        
+        rating = data.get('rating', 0)
+        comment = data.get('comment', '').strip()
+        
+        app.logger.debug(f"📝 Review data - rating: {rating}, comment length: {len(comment)}")
+        
+        # Validate rating
+        if not rating or not isinstance(rating, (int, float)) or rating < 1 or rating > 5:
+            app.logger.warning(f"⚠️ Invalid rating from {username}: {rating}")
+            return jsonify({'error': 'Rating must be between 1 and 5'}), 400
+        
+        rating = int(rating)
+        
+        # Load existing reviews
+        app.logger.debug(f"📂 Loading existing reviews for {name}...")
+        reviews_db = safe_read_json(f'reviews/{name}.json', {'reviews': [], 'average': 0})
+        
+        if not isinstance(reviews_db, dict):
+            reviews_db = {'reviews': [], 'average': 0}
+        
+        existing_reviews = reviews_db.get('reviews', [])
+        app.logger.debug(f"📊 Existing reviews: {len(existing_reviews)}")
+        
+        # Check if user already reviewed this package
+        updated = False
+        for i, r in enumerate(existing_reviews):
+            if r.get('username') == username:
+                old_rating = r.get('rating', 0)
+                # Update existing review
+                existing_reviews[i]['rating'] = rating
+                existing_reviews[i]['comment'] = comment
+                existing_reviews[i]['updated_at'] = datetime.now().isoformat()
+                updated = True
+                app.logger.info(f"✏️ Updated existing review by {username} for {name} (rating: {old_rating} → {rating})")
+                break
+        
+        if not updated:
+            # Add new review
+            new_review = {
+                'id': str(uuid.uuid4()),
+                'username': username,
+                'rating': rating,
+                'comment': comment,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }
+            existing_reviews.append(new_review)
+            app.logger.info(f"➕ New review by {username} for {name} (rating: {rating})")
+        
+        reviews_db['reviews'] = existing_reviews
+        
+        # Recalculate average
+        if existing_reviews:
+            total = sum(r.get('rating', 0) for r in existing_reviews)
+            new_average = round(total / len(existing_reviews), 1)
+            reviews_db['average'] = new_average
+            app.logger.debug(f"📊 New average rating for {name}: {new_average} ({len(existing_reviews)} reviews)")
+        else:
+            reviews_db['average'] = 0
+            app.logger.debug(f"📊 No reviews for {name}, average reset to 0")
+        
+        # Save to GitHub
+        app.logger.debug(f"💾 Saving reviews to GitHub: reviews/{name}.json")
+        save_success = GitHubManager.save_to_github(
+            f'reviews/{name}.json',
+            reviews_db,
+            f"Review by {username} for {name} (rating: {rating})"
+        )
+        
+        if save_success:
+            app.logger.info(f"✅ Review saved successfully for {name} by {username}")
+        else:
+            app.logger.error(f"❌ Failed to save review for {name} to GitHub")
+            return jsonify({'error': 'Failed to save review'}), 500
+        
+        return jsonify({
+            'success': True,
+            'average': reviews_db['average'],
+            'count': len(existing_reviews),
+            'updated': updated
+        })
+    
+    except Exception as e:
+        app.logger.error(f"❌ Add review error for {name} by {g.user.get('username', 'unknown') if hasattr(g, 'user') else 'unknown'}: {type(e).__name__}: {str(e)}")
+        app.logger.debug(f"Stack trace: {e.__traceback__}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+
 @app.route('/package/<name>/reviews')
 def package_reviews(name):
     """Page des reviews d'un package"""
