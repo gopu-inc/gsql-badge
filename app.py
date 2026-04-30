@@ -6,6 +6,7 @@ Sécurité renforcée, API versionnée, Cookies sécurisés
 Stockage GitHub préservé
 """
 
+import re
 import os
 import json
 import base64
