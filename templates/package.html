@@ -6,7 +6,6 @@
 <meta property="og:description" content="{% if package.description %}{{ package.description[:200] }}{% else %}Package {{ package.name }} v{{ package.version }} by {{ package.author }} | {{ package.downloads }} downloads | Scope: {{ package.scope }} | Arch: {{ package.arch }}{% endif %}">
 <meta property="og:url" content="https://zenv-hub.onrender.com/package/{{ package.name }}">
 <meta property="og:site_name" content="Zarch Hub">
-<meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://zenv-hub.onrender.com/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-{{ 'brightgreen' if package.downloads > 500 else 'blue' }}?style=for-the-badge">
 <meta property="og:image:width" content="400">
 <meta property="og:image:height" content="56">
@@ -28,10 +27,7 @@
     "@type": "SoftwareApplication",
     "name": "{{ package.name }}",
     "version": "{{ package.version }}",
-    "author": {
-        "@type": "Person",
-        "name": "{{ package.author }}"
-    },
+    "author": { "@type": "Person", "name": "{{ package.author }}" },
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Linux",
     "downloadUrl": "https://zenv-hub.onrender.com/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}",
@@ -42,10 +38,11 @@
         "interactionType": "https://schema.org/DownloadAction",
         "userInteractionCount": {{ package.downloads }}
     },
-    "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "0",
+        "reviewCount": "0"
     }
 }
 </script>
@@ -78,18 +75,6 @@
         pointer-events: none;
     }
 
-    .package-hero::after {
-        content: '';
-        position: absolute;
-        bottom: -30%;
-        left: -15%;
-        width: 500px;
-        height: 500px;
-        background: radial-gradient(circle, rgba(188, 140, 255, 0.03) 0%, transparent 70%);
-        border-radius: 50%;
-        pointer-events: none;
-    }
-
     .package-hero-content {
         display: flex;
         gap: 2.5rem;
@@ -98,15 +83,8 @@
         z-index: 1;
     }
 
-    .package-hero-main {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .package-hero-sidebar {
-        width: 360px;
-        flex-shrink: 0;
-    }
+    .package-hero-main { flex: 1; min-width: 0; }
+    .package-hero-sidebar { width: 360px; flex-shrink: 0; }
 
     /* Breadcrumb */
     .breadcrumb {
@@ -118,19 +96,12 @@
         color: var(--text-tertiary);
         flex-wrap: wrap;
     }
-
-    .breadcrumb a {
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: var(--transition);
-    }
-
+    .breadcrumb a { color: var(--text-secondary); text-decoration: none; transition: var(--transition); }
     .breadcrumb a:hover { color: var(--accent-blue); }
     .breadcrumb i { font-size: 0.55rem; }
 
     /* Titre */
     .package-title-group { margin-bottom: 1.5rem; }
-
     .package-title {
         font-size: 2.5rem;
         font-weight: 900;
@@ -142,7 +113,6 @@
         flex-wrap: wrap;
         letter-spacing: -0.02em;
     }
-
     .package-title .version-tag {
         font-size: 0.95rem;
         font-weight: 700;
@@ -151,31 +121,8 @@
         padding: 0.3rem 0.85rem;
         border-radius: var(--radius-full);
         white-space: nowrap;
-        box-shadow: 0 2px 10px rgba(88, 166, 255, 0.3);
+        box-shadow: 0 2px 10px rgba(88,166,255,0.3);
     }
-
-    .package-title .scope-tag {
-        font-size: 0.8rem;
-        font-weight: 700;
-        padding: 0.3rem 0.85rem;
-        border-radius: var(--radius-full);
-        white-space: nowrap;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    .scope-tag.public {
-        background: rgba(63, 185, 80, 0.12);
-        color: var(--accent-green);
-        border: 1px solid rgba(63, 185, 80, 0.25);
-    }
-
-    .scope-tag.private {
-        background: rgba(248, 81, 73, 0.12);
-        color: var(--accent-red);
-        border: 1px solid rgba(248, 81, 73, 0.25);
-    }
-
     .package-description {
         font-size: 1.1rem;
         color: var(--text-secondary);
@@ -191,7 +138,6 @@
         gap: 0.75rem;
         margin-bottom: 1rem;
     }
-
     .meta-item {
         display: flex;
         align-items: center;
@@ -205,30 +151,13 @@
         transition: var(--transition);
         white-space: nowrap;
     }
-
-    .meta-item:hover {
-        border-color: var(--accent-blue);
-        background: var(--bg-hover);
-    }
-
-    .meta-item a {
-        color: var(--text-secondary);
-        text-decoration: none;
-        font-weight: 500;
-    }
-
+    .meta-item:hover { border-color: var(--accent-blue); background: var(--bg-hover); }
+    .meta-item a { color: var(--text-secondary); text-decoration: none; font-weight: 500; }
     .meta-item a:hover { color: var(--accent-blue); }
-    .meta-item i { font-size: 0.9rem; }
     .meta-item.author i { color: var(--accent-purple); }
     .meta-item.downloads i { color: var(--accent-green); }
     .meta-item.size i { color: var(--accent-orange); }
     .meta-item.sha i { color: var(--accent-cyan); }
-
-    /* Rating stars dans les métadonnées */
-    .meta-rating {
-        color: var(--accent-orange);
-        font-size: 0.8rem;
-    }
 
     /* ============================================================
     SIDEBAR CARD
@@ -242,16 +171,7 @@
         position: sticky;
         top: calc(var(--navbar-height) + 1.5rem);
     }
-
-    .install-card h3 {
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-bottom: 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
+    .install-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
     .install-card h3 i { color: var(--accent-green); }
 
     .mini-stats {
@@ -260,7 +180,6 @@
         gap: 0.65rem;
         margin-bottom: 1.25rem;
     }
-
     .mini-stat {
         background: var(--bg-tertiary);
         border: 1px solid var(--border-color);
@@ -269,35 +188,13 @@
         text-align: center;
         transition: var(--transition);
     }
-
-    .mini-stat:hover {
-        border-color: var(--accent-blue);
-        transform: translateY(-2px);
-    }
-
-    .mini-stat-value {
-        font-family: var(--font-mono);
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: var(--text-primary);
-    }
-
-    .mini-stat-label {
-        font-size: 0.7rem;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 0.2rem;
-    }
-
+    .mini-stat:hover { border-color: var(--accent-blue); transform: translateY(-2px); }
+    .mini-stat-value { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 800; color: var(--text-primary); }
+    .mini-stat-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem; }
     .mini-stat.rating .mini-stat-value { color: var(--accent-orange); }
     .mini-stat.downloads .mini-stat-value { color: var(--accent-blue); }
-    .mini-stat.version .mini-stat-value { color: var(--accent-purple); }
-    .mini-stat.release .mini-stat-value { color: var(--accent-cyan); }
 
-    /* Commandes d'installation */
     .install-commands { margin-bottom: 1.25rem; }
-
     .install-cmd {
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
@@ -312,50 +209,12 @@
         cursor: pointer;
         transition: var(--transition);
         margin-bottom: 0.5rem;
-        position: relative;
         overflow-x: auto;
     }
-
     .install-cmd:hover { border-color: var(--accent-green); }
+    .install-cmd code { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cmd-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; font-weight: 600; }
 
-    .install-cmd code {
-        flex: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .install-cmd .copy-icon {
-        background: var(--bg-tertiary);
-        border: none;
-        color: var(--text-tertiary);
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.7rem;
-        transition: var(--transition);
-        flex-shrink: 0;
-    }
-
-    .install-cmd .copy-icon:hover {
-        color: var(--accent-green);
-        background: rgba(63, 185, 80, 0.1);
-    }
-
-    .install-cmd .copy-icon.copied {
-        color: var(--accent-green);
-    }
-
-    .cmd-label {
-        font-size: 0.7rem;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.3rem;
-        font-weight: 600;
-    }
-
-    /* Boutons */
     .btn-download {
         display: flex;
         align-items: center;
@@ -372,98 +231,31 @@
         cursor: pointer;
         text-decoration: none;
         transition: var(--transition);
-        box-shadow: 0 4px 15px rgba(63, 185, 80, 0.35);
+        box-shadow: 0 4px 15px rgba(63,185,80,0.35);
         margin-bottom: 0.65rem;
     }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(63,185,80,0.5); }
 
-    .btn-download:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(63, 185, 80, 0.5);
-    }
+    .badge-preview { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); text-align: center; }
+    .badge-preview .badge-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .badge-preview img { max-width: 100%; cursor: pointer; transition: var(--transition); }
+    .badge-preview img:hover { transform: scale(1.03); }
 
-    .btn-download:active { transform: scale(0.97); }
-
-    .btn-report {
-        width: 100%;
-        padding: 0.6rem;
-        font-size: 0.8rem;
-        font-weight: 500;
-        border-radius: var(--radius-sm);
-        background: transparent;
-        color: var(--text-tertiary);
-        border: 1px solid var(--border-color);
-        cursor: pointer;
-        transition: var(--transition);
-        margin-top: 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-    }
-
-    .btn-report:hover {
-        border-color: var(--accent-red);
-        color: var(--accent-red);
-        background: rgba(248, 81, 73, 0.03);
-    }
-
-    /* Badge preview */
-    .badge-preview {
-        margin-top: 1.25rem;
-        padding-top: 1.25rem;
-        border-top: 1px solid var(--border-color);
-        text-align: center;
-    }
-
-    .badge-preview .badge-label {
-        font-size: 0.7rem;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
-    }
-
-    .badge-preview img {
-        max-width: 100%;
-        cursor: pointer;
-        transition: var(--transition);
-    }
-
-    .badge-preview img:hover {
-        transform: scale(1.03);
-    }
-
-    .share-buttons {
-        display: flex;
-        gap: 0.4rem;
-        justify-content: center;
-        margin-top: 0.75rem;
-    }
-
+    .share-buttons { display: flex; gap: 0.4rem; justify-content: center; margin-top: 0.75rem; }
     .share-btn {
-        width: 32px;
-        height: 32px;
+        width: 32px; height: 32px;
         border-radius: var(--radius-full);
         background: var(--bg-tertiary);
         border: 1px solid var(--border-color);
         color: var(--text-tertiary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 0.8rem;
-        transition: var(--transition);
-        text-decoration: none;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 0.8rem;
+        transition: var(--transition); text-decoration: none;
     }
-
-    .share-btn:hover {
-        border-color: var(--accent-blue);
-        color: var(--accent-blue);
-        transform: translateY(-2px);
-    }
+    .share-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); transform: translateY(-2px); }
 
     /* ============================================================
-    TABS NAVIGATION
+    TABS
     ============================================================ */
     .tabs-nav {
         display: flex;
@@ -473,7 +265,6 @@
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-
     .tab-btn {
         padding: 0.85rem 1.5rem;
         font-size: 0.9rem;
@@ -486,18 +277,10 @@
         cursor: pointer;
         transition: var(--transition);
         white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        display: flex; align-items: center; gap: 0.5rem;
     }
-
     .tab-btn:hover { color: var(--text-primary); }
-
-    .tab-btn.active {
-        color: var(--accent-blue);
-        border-bottom-color: var(--accent-blue);
-    }
-
+    .tab-btn.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
     .tab-btn .tab-count {
         font-size: 0.7rem;
         background: var(--bg-tertiary);
@@ -505,12 +288,7 @@
         border-radius: var(--radius-full);
         font-weight: 500;
     }
-
-    .tab-panel {
-        display: none;
-        padding: 2rem 0;
-    }
-
+    .tab-panel { display: none; padding: 2rem 0; }
     .tab-panel.active { display: block; }
 
     /* ============================================================
@@ -523,403 +301,157 @@
         padding: 2.5rem;
         box-shadow: var(--shadow-md);
     }
-
-    .markdown-body {
-        color: var(--text-primary);
-        font-size: 0.95rem;
-        line-height: 1.85;
-    }
-
+    .markdown-body { color: var(--text-primary); font-size: 0.95rem; line-height: 1.85; }
     .markdown-body h1 { font-size: 2rem; font-weight: 800; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); }
     .markdown-body h2 { font-size: 1.5rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
     .markdown-body h3 { font-size: 1.2rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--accent-blue); }
-    .markdown-body h4 { font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
-    
     .markdown-body p { margin: 0.85rem 0; }
     .markdown-body a { color: var(--accent-blue); text-decoration: none; font-weight: 500; }
     .markdown-body a:hover { text-decoration: underline; }
-    
-    .markdown-body code {
-        background: var(--bg-tertiary);
-        padding: 0.2rem 0.45rem;
-        border-radius: 4px;
-        font-family: var(--font-mono);
-        font-size: 0.85em;
-        border: 1px solid var(--border-color);
-    }
-    
-    .markdown-body pre {
-        background: var(--bg-primary) !important;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        padding: 1.25rem;
-        overflow-x: auto;
-        margin: 1rem 0;
-    }
-    
-    .markdown-body pre code {
-        background: none;
-        border: none;
-        padding: 0;
-    }
-    
-    .markdown-body blockquote {
-        border-left: 4px solid var(--accent-blue);
-        padding: 0.75rem 1.25rem;
-        margin: 1rem 0;
-        background: rgba(88, 166, 255, 0.05);
-        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-        color: var(--text-secondary);
-    }
-    
+    .markdown-body code { background: var(--bg-tertiary); padding: 0.2rem 0.45rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.85em; border: 1px solid var(--border-color); }
+    .markdown-body pre { background: var(--bg-primary) !important; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1.25rem; overflow-x: auto; margin: 1rem 0; }
+    .markdown-body pre code { background: none; border: none; padding: 0; }
+    .markdown-body blockquote { border-left: 4px solid var(--accent-blue); padding: 0.75rem 1.25rem; margin: 1rem 0; background: rgba(88,166,255,0.05); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; color: var(--text-secondary); }
     .markdown-body ul, .markdown-body ol { margin: 0.75rem 0; padding-left: 2rem; }
     .markdown-body li { margin: 0.35rem 0; }
-    
-    .markdown-body table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 1rem 0;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        overflow: hidden;
-    }
-    
-    .markdown-body th {
-        background: var(--bg-tertiary);
-        padding: 0.75rem 1rem;
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
-    .markdown-body td {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-    
     .markdown-body img { max-width: 100%; border-radius: var(--radius-sm); }
 
-    .no-readme {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: var(--text-tertiary);
-    }
-
-    .no-readme i {
-        font-size: 3.5rem;
-        margin-bottom: 1rem;
-        display: block;
-        opacity: 0.3;
-    }
+    .no-readme { text-align: center; padding: 3rem 1rem; color: var(--text-tertiary); }
+    .no-readme i { font-size: 3.5rem; margin-bottom: 1rem; display: block; opacity: 0.3; }
 
     /* ============================================================
-    DEPENDENCIES TAB
+    DEPENDENCIES
     ============================================================ */
-    .deps-list {
-        list-style: none;
-    }
-
-    .dep-item {
+    .deps-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.85rem 1rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        margin-bottom: 0.5rem;
-        transition: var(--transition);
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
+    .deps-header h3 { font-size: 1.2rem; font-weight: 700; }
+    .deps-summary { font-size: 0.82rem; color: var(--text-tertiary); }
 
-    .dep-item:hover {
-        border-color: var(--accent-blue);
-        background: var(--bg-hover);
-    }
-
-    .dep-name {
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .dep-name a {
-        color: var(--text-primary);
-        text-decoration: none;
-    }
-
-    .dep-name a:hover { color: var(--accent-blue); }
-
-    .dep-version {
-        font-family: var(--font-mono);
-        font-size: 0.8rem;
-        color: var(--accent-blue);
-        background: rgba(88, 166, 255, 0.08);
-        padding: 0.2rem 0.55rem;
-        border-radius: var(--radius-full);
-    }
-
-    .dep-type {
-        font-size: 0.7rem;
-        padding: 0.15rem 0.5rem;
-        border-radius: var(--radius-full);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
-
-    .dep-type.prod {
-        background: rgba(63, 185, 80, 0.1);
-        color: var(--accent-green);
-    }
-
-    .dep-type.dev {
-        background: rgba(188, 140, 255, 0.1);
-        color: var(--accent-purple);
-    }
-
-    /* ============================================================
-    VERSIONS TAB
-    ============================================================ */
-    .version-timeline {
-        position: relative;
-        padding-left: 2rem;
-    }
-
-    .version-timeline::before {
-        content: '';
-        position: absolute;
-        left: 8px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: var(--border-color);
-    }
-
-    .version-item {
-        position: relative;
-        padding-bottom: 1.5rem;
-    }
-
-    .version-item::before {
-        content: '';
-        position: absolute;
-        left: -1.7rem;
-        top: 5px;
-        width: 12px;
-        height: 12px;
-        background: var(--accent-blue);
-        border-radius: 50%;
-        border: 2px solid var(--bg-primary);
-        z-index: 1;
-    }
-
-    .version-item.latest::before {
-        background: var(--accent-green);
-        box-shadow: 0 0 0 4px rgba(63, 185, 80, 0.15);
-    }
-
-    .version-header {
-        display: flex;
-        align-items: center;
+    .deps-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 0.75rem;
-        margin-bottom: 0.35rem;
     }
-
-    .version-number {
-        font-weight: 700;
-        font-family: var(--font-mono);
+    .dep-card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
     }
-
-    .version-date {
-        font-size: 0.78rem;
-        color: var(--text-tertiary);
+    .dep-card:hover {
+        border-color: var(--accent-blue);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-glow-blue);
     }
-
-    .version-badge {
+    .dep-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .dep-icon.prod { background: rgba(63,185,80,0.12); color: var(--accent-green); }
+    .dep-icon.dev { background: rgba(188,140,255,0.12); color: var(--accent-purple); }
+    .dep-info { flex: 1; min-width: 0; }
+    .dep-name { font-weight: 600; color: var(--text-primary); }
+    .dep-version { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-blue); }
+    .dep-badge {
         font-size: 0.65rem;
-        padding: 0.15rem 0.5rem;
+        padding: 0.15rem 0.55rem;
         border-radius: var(--radius-full);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        white-space: nowrap;
     }
+    .dep-badge.prod { background: rgba(63,185,80,0.1); color: var(--accent-green); }
+    .dep-badge.dev { background: rgba(188,140,255,0.1); color: var(--accent-purple); }
 
-    .version-badge.latest {
-        background: rgba(63, 185, 80, 0.12);
-        color: var(--accent-green);
-    }
-
-    .version-badge.yanked {
-        background: rgba(248, 81, 73, 0.12);
-        color: var(--accent-red);
-    }
-
-    .version-dl {
-        font-size: 0.78rem;
-        color: var(--text-tertiary);
-    }
+    .empty-deps { text-align: center; padding: 2rem; color: var(--text-tertiary); }
 
     /* ============================================================
-    REVIEWS TAB
+    REVIEWS
     ============================================================ */
     .review-summary {
         display: flex;
         align-items: center;
         gap: 2rem;
         margin-bottom: 2rem;
-        padding: 1.5rem;
-        background: var(--bg-card);
+        padding: 1.75rem;
+        background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
+        flex-wrap: wrap;
     }
+    .review-rating-big { text-align: center; min-width: 100px; }
+    .review-rating-number { font-size: 3.5rem; font-weight: 900; color: var(--accent-orange); line-height: 1; }
+    .review-stars-display { color: var(--accent-orange); margin-top: 0.25rem; font-size: 1rem; }
+    .review-total { font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.25rem; }
 
-    .review-rating-big {
-        text-align: center;
-    }
-
-    .review-rating-number {
-        font-size: 3rem;
-        font-weight: 900;
-        color: var(--accent-orange);
-        line-height: 1;
-    }
-
-    .review-stars {
-        color: var(--accent-orange);
-        margin-top: 0.25rem;
-    }
-
-    .review-bar-chart {
-        flex: 1;
-    }
-
-    .review-bar-row {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.35rem;
-        font-size: 0.8rem;
-    }
-
-    .review-bar-label {
-        width: 30px;
-        text-align: right;
-        color: var(--text-secondary);
-    }
-
-    .review-bar {
-        flex: 1;
-        height: 8px;
-        background: var(--bg-tertiary);
-        border-radius: var(--radius-full);
-        overflow: hidden;
-    }
-
-    .review-bar-fill {
-        height: 100%;
-        background: var(--accent-orange);
-        border-radius: var(--radius-full);
-        transition: width 0.5s ease;
-    }
-
-    .review-bar-count {
-        width: 25px;
-        color: var(--text-tertiary);
-    }
+    .review-bar-chart { flex: 1; min-width: 200px; }
+    .review-bar-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; font-size: 0.8rem; }
+    .review-bar-label { width: 30px; text-align: right; color: var(--text-secondary); }
+    .review-bar { flex: 1; height: 10px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
+    .review-bar-fill { height: 100%; background: var(--accent-orange); border-radius: var(--radius-full); transition: width 1s ease; }
+    .review-bar-count { width: 25px; color: var(--text-tertiary); text-align: right; }
 
     .review-card {
-        background: var(--bg-card);
+        background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
         padding: 1.25rem;
         margin-bottom: 0.75rem;
     }
-
-    .review-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 0.65rem;
-    }
-
+    .review-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.65rem; }
     .review-avatar {
-        width: 36px;
-        height: 36px;
+        width: 38px; height: 38px;
         border-radius: var(--radius-full);
         background: var(--gradient-blue);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        color: #fff;
-        font-size: 0.8rem;
-        text-transform: uppercase;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; color: #fff; font-size: 0.82rem;
+        text-transform: uppercase; flex-shrink: 0;
     }
-
-    .review-author {
-        font-weight: 600;
-        font-size: 0.88rem;
-    }
-
-    .review-author a {
-        color: var(--text-primary);
-        text-decoration: none;
-    }
-
+    .review-author { font-weight: 600; font-size: 0.88rem; }
+    .review-author a { color: var(--text-primary); text-decoration: none; }
     .review-author a:hover { color: var(--accent-blue); }
+    .review-date { font-size: 0.75rem; color: var(--text-tertiary); margin-left: auto; }
+    .review-stars { color: var(--accent-orange); font-size: 0.8rem; }
+    .review-comment { color: var(--text-secondary); line-height: 1.6; font-size: 0.9rem; }
 
-    .review-date {
-        font-size: 0.75rem;
-        color: var(--text-tertiary);
-        margin-left: auto;
-    }
-
-    .review-rating { color: var(--accent-orange); font-size: 0.8rem; }
-
-    .review-comment {
-        color: var(--text-secondary);
-        line-height: 1.6;
-        font-size: 0.9rem;
-    }
-
-    .review-form {
-        background: var(--bg-card);
+    /* Review form */
+    .review-form-card {
+        background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
         padding: 1.75rem;
-        margin-top: 1.5rem;
+        margin-top: 2rem;
     }
-
-    .review-form h3 {
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
-    }
-
-    .star-selector {
-        display: flex;
-        gap: 0.3rem;
-        margin-bottom: 1rem;
-    }
-
+    .review-form-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; }
+    .star-selector { display: flex; gap: 0.3rem; margin-bottom: 1rem; }
     .star-selector button {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        color: var(--text-tertiary);
-        cursor: pointer;
-        transition: var(--transition);
+        background: none; border: none;
+        font-size: 1.6rem; color: var(--text-tertiary);
+        cursor: pointer; transition: var(--transition);
     }
-
     .star-selector button:hover,
-    .star-selector button.active {
-        color: var(--accent-orange);
-    }
-
+    .star-selector button.active { color: var(--accent-orange); transform: scale(1.15); }
     .review-textarea {
-        width: 100%;
-        min-height: 100px;
+        width: 100%; min-height: 100px;
         padding: 0.85rem;
         background: var(--bg-input);
         border: 1px solid var(--border-color);
@@ -927,124 +459,61 @@
         color: var(--text-primary);
         font-family: var(--font-sans);
         font-size: 0.9rem;
-        resize: vertical;
-        outline: none;
+        resize: vertical; outline: none;
         transition: var(--transition);
         margin-bottom: 1rem;
     }
-
-    .review-textarea:focus {
-        border-color: var(--accent-blue);
-        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
-    }
-
+    .review-textarea:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(88,166,255,0.1); }
     .btn-submit-review {
-        padding: 0.65rem 1.5rem;
+        padding: 0.7rem 1.5rem;
         font-weight: 700;
         border-radius: var(--radius-sm);
         background: var(--gradient-blue);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        transition: var(--transition);
+        color: #fff; border: none;
+        cursor: pointer; transition: var(--transition);
+        display: inline-flex; align-items: center; gap: 0.5rem;
     }
+    .btn-submit-review:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(88,166,255,0.4); }
+    .btn-submit-review:disabled { opacity: 0.5; cursor: not-allowed; }
+    .review-login-prompt { text-align: center; padding: 1.5rem; color: var(--text-tertiary); }
 
-    .btn-submit-review:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(88, 166, 255, 0.4);
-    }
-
-    /* ============================================================
-    TOAST
-    ============================================================ */
+    /* Toast */
     .toast {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        padding: 1rem 1.5rem;
-        border-radius: var(--radius-sm);
-        color: var(--text-primary);
-        font-weight: 500;
-        box-shadow: var(--shadow-xl);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        animation: slideIn 0.3s ease;
-        transform: translateY(100px);
-        opacity: 0;
-        transition: var(--transition);
+        position: fixed; bottom: 2rem; right: 2rem;
+        background: var(--bg-card); border: 1px solid var(--border-color);
+        padding: 1rem 1.5rem; border-radius: var(--radius-sm);
+        color: var(--text-primary); font-weight: 500;
+        box-shadow: var(--shadow-xl); z-index: 9999;
+        display: flex; align-items: center; gap: 0.75rem;
+        animation: slideInUp 0.3s ease;
+        opacity: 0; transform: translateY(20px);
+        transition: opacity 0.3s, transform 0.3s;
     }
-
-    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { border-color: var(--accent-green); }
     .toast.success i { color: var(--accent-green); }
     .toast.error { border-color: var(--accent-red); }
     .toast.error i { color: var(--accent-red); }
-
-    @keyframes slideIn {
-        from { transform: translateY(100px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ============================================================
     RESPONSIVE
     ============================================================ */
     @media (max-width: 1024px) {
-        .package-hero-content {
-            flex-direction: column;
-        }
-        
-        .package-hero-sidebar {
-            width: 100%;
-        }
-        
-        .install-card {
-            position: static;
-        }
-        
-        .package-title {
-            font-size: 1.8rem;
-        }
+        .package-hero-content { flex-direction: column; }
+        .package-hero-sidebar { width: 100%; }
+        .install-card { position: static; }
+        .package-title { font-size: 1.8rem; }
     }
-
     @media (max-width: 640px) {
-        .package-hero {
-            padding: 2rem 0;
-        }
-
-        .package-title {
-            font-size: 1.4rem;
-        }
-
-        .package-meta {
-            gap: 0.4rem;
-        }
-
-        .meta-item {
-            font-size: 0.75rem;
-            padding: 0.4rem 0.6rem;
-        }
-
-        .readme-container {
-            padding: 1.25rem;
-        }
-
-        .review-summary {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .tabs-nav {
-            gap: 0;
-        }
-
-        .tab-btn {
-            padding: 0.65rem 0.85rem;
-            font-size: 0.78rem;
-        }
+        .package-hero { padding: 2rem 0; }
+        .package-title { font-size: 1.4rem; }
+        .package-meta { gap: 0.4rem; }
+        .meta-item { font-size: 0.75rem; padding: 0.4rem 0.6rem; }
+        .readme-container { padding: 1.25rem; }
+        .review-summary { flex-direction: column; text-align: center; }
+        .tab-btn { padding: 0.65rem 0.85rem; font-size: 0.78rem; }
+        .deps-grid { grid-template-columns: 1fr; }
     }
 </style>
 {% endblock %}
@@ -1056,9 +525,7 @@ HERO
 <section class="package-hero">
     <div class="container">
         <div class="package-hero-content">
-            <!-- Contenu principal -->
             <div class="package-hero-main">
-                <!-- Breadcrumb -->
                 <div class="breadcrumb">
                     <a href="/"><i class="fas fa-home"></i></a>
                     <i class="fas fa-chevron-right"></i>
@@ -1069,19 +536,16 @@ HERO
                     <span>{{ package.name }}</span>
                 </div>
                 
-                <!-- Titre -->
                 <div class="package-title-group">
                     <h1 class="package-title">
                         {{ package.name }}
                         <span class="version-tag">v{{ package.version }}</span>
-                        <span class="scope-tag {{ package.scope }}">{{ package.scope }}</span>
                     </h1>
                     {% if package.description %}
                     <p class="package-description">{{ package.description }}</p>
                     {% endif %}
                 </div>
                 
-                <!-- Métadonnées -->
                 <div class="package-meta">
                     <span class="meta-item author">
                         <i class="fas fa-user-astronaut"></i>
@@ -1091,43 +555,22 @@ HERO
                         <i class="fas fa-download"></i>
                         <strong>{{ package.downloads }}</strong> downloads
                     </span>
-                    <span class="meta-item">
-                        <i class="fas fa-microchip"></i>
-                        {{ package.arch }}
-                    </span>
+                    <span class="meta-item"><i class="fas fa-microchip"></i> {{ package.arch }}</span>
                     <span class="meta-item size">
                         <i class="fas fa-weight-hanging"></i>
                         {% if package.size %}
                             {% set size_mb = package.size / (1024 * 1024) %}
-                            {% if size_mb > 1 %}
-                                {{ "%.1f"|format(size_mb) }} MB
-                            {% else %}
-                                {{ "%.1f"|format(package.size / 1024) }} KB
-                            {% endif %}
-                        {% else %}
-                            N/A
-                        {% endif %}
+                            {{ "%.1f"|format(size_mb) if size_mb > 1 else "%.1f"|format(package.size / 1024) }}{{ ' MB' if size_mb > 1 else ' KB' }}
+                        {% else %}N/A{% endif %}
                     </span>
-                    <span class="meta-item">
-                        <i class="fas fa-calendar-alt"></i>
-                        {{ package.created_at[:10] if package.created_at else 'N/A' }}
-                    </span>
-                    <span class="meta-item sha" title="SHA256: {{ package.sha256 }}">
-                        <i class="fas fa-fingerprint"></i>
-                        <code style="font-size: 0.7rem; background: none;">{{ package.sha256[:16] if package.sha256 else 'N/A' }}...</code>
-                    </span>
-                    <span class="meta-item">
-                        <span class="meta-rating" id="metaRating">⭐ --</span>
-                    </span>
+                    <span class="meta-item"><i class="fas fa-calendar-alt"></i> {{ package.created_at[:10] if package.created_at else 'N/A' }}</span>
                 </div>
             </div>
             
-            <!-- Sidebar -->
             <div class="package-hero-sidebar">
                 <div class="install-card">
                     <h3><i class="fas fa-download"></i> Install</h3>
                     
-                    <!-- Mini stats -->
                     <div class="mini-stats">
                         <div class="mini-stat rating">
                             <div class="mini-stat-value" id="sidebarRating">--</div>
@@ -1137,64 +580,34 @@ HERO
                             <div class="mini-stat-value">{{ package.downloads }}</div>
                             <div class="mini-stat-label">Downloads</div>
                         </div>
-                        <div class="mini-stat version">
-                            <div class="mini-stat-value">{{ package.version }}</div>
-                            <div class="mini-stat-label">Version</div>
-                        </div>
-                        <div class="mini-stat release">
-                            <div class="mini-stat-value">{{ package.release }}</div>
-                            <div class="mini-stat-label">Release</div>
-                        </div>
                     </div>
                     
-                    <!-- Commandes -->
                     <div class="install-commands">
                         <div class="cmd-label">GPM Install</div>
                         <div class="install-cmd" onclick="copyCommand(this, 'gpm install {{ package.name }}@{{ package.version }}')" title="Click to copy">
                             <i class="fas fa-terminal"></i>
                             <code>gpm install {{ package.name }}@{{ package.version }}</code>
-                            <button class="copy-icon"><i class="far fa-copy"></i></button>
                         </div>
-                        
                         <div class="cmd-label" style="margin-top: 0.5rem;">Direct Download</div>
                         <div class="install-cmd" onclick="copyCommand(this, 'curl -O https://zenv-hub.onrender.com/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}')" title="Click to copy">
                             <i class="fas fa-cloud-download-alt"></i>
                             <code>curl -O https://zenv-hub.onrender.com/package/download/...</code>
-                            <button class="copy-icon"><i class="far fa-copy"></i></button>
                         </div>
                     </div>
                     
-                    <!-- Bouton download -->
-                    <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}" 
-                       class="btn-download" id="downloadBtn">
-                        <i class="fas fa-download"></i>
-                        Download .tar.bool
+                    <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}" class="btn-download">
+                        <i class="fas fa-download"></i> Download .tar.bool
                     </a>
                     
-                    <!-- Badge preview -->
                     <div class="badge-preview">
                         <div class="badge-label">Package Badge</div>
-                        <img src="/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-{{ 'brightgreen' if package.downloads > 500 else 'blue' }}?style=flat" 
-                             alt="Version badge"
-                             onclick="copyBadgeUrl()"
-                             title="Click to copy badge URL">
+                        <img src="/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-{{ 'brightgreen' if package.downloads > 500 else 'blue' }}?style=flat" alt="Version badge" onclick="copyBadgeUrl()" title="Click to copy badge URL">
                         <div class="share-buttons">
-                            <button class="share-btn" onclick="copyBadgeMarkdown()" title="Copy Markdown">
-                                <i class="fab fa-markdown"></i>
-                            </button>
-                            <button class="share-btn" onclick="shareOnTwitter()" title="Share on Twitter">
-                                <i class="fab fa-twitter"></i>
-                            </button>
-                            <button class="share-btn" onclick="copyPageUrl()" title="Copy link">
-                                <i class="fas fa-link"></i>
-                            </button>
+                            <button class="share-btn" onclick="copyBadgeMarkdown()" title="Copy Markdown"><i class="fab fa-markdown"></i></button>
+                            <button class="share-btn" onclick="shareOnTwitter()" title="Share on Twitter"><i class="fab fa-twitter"></i></button>
+                            <button class="share-btn" onclick="copyPageUrl()" title="Copy link"><i class="fas fa-link"></i></button>
                         </div>
                     </div>
-                    
-                    <!-- Report -->
-                    <button class="btn-report" onclick="reportPackage()">
-                        <i class="fas fa-flag"></i> Report this package
-                    </button>
                 </div>
             </div>
         </div>
@@ -1206,32 +619,17 @@ TABS
 ================================================================ -->
 <section style="margin-bottom: 3rem;">
     <div class="container">
-        <!-- Tab Navigation -->
         <div class="tabs-nav" id="tabsNav">
-            <button class="tab-btn active" data-tab="readme">
-                <i class="fas fa-book"></i> README
-            </button>
-            <button class="tab-btn" data-tab="dependencies">
-                <i class="fas fa-sitemap"></i> Dependencies
-                <span class="tab-count" id="depCount">0</span>
-            </button>
-            <button class="tab-btn" data-tab="versions">
-                <i class="fas fa-code-branch"></i> Versions
-                <span class="tab-count">1</span>
-            </button>
-            <button class="tab-btn" data-tab="reviews">
-                <i class="fas fa-star"></i> Reviews
-                <span class="tab-count" id="reviewCount">0</span>
-            </button>
+            <button class="tab-btn active" data-tab="readme"><i class="fas fa-book"></i> README</button>
+            <button class="tab-btn" data-tab="dependencies"><i class="fas fa-sitemap"></i> Dependencies <span class="tab-count" id="depCount">--</span></button>
+            <button class="tab-btn" data-tab="reviews"><i class="fas fa-star"></i> Reviews <span class="tab-count" id="reviewCount">--</span></button>
         </div>
         
         <!-- Tab: README -->
         <div class="tab-panel active" id="tab-readme">
             {% if readme_html %}
             <div class="readme-container">
-                <div class="markdown-body">
-                    {{ readme_html | safe }}
-                </div>
+                <div class="markdown-body">{{ readme_html | safe }}</div>
             </div>
             {% else %}
             <div class="readme-container">
@@ -1239,9 +637,6 @@ TABS
                     <i class="fas fa-file-alt"></i>
                     <h3>No README available</h3>
                     <p>This package doesn't include a README.md file.</p>
-                    <p style="font-size: 0.85rem; color: var(--text-tertiary);">
-                        Package authors can include a README.md inside their .tar.bool archive.
-                    </p>
                 </div>
             </div>
             {% endif %}
@@ -1250,32 +645,12 @@ TABS
         <!-- Tab: Dependencies -->
         <div class="tab-panel" id="tab-dependencies">
             <div class="readme-container">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-sitemap"></i> Dependencies</h3>
-                <div id="dependenciesList">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                        <i class="fas fa-spinner fa-spin"></i> Loading dependencies...
-                    </div>
+                <div class="deps-header">
+                    <h3><i class="fas fa-sitemap"></i> Dependencies</h3>
+                    <span class="deps-summary" id="depsSummary"></span>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Tab: Versions -->
-        <div class="tab-panel" id="tab-versions">
-            <div class="readme-container">
-                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-code-branch"></i> Version History</h3>
-                <div class="version-timeline">
-                    <div class="version-item latest">
-                        <div class="version-header">
-                            <span class="version-number">v{{ package.version }}</span>
-                            <span class="version-badge latest">Latest</span>
-                            <span class="version-date">{{ package.created_at[:10] if package.created_at else 'N/A' }}</span>
-                        </div>
-                        <div class="version-dl">
-                            <i class="fas fa-download"></i> {{ package.downloads }} downloads
-                            &bull;
-                            <i class="fas fa-microchip"></i> {{ package.arch }}
-                        </div>
-                    </div>
+                <div id="dependenciesContent">
+                    <div class="empty-deps"><i class="fas fa-spinner fa-spin"></i> Loading dependencies...</div>
                 </div>
             </div>
         </div>
@@ -1283,12 +658,18 @@ TABS
         <!-- Tab: Reviews -->
         <div class="tab-panel" id="tab-reviews">
             <div class="readme-container">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-star"></i> Reviews & Ratings</h3>
-                <div id="reviewsContent">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                        <i class="fas fa-spinner fa-spin"></i> Loading reviews...
-                    </div>
+                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-star"></i> Reviews & Ratings</h3>
+                
+                <!-- Review Summary (loaded dynamically) -->
+                <div id="reviewSummary"></div>
+                
+                <!-- Review List (loaded dynamically) -->
+                <div id="reviewList">
+                    <div class="empty-deps"><i class="fas fa-spinner fa-spin"></i> Loading reviews...</div>
                 </div>
+                
+                <!-- Review Form -->
+                <div id="reviewFormContainer"></div>
             </div>
         </div>
     </div>
@@ -1299,12 +680,10 @@ TABS
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 <script>
     // ============================================================
-    // HIGHLIGHT.JS
+    // INIT
     // ============================================================
     document.addEventListener('DOMContentLoaded', () => {
         hljs.highlightAll();
-        
-        // Charger les données
         loadRating();
         loadDependencies();
         loadReviews();
@@ -1315,77 +694,38 @@ TABS
     // ============================================================
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const tabName = this.dataset.tab;
-            
-            // Update buttons
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            
-            // Update panels
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-            
-            // Save in URL hash
-            window.location.hash = tabName;
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            window.location.hash = this.dataset.tab;
         });
     });
-
-    // Restore tab from hash
     if (window.location.hash) {
-        const hash = window.location.hash.substring(1);
-        const tabBtn = document.querySelector(`[data-tab="${hash}"]`);
+        const tabBtn = document.querySelector(`[data-tab="${window.location.hash.substring(1)}"]`);
         if (tabBtn) tabBtn.click();
     }
 
     // ============================================================
     // COPY COMMANDS
     // ============================================================
-    function copyCommand(element, text) {
-        navigator.clipboard.writeText(text).then(() => {
-            const btn = element.querySelector('.copy-icon');
-            btn.classList.add('copied');
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            showToast('Command copied!', 'success');
-            setTimeout(() => {
-                btn.classList.remove('copied');
-                btn.innerHTML = '<i class="far fa-copy"></i>';
-            }, 2000);
-        }).catch(() => {
-            showToast('Failed to copy', 'error');
-        });
+    function copyCommand(el, text) {
+        navigator.clipboard.writeText(text).then(() => showToast('Command copied!', 'success'))
+            .catch(() => showToast('Failed to copy', 'error'));
     }
-
     function copyBadgeUrl() {
-        const url = 'https://zenv-hub.onrender.com/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-blue?style=flat';
-        navigator.clipboard.writeText(url).then(() => {
-            showToast('Badge URL copied!', 'success');
-        });
+        navigator.clipboard.writeText('https://zenv-hub.onrender.com/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-blue?style=flat')
+            .then(() => showToast('Badge URL copied!', 'success'));
     }
-
     function copyBadgeMarkdown() {
-        const md = `[![Version](https://zenv-hub.onrender.com/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-blue?style=flat)](https://zenv-hub.onrender.com/package/{{ package.name }})`;
-        navigator.clipboard.writeText(md).then(() => {
-            showToast('Markdown badge copied!', 'success');
-        });
+        navigator.clipboard.writeText(`[![Version](https://zenv-hub.onrender.com/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-blue?style=flat)](https://zenv-hub.onrender.com/package/{{ package.name }})`)
+            .then(() => showToast('Markdown copied!', 'success'));
     }
-
     function copyPageUrl() {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-            showToast('Link copied!', 'success');
-        });
+        navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copied!', 'success'));
     }
-
     function shareOnTwitter() {
-        const text = encodeURIComponent('{{ package.name }} v{{ package.version }} on Zarch Hub');
-        const url = encodeURIComponent(window.location.href);
-        window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=550,height=420');
-    }
-
-    function reportPackage() {
-        const reason = prompt('Why are you reporting this package?\n\n(Spam, malware, copyright, inappropriate content, other)');
-        if (reason) {
-            showToast('Report submitted. Thank you!', 'success');
-        }
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('{{ package.name }} v{{ package.version }}')}&url=${encodeURIComponent(window.location.href)}`, '_blank', 'width=550,height=420');
     }
 
     // ============================================================
@@ -1394,18 +734,13 @@ TABS
     function showToast(message, type = 'info') {
         const existing = document.querySelector('.toast');
         if (existing) existing.remove();
-        
         const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.innerHTML = `<i class="fas fa-${icons[type] || icons.info}"></i> ${message}`;
         document.body.appendChild(toast);
-        
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
     }
 
     // ============================================================
@@ -1415,12 +750,10 @@ TABS
         fetch('/api/v1/package/{{ package.name }}/rating')
             .then(r => r.json())
             .then(data => {
-                const stars = data.average > 0 ? '⭐ ' + data.average.toFixed(1) : '⭐ --';
-                document.getElementById('metaRating').textContent = stars;
+                const display = data.average > 0 ? '⭐ ' + data.average.toFixed(1) : '--';
                 document.getElementById('sidebarRating').textContent = data.average > 0 ? data.average.toFixed(1) : '--';
             })
             .catch(() => {
-                document.getElementById('metaRating').textContent = '⭐ --';
                 document.getElementById('sidebarRating').textContent = '--';
             });
     }
@@ -1429,148 +762,239 @@ TABS
     // LOAD DEPENDENCIES
     // ============================================================
     function loadDependencies() {
-        const container = document.getElementById('dependenciesList');
-        
+        const container = document.getElementById('dependenciesContent');
+        const countEl = document.getElementById('depCount');
+        const summaryEl = document.getElementById('depsSummary');
+
         fetch('/api/v1/package/{{ package.name }}/dependencies')
             .then(r => r.json())
             .then(data => {
-                if (data.dependencies && data.dependencies.length > 0) {
-                    document.getElementById('depCount').textContent = data.dependencies.length;
-                    let html = '<ul class="deps-list">';
-                    data.dependencies.forEach(dep => {
-                        html += `
-                            <li class="dep-item">
-                                <span class="dep-name">
-                                    <i class="fas fa-cube" style="color: var(--accent-blue);"></i>
-                                    <a href="/package/${dep.name}">${dep.name}</a>
-                                </span>
-                                <span style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span class="dep-version">${dep.version || '*'}</span>
-                                    <span class="dep-type ${dep.dev ? 'dev' : 'prod'}">${dep.dev ? 'dev' : 'prod'}</span>
-                                </span>
-                            </li>`;
-                    });
-                    html += '</ul>';
-                    container.innerHTML = html;
-                } else {
-                    document.getElementById('depCount').textContent = '0';
-                    container.innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                            <i class="fas fa-box-open" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.4;"></i>
-                            <p>No dependencies listed.</p>
-                        </div>`;
+                const deps = data.dependencies || [];
+                const devDeps = data.dev_dependencies || [];
+                const total = deps.length + devDeps.length;
+
+                countEl.textContent = total;
+                summaryEl.textContent = `${deps.length} production, ${devDeps.length} development`;
+
+                if (total === 0) {
+                    container.innerHTML = `<div class="empty-deps"><i class="fas fa-box-open" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.3;"></i>No dependencies</div>`;
+                    return;
                 }
+
+                let html = '<div class="deps-grid">';
+                
+                deps.forEach(dep => {
+                    html += `
+                    <a href="/package/${dep.name}" class="dep-card">
+                        <div class="dep-icon prod"><i class="fas fa-cube"></i></div>
+                        <div class="dep-info">
+                            <div class="dep-name">${dep.name}</div>
+                            <div class="dep-version">${dep.version}</div>
+                        </div>
+                        <span class="dep-badge prod">prod</span>
+                    </a>`;
+                });
+
+                devDeps.forEach(dep => {
+                    html += `
+                    <a href="/package/${dep.name}" class="dep-card">
+                        <div class="dep-icon dev"><i class="fas fa-tools"></i></div>
+                        <div class="dep-info">
+                            <div class="dep-name">${dep.name}</div>
+                            <div class="dep-version">${dep.version}</div>
+                        </div>
+                        <span class="dep-badge dev">dev</span>
+                    </a>`;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
             })
             .catch(() => {
-                document.getElementById('depCount').textContent = '0';
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                        <p>Unable to load dependencies.</p>
-                    </div>`;
+                countEl.textContent = '0';
+                summaryEl.textContent = 'Unable to load';
+                container.innerHTML = `<div class="empty-deps">Unable to load dependencies</div>`;
             });
     }
 
     // ============================================================
     // LOAD REVIEWS
     // ============================================================
+    let currentRating = 0;
+
     function loadReviews() {
-        const container = document.getElementById('reviewsContent');
-        const reviewCount = document.getElementById('reviewCount');
-        
+        const summaryContainer = document.getElementById('reviewSummary');
+        const listContainer = document.getElementById('reviewList');
+        const formContainer = document.getElementById('reviewFormContainer');
+        const countEl = document.getElementById('reviewCount');
+
         fetch('/api/v1/package/{{ package.name }}/reviews')
             .then(r => r.json())
             .then(data => {
                 const reviews = data.reviews || [];
                 const average = data.average || 0;
-                reviewCount.textContent = reviews.length;
-                
-                let html = '';
-                
-                // Summary
-                if (reviews.length > 0) {
-                    html += `
-                    <div class="review-summary">
-                        <div class="review-rating-big">
-                            <div class="review-rating-number">${average.toFixed(1)}</div>
-                            <div class="review-stars">${generateStars(Math.round(average))}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-tertiary);">${reviews.length} review(s)</div>
-                        </div>
-                        <div class="review-bar-chart">
-                            ${generateBarChart(reviews)}
-                        </div>
-                    </div>`;
-                    
-                    // Review list
-                    reviews.forEach(review => {
-                        html += `
-                        <div class="review-card">
-                            <div class="review-header">
-                                <div class="review-avatar">${review.username[0]}</div>
-                                <div class="review-author">
-                                    <a href="/@${review.username}">${review.username}</a>
-                                </div>
-                                <div class="review-rating">${generateStars(review.rating)}</div>
-                                <div class="review-date">${(review.created_at || '').substring(0, 10)}</div>
-                            </div>
-                            ${review.comment ? `<div class="review-comment">${review.comment}</div>` : ''}
-                        </div>`;
+                countEl.textContent = reviews.length;
+
+                // Render summary
+                summaryContainer.innerHTML = buildReviewSummary(average, reviews);
+                // Animate bars
+                setTimeout(() => {
+                    document.querySelectorAll('.review-bar-fill').forEach(bar => {
+                        bar.style.width = bar.dataset.width + '%';
                     });
+                }, 100);
+
+                // Render review list
+                if (reviews.length === 0) {
+                    listContainer.innerHTML = `<div class="empty-deps"><i class="fas fa-star" style="font-size: 2rem; display: block; margin-bottom: 0.5rem; opacity: 0.3;"></i>No reviews yet. Be the first to review!</div>`;
                 } else {
-                    html += `
-                    <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                        <i class="fas fa-star" style="font-size: 2.5rem; margin-bottom: 0.75rem; display: block; opacity: 0.3;"></i>
-                        <p>No reviews yet. Be the first to review!</p>
-                    </div>`;
+                    listContainer.innerHTML = reviews.map(r => buildReviewCard(r)).join('');
                 }
-                
-                container.innerHTML = html;
+
+                // Render form
+                {% if session.get('user') %}
+                formContainer.innerHTML = buildReviewForm();
+                setupStarSelector();
+                {% else %}
+                formContainer.innerHTML = `<div class="review-form-card"><div class="review-login-prompt"><i class="fas fa-lock"></i> <a href="/login?next=/package/{{ package.name }}" style="color: var(--accent-blue);">Login</a> to write a review</div></div>`;
+                {% endif %}
             })
             .catch(() => {
-                reviewCount.textContent = '0';
-                container.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--text-tertiary);">
-                    <p>Unable to load reviews.</p>
-                </div>`;
+                countEl.textContent = '0';
+                summaryContainer.innerHTML = '';
+                listContainer.innerHTML = `<div class="empty-deps">Unable to load reviews</div>`;
+                formContainer.innerHTML = '';
             });
+    }
+
+    function buildReviewSummary(average, reviews) {
+        const distribution = [0, 0, 0, 0, 0];
+        reviews.forEach(r => { if (r.rating >= 1 && r.rating <= 5) distribution[5 - r.rating]++; });
+        const max = Math.max(...distribution, 1);
+        const starsHtml = generateStars(Math.round(average));
+        const total = reviews.length;
+
+        let barsHtml = '';
+        for (let i = 0; i < 5; i++) {
+            const percent = Math.round((distribution[i] / max) * 100);
+            barsHtml += `
+            <div class="review-bar-row">
+                <span class="review-bar-label">${5 - i}★</span>
+                <div class="review-bar"><div class="review-bar-fill" data-width="${percent}" style="width: 0%;"></div></div>
+                <span class="review-bar-count">${distribution[i]}</span>
+            </div>`;
+        }
+
+        return `
+        <div class="review-summary">
+            <div class="review-rating-big">
+                <div class="review-rating-number">${average > 0 ? average.toFixed(1) : '--'}</div>
+                <div class="review-stars-display">${starsHtml}</div>
+                <div class="review-total">${total} review${total !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="review-bar-chart">${barsHtml}</div>
+        </div>`;
+    }
+
+    function buildReviewCard(review) {
+        return `
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-avatar">${review.username[0]}</div>
+                <div class="review-author"><a href="/@${review.username}">${review.username}</a></div>
+                <div class="review-stars">${generateStars(review.rating)}</div>
+                <div class="review-date">${(review.created_at || '').substring(0, 10)}</div>
+            </div>
+            ${review.comment ? `<div class="review-comment">${escapeHtml(review.comment)}</div>` : ''}
+        </div>`;
+    }
+
+    function buildReviewForm() {
+        return `
+        <div class="review-form-card" id="reviewForm">
+            <h3>Write a Review</h3>
+            <div class="star-selector" id="starSelector">
+                ${[1,2,3,4,5].map(i => `<button data-rating="${i}" onclick="setRating(${i})" title="${i} star${i>1?'s':''}"><i class="far fa-star"></i></button>`).join('')}
+            </div>
+            <textarea class="review-textarea" id="reviewComment" placeholder="Share your experience with this package... (optional)"></textarea>
+            <button class="btn-submit-review" id="submitReviewBtn" disabled onclick="submitReview()">
+                <i class="fas fa-paper-plane"></i> Submit Review
+            </button>
+        </div>`;
     }
 
     function generateStars(rating) {
         let stars = '';
         for (let i = 1; i <= 5; i++) {
-            stars += i <= rating ? '<i class="fas fa-star"></i>' : '<i class="far fa-star" style="opacity: 0.4;"></i>';
+            stars += i <= rating ? '<i class="fas fa-star"></i>' : '<i class="far fa-star" style="opacity: 0.35;"></i>';
         }
         return stars;
     }
 
-    function generateBarChart(reviews) {
-        const distribution = [0, 0, 0, 0, 0]; // 5,4,3,2,1 stars
-        reviews.forEach(r => {
-            if (r.rating >= 1 && r.rating <= 5) distribution[5 - r.rating]++;
-        });
-        
-        const max = Math.max(...distribution, 1);
-        let html = '';
-        for (let i = 0; i < 5; i++) {
-            const stars = 5 - i;
-            const count = distribution[i];
-            const percent = Math.round((count / max) * 100);
-            html += `
-            <div class="review-bar-row">
-                <span class="review-bar-label">${stars}★</span>
-                <div class="review-bar">
-                    <div class="review-bar-fill" style="width: ${percent}%;"></div>
-                </div>
-                <span class="review-bar-count">${count}</span>
-            </div>`;
-        }
-        return html;
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // ============================================================
-    // DOWNLOAD TRACKING
+    // STAR SELECTOR
     // ============================================================
-    document.getElementById('downloadBtn')?.addEventListener('click', function() {
-        showToast('Download starting...', 'success');
-    });
+    function setupStarSelector() {
+        // Already setup in buildReviewForm via onclick
+    }
+
+    function setRating(rating) {
+        currentRating = rating;
+        const buttons = document.querySelectorAll('#starSelector button');
+        buttons.forEach((btn, i) => {
+            const icon = btn.querySelector('i');
+            if (i < rating) {
+                icon.className = 'fas fa-star';
+                btn.classList.add('active');
+            } else {
+                icon.className = 'far fa-star';
+                btn.classList.remove('active');
+            }
+        });
+        document.getElementById('submitReviewBtn').disabled = false;
+    }
+
+    // ============================================================
+    // SUBMIT REVIEW
+    // ============================================================
+    function submitReview() {
+        if (currentRating < 1 || currentRating > 5) {
+            showToast('Please select a rating', 'error');
+            return;
+        }
+
+        const comment = document.getElementById('reviewComment').value.trim();
+        const btn = document.getElementById('submitReviewBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        fetch('/api/v1/package/{{ package.name }}/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating: currentRating, comment: comment })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Review submitted! Thank you! 🎉', 'success');
+                loadReviews();
+            } else {
+                showToast(data.error || 'Failed to submit review', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review';
+            }
+        })
+        .catch(() => {
+            showToast('Network error. Please try again.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review';
+        });
+    }
 </script>
 {% endblock %}
