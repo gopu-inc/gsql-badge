@@ -1,218 +1,506 @@
 {% extends "base.html" %}
 
-{% block title %}Zarch Hub - APKM Package Registry{% endblock %}
+{% block head_extra %}
+<meta property="og:title" content="Zarch Hub - Package Registry for APKM, APSM & BOOL">
+<meta property="og:description" content="Discover, publish and manage packages for the Zarch ecosystem. {{ total_packages }}+ packages, {{ total_downloads }}+ downloads.">
+<meta property="og:url" content="https://gsql-badge.onrender.com/">
+<meta name="description" content="Zarch Hub - The official package registry for APKM, APSM, and BOOL. {{ total_packages }}+ packages available.">
+<meta name="keywords" content="zarch, apkm, apsm, bool, package registry, gopu-inc, package manager">
+<link rel="canonical" href="https://gsql-badge.onrender.com/">
+{% endblock %}
+
+{% block title %}Zarch Hub - Package Registry{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+    HERO SECTION
+    ============================================================ */
+    .hero {
+        background: var(--gradient-hero);
+        position: relative;
+        overflow: hidden;
+        padding: 5rem 0;
+    }
+
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -30%;
+        right: -15%;
+        width: 800px;
+        height: 800px;
+        background: radial-gradient(circle, rgba(88, 166, 255, 0.04) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .hero::after {
+        content: '';
+        position: absolute;
+        bottom: -20%;
+        left: -10%;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(188, 140, 255, 0.03) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .hero-content {
+        display: flex;
+        align-items: center;
+        gap: 4rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .hero-badge {
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: rgba(88, 166, 255, 0.1);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+        color: var(--accent-blue);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-full);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-badge .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--accent-green);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.3); }
+    }
+
+    .hero h1 {
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.03em;
+    }
+
+    .hero h1 .highlight {
+        background: var(--gradient-blue);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero p {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        max-width: 500px;
+        margin-bottom: 2rem;
+        line-height: 1.7;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .hero-image {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hero-image img {
+        width: 280px;
+        height: 280px;
+        border-radius: var(--radius-2xl);
+        box-shadow: var(--shadow-xl), 0 0 60px rgba(88, 166, 255, 0.1);
+        object-fit: contain;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    @media (max-width: 968px) {
+        .hero-content {
+            flex-direction: column-reverse;
+            text-align: center;
+            gap: 2rem;
+        }
+        
+        .hero p {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .hero-actions {
+            justify-content: center;
+        }
+        
+        .hero-image img {
+            width: 180px;
+            height: 180px;
+        }
+    }
+
+    /* ============================================================
+    STATS SECTION
+    ============================================================ */
+    .stats-section {
+        padding: 4rem 0;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 2rem 1.5rem;
+        text-align: center;
+        transition: var(--transition);
+    }
+
+    .stat-card:hover {
+        border-color: var(--accent-blue);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-value {
+        font-family: var(--font-mono);
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* ============================================================
+    PACKAGES GRID
+    ============================================================ */
+    .packages-section {
+        padding: 4rem 0;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.8rem;
+        font-weight: 800;
+    }
+
+    .package-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .package-card:hover {
+        border-color: var(--accent-blue);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .package-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .package-card-icon {
+        width: 44px;
+        height: 44px;
+        background: var(--gradient-blue);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .package-card-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    .package-card-version {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        font-family: var(--font-mono);
+    }
+
+    .package-card-author {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .package-card-stats {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+    }
+
+    .package-card-stats span {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    /* ============================================================
+    CTA SECTION
+    ============================================================ */
+    .cta-section {
+        padding: 5rem 0;
+        text-align: center;
+    }
+
+    .cta-card {
+        background: var(--gradient-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-2xl);
+        padding: 3rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-card h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .cta-card p {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .cta-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="relative overflow-hidden rounded-3xl glass-card border border-slate-700/50 mb-16" data-aos="fade-up">
-    <div class="absolute inset-0 bg-gradient-to-r from-sky-500/10 to-sky-400/10"></div>
-    
-    <!-- Animated Background Elements -->
-    <div class="absolute top-0 left-0 w-64 h-64 bg-sky-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float"></div>
-    <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float animation-delay-2000"></div>
-    <div class="absolute bottom-0 left-20 w-64 h-64 bg-pink-500/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-float animation-delay-4000"></div>
-    
-    <div class="relative z-10 px-6 py-20 text-center">
-        <!-- Badge -->
-        <div class="inline-flex items-center px-4 py-2 bg-sky-500/10 border border-sky-500/30 rounded-full mb-6">
-            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></span>
-            <span class="text-sm text-sky-400">v5.2 • Production Ready</span>
-        </div>
-        
-        <h1 class="text-5xl md:text-7xl font-bold mb-6">
-            <span class="text-white">Zarch</span>
-            <span class="bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent">Hub</span>
-        </h1>
-        
-        <p class="text-xl md:text-2xl text-slate-300 mb-8 max-w-3xl mx-auto">
-            The ultimate package registry for <span class="text-sky-400 font-semibold">APKM</span> - 
-            Alpine Package Manager. Secure, fast, and community-driven.
-        </p>
-        
-        <!-- Quick Install -->
-        <div class="max-w-2xl mx-auto mb-10">
-            <div class="code-block">
-                <pre><code class="text-green-400">$</code> <code class="text-white">curl -sSL https://gsql-badge.onrender.com/install.sh | sudo sh</code></pre>
-            </div>
-            <button onclick="copyToClipboard('curl -sSL https://gsql-badge.onrender.com/install.sh | sudo sh')" 
-                    class="mt-3 text-sm text-sky-400 hover:text-sky-300 transition-colors">
-                <i class="far fa-copy mr-1"></i>Copy to clipboard
-            </button>
-        </div>
-        
-        <!-- CTA Buttons -->
-        <div class="flex flex-wrap justify-center gap-4">
-            <a href="/packages" 
-               class="px-8 py-4 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transform hover:scale-105 transition-all glow-button">
-                <i class="fas fa-cube mr-2"></i>Browse Packages
-            </a>
-            <a href="/upload" 
-               class="px-8 py-4 bg-slate-800/50 text-white rounded-xl font-semibold hover:bg-slate-700/50 transform hover:scale-105 transition-all border border-slate-700 hover:border-sky-500/50">
-                <i class="fas fa-upload mr-2"></i>Upload Package
-            </a>
-            <a href="https://discord.gg/W2xN49q9h" target="_blank"
-               class="px-8 py-4 bg-[#5865F2] text-white rounded-xl font-semibold hover:bg-[#4752C4] transform hover:scale-105 transition-all glow-button" style="box-shadow: 0 0 20px rgba(88, 101, 242, 0.3);">
-                <i class="fab fa-discord mr-2"></i>Join Discord
-            </a>
-        </div>
-    </div>
-</section>
-
-<!-- Stats Section -->
-<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-    <div class="glass-card rounded-2xl p-8 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all" data-aos="fade-up" data-aos-delay="100">
-        <div class="text-4xl font-bold bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent mb-2">
-            {{ total_packages }}
-        </div>
-        <div class="text-slate-400">Total Packages</div>
-        <div class="mt-4 text-3xl">
-            <i class="fas fa-cube text-sky-500/30"></i>
-        </div>
-    </div>
-    <div class="glass-card rounded-2xl p-8 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all" data-aos="fade-up" data-aos-delay="150">
-        <div class="text-4xl font-bold bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent mb-2">
-            {{ total_downloads }}
-        </div>
-        <div class="text-slate-400">Total Downloads</div>
-        <div class="mt-4 text-3xl">
-            <i class="fas fa-download text-sky-500/30"></i>
-        </div>
-    </div>
-    <div class="glass-card rounded-2xl p-8 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all" data-aos="fade-up" data-aos-delay="200">
-        <div class="text-4xl font-bold bg-gradient-to-r from-sky-400 to-sky-300 bg-clip-text text-transparent mb-2">
-            {{ total_authors }}
-        </div>
-        <div class="text-slate-400">Package Authors</div>
-        <div class="mt-4 text-3xl">
-            <i class="fas fa-users text-sky-500/30"></i>
-        </div>
-    </div>
-</section>
-
-<!-- Features Section -->
-<section class="mb-16">
-    <h2 class="text-3xl font-bold text-center text-white mb-12" data-aos="fade-up">Why Choose Zarch Hub?</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="glass-card rounded-2xl p-8 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="250">
-            <div class="w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
-                <i class="fas fa-shield-alt text-white text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Secure by Default</h3>
-            <p class="text-slate-400">All packages are verified with SHA256 checksums and signed with JWT tokens</p>
-        </div>
-        <div class="glass-card rounded-2xl p-8 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="300">
-            <div class="w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
-                <i class="fas fa-rocket text-white text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Lightning Fast</h3>
-            <p class="text-slate-400">CDN-powered downloads with intelligent caching for maximum speed</p>
-        </div>
-        <div class="glass-card rounded-2xl p-8 text-center border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="350">
-            <div class="w-16 h-16 bg-gradient-to-br from-sky-500 to-sky-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
-                <i class="fas fa-users text-white text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-white mb-2">Community Driven</h3>
-            <p class="text-slate-400">Join our growing community of developers and package maintainers</p>
-        </div>
-    </div>
-</section>
-
-<!-- Recent Packages -->
-<section class="mb-16">
-    <div class="flex justify-between items-center mb-8" data-aos="fade-up">
-        <h2 class="text-3xl font-bold text-white">Recent Packages</h2>
-        <a href="/packages" class="text-sky-400 hover:text-sky-300 font-semibold transition-all group">
-            View All <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
-        </a>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for package in packages %}
-        <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <h3 class="text-xl font-semibold">
-                        <a href="/package/{{ package.name }}" class="text-white hover:text-sky-400">
-                            {{ package.name }}
-                        </a>
-                    </h3>
-                    <p class="text-sm text-slate-400">by {{ package.author }}</p>
-                </div>
-                <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
-                    v{{ package.version }}
+<!-- ================================================================
+HERO
+================================================================ -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-text">
+                <span class="hero-badge">
+                    <span class="dot"></span>
+                    v5.2 Production Edition
                 </span>
+                <h1>
+                    The <span class="highlight">Package Registry</span><br>
+                    for Zarch Ecosystem
+                </h1>
+                <p>
+                    Discover, publish, and manage packages for 
+                    <strong>APKM</strong>, <strong>APSM</strong>, and <strong>BOOL</strong>.
+                    Join thousands of developers building the future of package management.
+                </p>
+                <div class="hero-actions">
+                    <a href="/packages" class="btn btn-primary btn-lg">
+                        <i class="fas fa-compass"></i> Explore Packages
+                    </a>
+                    <a href="/upload" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-upload"></i> Publish Package
+                    </a>
+                </div>
             </div>
-            
-            <p class="text-slate-400 mb-4 text-sm">
-                {{ package.description if package.description else 'No description available' }}
-            </p>
-            
-            <div class="flex items-center justify-between text-sm text-slate-500">
-                <span><i class="fas fa-download mr-1 text-sky-400"></i>{{ package.downloads }} downloads</span>
-                <span><i class="far fa-clock mr-1 text-sky-400"></i>{{ package.created_at[:10] }}</span>
-            </div>
-            
-            <div class="mt-4 flex space-x-2">
-                <a href="/package/{{ package.name }}" 
-                   class="flex-1 text-center px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-all glow-button">
-                    View Details
-                </a>
-                <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}"
-                   class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-sky-500 hover:text-white transition-all">
-                    <i class="fas fa-download"></i>
-                </a>
+            <div class="hero-image">
+                <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png" 
+                     alt="Zarch Hub Logo"
+                     loading="eager">
             </div>
         </div>
-        {% endfor %}
     </div>
 </section>
 
-<!-- Discord CTA -->
-<section class="glass-card rounded-3xl p-12 text-center border border-slate-700/50 relative overflow-hidden" data-aos="fade-up">
-    <div class="absolute inset-0 bg-gradient-to-r from-[#5865F2]/10 to-[#5865F2]/5"></div>
-    <div class="relative z-10">
-        <div class="w-20 h-20 bg-[#5865F2]/20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-[#5865F2]/30">
-            <i class="fab fa-discord text-5xl text-[#5865F2]"></i>
+<!-- ================================================================
+STATS
+================================================================ -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-value" data-count="{{ total_packages }}">{{ total_packages }}</div>
+                <div class="stat-label">Total Packages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⬇️</div>
+                <div class="stat-value" data-count="{{ total_downloads }}">{{ total_downloads }}</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👨‍💻</div>
+                <div class="stat-value" data-count="{{ total_authors }}">{{ total_authors }}</div>
+                <div class="stat-label">Authors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">5.2</div>
+                <div class="stat-label">API Version</div>
+            </div>
         </div>
-        <h2 class="text-3xl font-bold text-white mb-4">Join Our Discord Community</h2>
-        <p class="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-            Get help, share your packages, and connect with other developers
-        </p>
-        <a href="https://discord.gg/W2xN49q9h" target="_blank"
-           class="inline-flex items-center px-8 py-4 bg-[#5865F2] text-white rounded-xl font-semibold hover:bg-[#4752C4] transform hover:scale-105 transition-all glow-button"
-           style="box-shadow: 0 0 30px rgba(88, 101, 242, 0.4);">
-            <i class="fab fa-discord mr-2"></i>
-            Join Discord Server
-        </a>
-        <p class="text-slate-500 mt-4 text-sm">
-            <i class="fas fa-users mr-1"></i> 2,500+ members online
-        </p>
     </div>
 </section>
 
+<!-- ================================================================
+RECENT PACKAGES
+================================================================ -->
+<section class="packages-section">
+    <div class="container">
+        <div class="section-header">
+            <h2><i class="fas fa-clock" style="color: var(--accent-blue); margin-right: 0.5rem;"></i> Recent Packages</h2>
+            <a href="/packages" class="btn btn-outline btn-sm">
+                View All <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div class="card-grid">
+            {% if packages %}
+                {% for pkg in packages %}
+                <a href="/package/{{ pkg.name }}" class="package-card">
+                    <div class="package-card-header">
+                        <div class="package-card-icon">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                        <div>
+                            <div class="package-card-name">{{ pkg.name }}</div>
+                            <div class="package-card-version">v{{ pkg.version }}</div>
+                        </div>
+                    </div>
+                    <div class="package-card-author">
+                        <i class="fas fa-user-astronaut"></i> {{ pkg.author }}
+                    </div>
+                    <div class="package-card-stats">
+                        <span><i class="fas fa-download"></i> {{ pkg.downloads }}</span>
+                        <span><i class="fas fa-tag"></i> {{ pkg.scope }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            {% else %}
+                <div class="text-center" style="grid-column: 1 / -1; padding: 2rem; color: var(--text-tertiary);">
+                    <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                    <p>No packages yet. Be the first to publish!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+CTA
+================================================================ -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-card">
+            <h2>Ready to Share Your Package?</h2>
+            <p>Publish your first package in minutes with APKM, APSM, and BOOL. Join the Zarch community today.</p>
+            <div class="cta-actions">
+                <a href="/register" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </a>
+                <a href="/docs" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-book"></i> Read Docs
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        // Show a temporary notification
-        const notification = document.createElement('div');
-        notification.className = 'fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border border-green-500/50 bg-green-500/10 text-green-400 z-50 animate-float';
-        notification.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Copied to clipboard!';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
+    // Animation des compteurs
+    document.addEventListener('DOMContentLoaded', () => {
+        const statValues = document.querySelectorAll('.stat-value[data-count]');
+        statValues.forEach(el => {
+            const target = parseInt(el.getAttribute('data-count'));
+            if (!target || target === 0) return;
+            
+            const duration = 2000;
+            const start = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // ease-out
+                const current = Math.floor(target * eased);
+                el.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
+        });
     });
-}
 </script>
-
-<style>
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-}
-.animation-delay-2000 {
-    animation-delay: 2s;
-}
-.animation-delay-4000 {
-    animation-delay: 4s;
-}
-</style>
 {% endblock %}
