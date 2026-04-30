@@ -1,57 +1,196 @@
 {% extends "base.html" %}
 
+{% block head_extra %}
+<meta property="og:title" content="Settings - Zarch Hub">
+<meta property="og:description" content="Manage your Zarch Hub account settings, profile, security, and badges.">
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
 {% block title %}Settings - Zarch Hub{% endblock %}
 
+{% block extra_css %}
+<style>
+    .settings-page {
+        padding: 2rem 0 4rem;
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--accent-purple);
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .settings-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.75rem;
+        text-decoration: none;
+        color: inherit;
+        transition: var(--transition);
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .settings-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent-purple);
+        box-shadow: var(--shadow-glow-purple);
+    }
+
+    .settings-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .settings-icon.profile {
+        background: rgba(88, 166, 255, 0.15);
+        color: var(--accent-blue);
+    }
+
+    .settings-icon.security {
+        background: rgba(248, 81, 73, 0.15);
+        color: var(--accent-red);
+    }
+
+    .settings-icon.badges {
+        background: rgba(188, 140, 255, 0.15);
+        color: var(--accent-purple);
+    }
+
+    .settings-icon.notifications {
+        background: rgba(210, 153, 29, 0.15);
+        color: var(--accent-orange);
+    }
+
+    .settings-icon.danger {
+        background: rgba(248, 81, 73, 0.15);
+        color: var(--accent-red);
+    }
+
+    .settings-info h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .settings-info p {
+        font-size: 0.82rem;
+        color: var(--text-tertiary);
+        line-height: 1.4;
+    }
+
+    .settings-arrow {
+        margin-left: auto;
+        color: var(--text-tertiary);
+        font-size: 0.9rem;
+        align-self: center;
+        transition: var(--transition);
+    }
+
+    .settings-card:hover .settings-arrow {
+        color: var(--text-primary);
+        transform: translateX(3px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold mb-8" data-aos="fade-up">Account Settings</h1>
-    
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <!-- Sidebar Navigation -->
-        <div class="md:col-span-1" data-aos="fade-up" data-aos-delay="100">
-            <div class="glassmorphism rounded-2xl p-4">
-                <nav class="space-y-2">
-                    <a href="/settings/profile" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/profile' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
-                        <i class="fas fa-user"></i>
-                        <span>Profile</span>
-                    </a>
-                    <a href="/settings/security" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/security' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Security</span>
-                    </a>
-                    <a href="/settings/notifications" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/notifications' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
-                        <i class="fas fa-bell"></i>
-                        <span>Notifications</span>
-                    </a>
-                    <a href="/settings/badges" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/badges' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
-                        <i class="fas fa-medal"></i>
-                        <span>Badges</span>
-                    </a>
-                    <a href="/settings/api" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl {% if request.path == '/settings/api' %}bg-indigo-600 text-white{% else %}text-gray-600 hover:bg-indigo-50 hover:text-indigo-600{% endif %} transition-colors">
-                        <i class="fas fa-key"></i>
-                        <span>API Keys</span>
-                    </a>
-                    <hr class="my-2 border-gray-200">
-                    <a href="/settings/danger" 
-                       class="flex items-center space-x-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Danger Zone</span>
-                    </a>
-                </nav>
-            </div>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="md:col-span-3" data-aos="fade-up" data-aos-delay="150">
-            <div class="glassmorphism rounded-2xl p-8">
-                {% block settings_content %}{% endblock %}
-            </div>
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-cog"></i> Settings</h1>
+    </div>
+</section>
+
+<section class="settings-page">
+    <div class="container">
+        <div class="settings-grid">
+            <!-- Profile -->
+            <a href="/settings/profile" class="settings-card">
+                <div class="settings-icon profile">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="settings-info">
+                    <h3>Profile</h3>
+                    <p>Edit your display name, bio, and social links</p>
+                </div>
+                <i class="fas fa-chevron-right settings-arrow"></i>
+            </a>
+
+            <!-- Security -->
+            <a href="/settings/security" class="settings-card">
+                <div class="settings-icon security">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="settings-info">
+                    <h3>Security</h3>
+                    <p>Change password and manage sessions</p>
+                </div>
+                <i class="fas fa-chevron-right settings-arrow"></i>
+            </a>
+
+            <!-- Badges -->
+            <a href="/settings/badges" class="settings-card">
+                <div class="settings-icon badges">
+                    <i class="fas fa-id-badge"></i>
+                </div>
+                <div class="settings-info">
+                    <h3>Badges</h3>
+                    <p>Create and manage your custom badges</p>
+                </div>
+                <i class="fas fa-chevron-right settings-arrow"></i>
+            </a>
+
+            <!-- Notifications -->
+            <a href="/settings/notifications" class="settings-card">
+                <div class="settings-icon notifications">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="settings-info">
+                    <h3>Notifications</h3>
+                    <p>Configure email and push notifications</p>
+                </div>
+                <i class="fas fa-chevron-right settings-arrow"></i>
+            </a>
+
+            <!-- Danger Zone -->
+            <a href="/settings/delete-account" class="settings-card" style="border-color: rgba(248,81,73,0.2);">
+                <div class="settings-icon danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="settings-info">
+                    <h3 style="color: var(--accent-red);">Danger Zone</h3>
+                    <p>Delete your account and all data permanently</p>
+                </div>
+                <i class="fas fa-chevron-right settings-arrow"></i>
+            </a>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
