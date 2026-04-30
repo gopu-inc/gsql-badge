@@ -2,9 +2,9 @@
 
 {% block head_extra %}
 <meta property="og:title" content="Forum - Zarch Hub Community">
-<meta property="og:description" content="Join the Zarch Hub community forum. Discuss Goscript, GPM, share packages, and connect with developers.">
+<meta property="og:description" content="Join the Zarch Hub community forum. {{ total_topics }} topics, {{ total_replies }} replies. Discuss Goscript, GPM, share packages, and connect with developers.">
 <meta property="og:url" content="https://zenv-hub.onrender.com/forum">
-<meta name="description" content="Zarch Hub Forum - Discuss Goscript, GPM packages, development, and connect with the community.">
+<meta name="description" content="Zarch Hub Forum - {{ total_topics }}+ topics. Discuss Goscript, GPM packages, development, and connect with the community.">
 <link rel="canonical" href="https://zenv-hub.onrender.com/forum">
 {% endblock %}
 
@@ -33,18 +33,38 @@
         margin-bottom: 0.5rem;
     }
 
-    .page-header h1 i {
-        color: var(--accent-purple);
+    .page-header h1 i { color: var(--accent-purple); }
+
+    .page-header p { color: var(--text-secondary); font-size: 1rem; }
+
+    /* Stats Mini Bar */
+    .forum-mini-stats {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
     }
 
-    .page-header p {
-        color: var(--text-secondary);
-        font-size: 1rem;
+    .forum-mini-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
     }
+
+    .forum-mini-stat strong { color: var(--text-primary); }
+
+    .forum-mini-stat i { font-size: 0.9rem; }
+
+    .forum-mini-stat.topics i { color: var(--accent-blue); }
+    .forum-mini-stat.replies i { color: var(--accent-green); }
+    .forum-mini-stat.solved i { color: var(--accent-orange); }
+    .forum-mini-stat.users i { color: var(--accent-purple); }
 
     .forum-layout {
         display: grid;
-        grid-template-columns: 1fr 320px;
+        grid-template-columns: 1fr 300px;
         gap: 2rem;
         align-items: start;
         max-width: var(--container-max);
@@ -53,69 +73,85 @@
     }
 
     @media (max-width: 900px) {
-        .forum-layout {
-            grid-template-columns: 1fr;
-        }
+        .forum-layout { grid-template-columns: 1fr; }
     }
 
     /* ============================================================
-    MAIN CONTENT
+    TOOLBAR
     ============================================================ */
-    .forum-main {
-        min-width: 0;
-    }
-
-    /* Toolbar */
     .forum-toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
         align-items: center;
-        margin-bottom: 1.5rem;
-        padding: 1rem;
+        margin-bottom: 1.25rem;
+        padding: 0.85rem 1rem;
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
     }
 
-    .forum-toolbar .search-wrapper {
+    .toolbar-search {
         flex: 1;
-        min-width: 200px;
+        min-width: 180px;
         position: relative;
     }
 
-    .forum-toolbar .search-wrapper i {
+    .toolbar-search i {
         position: absolute;
-        left: 0.85rem;
+        left: 0.75rem;
         top: 50%;
         transform: translateY(-50%);
         color: var(--text-tertiary);
         pointer-events: none;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
-    .forum-toolbar .search-input {
+    .toolbar-search input {
         width: 100%;
-        padding: 0.6rem 1rem 0.6rem 2.5rem;
+        padding: 0.55rem 0.85rem 0.55rem 2.25rem;
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
         color: var(--text-primary);
         font-family: var(--font-sans);
-        font-size: 0.88rem;
+        font-size: 0.85rem;
         outline: none;
         transition: var(--transition);
     }
 
-    .forum-toolbar .search-input:focus {
+    .toolbar-search input:focus {
         border-color: var(--accent-purple);
         box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
     }
 
-    .btn-new-topic {
-        padding: 0.6rem 1.25rem;
+    .toolbar-filters {
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-chip {
+        padding: 0.4rem 0.75rem;
+        border-radius: var(--radius-full);
+        font-size: 0.78rem;
         font-weight: 600;
-        font-size: 0.88rem;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        cursor: pointer;
+        text-decoration: none;
+        transition: var(--transition);
+        white-space: nowrap;
+    }
+
+    .filter-chip:hover { border-color: var(--accent-purple); color: var(--text-primary); }
+    .filter-chip.active { background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); }
+
+    .btn-new-topic {
+        padding: 0.55rem 1.1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
         border-radius: var(--radius-md);
         background: var(--gradient-purple);
         color: #fff;
@@ -124,7 +160,7 @@
         text-decoration: none;
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
         white-space: nowrap;
         transition: var(--transition);
         box-shadow: 0 4px 15px rgba(188, 140, 255, 0.3);
@@ -135,64 +171,46 @@
         box-shadow: 0 8px 25px rgba(188, 140, 255, 0.45);
     }
 
-    /* Categories */
-    .category-section {
-        margin-bottom: 2rem;
+    /* ============================================================
+    TOPICS LIST
+    ============================================================ */
+    .topics-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
-    .category-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1rem;
+    .topic-card {
         background: var(--bg-card);
         border: 1px solid var(--border-color);
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
-        font-weight: 700;
-        font-size: 1rem;
-    }
-
-    .category-header i {
-        color: var(--accent-purple);
-        font-size: 1.1rem;
-    }
-
-    .category-count {
-        margin-left: auto;
-        font-size: 0.8rem;
-        color: var(--text-tertiary);
-        font-weight: 500;
-    }
-
-    .topic-list {
-        list-style: none;
-    }
-
-    .topic-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem 1.25rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-top: none;
+        border-radius: var(--radius-lg);
+        padding: 1.15rem 1.35rem;
         transition: var(--transition);
         text-decoration: none;
         color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 
-    .topic-item:last-child {
-        border-radius: 0 0 var(--radius-md) var(--radius-md);
+    .topic-card:hover {
+        border-color: var(--accent-purple);
+        transform: translateX(3px);
+        box-shadow: var(--shadow-glow-purple);
     }
 
-    .topic-item:hover {
-        background: var(--bg-hover);
-        border-color: var(--border-hover);
+    .topic-card.pinned {
+        border-left: 3px solid var(--accent-orange);
+        background: rgba(210, 153, 29, 0.02);
     }
 
-    .topic-icon {
-        width: 42px;
-        height: 42px;
+    .topic-card.solved {
+        border-left: 3px solid var(--accent-green);
+    }
+
+    .topic-icon-wrap {
+        width: 44px;
+        height: 44px;
         border-radius: var(--radius-full);
         display: flex;
         align-items: center;
@@ -201,45 +219,30 @@
         flex-shrink: 0;
     }
 
-    .topic-icon.pinned {
-        background: rgba(210, 153, 29, 0.15);
-        color: var(--accent-orange);
-    }
+    .topic-icon-wrap.pinned { background: rgba(210,153,29,0.12); color: var(--accent-orange); }
+    .topic-icon-wrap.hot { background: rgba(248,81,73,0.12); color: var(--accent-red); }
+    .topic-icon-wrap.normal { background: rgba(88,166,255,0.1); color: var(--accent-blue); }
+    .topic-icon-wrap.solved { background: rgba(63,185,80,0.1); color: var(--accent-green); }
 
-    .topic-icon.normal {
-        background: rgba(88, 166, 255, 0.12);
-        color: var(--accent-blue);
-    }
-
-    .topic-icon.hot {
-        background: rgba(248, 81, 73, 0.12);
-        color: var(--accent-red);
-    }
-
-    .topic-icon.solved {
-        background: rgba(63, 185, 80, 0.12);
-        color: var(--accent-green);
-    }
-
-    .topic-content {
-        flex: 1;
-        min-width: 0;
-    }
+    .topic-content { flex: 1; min-width: 0; }
 
     .topic-title {
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-bottom: 0.3rem;
+        font-weight: 700;
+        font-size: 1rem;
         color: var(--text-primary);
+        margin-bottom: 0.3rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
         flex-wrap: wrap;
     }
 
+    .topic-title-text { word-break: break-word; }
+    .topic-title-text:hover { color: var(--accent-purple); }
+
     .topic-badge {
-        font-size: 0.65rem;
-        padding: 0.15rem 0.5rem;
+        font-size: 0.62rem;
+        padding: 0.12rem 0.45rem;
         border-radius: var(--radius-full);
         font-weight: 700;
         text-transform: uppercase;
@@ -247,27 +250,17 @@
         white-space: nowrap;
     }
 
-    .topic-badge.pinned {
-        background: rgba(210, 153, 29, 0.15);
-        color: var(--accent-orange);
-    }
-
-    .topic-badge.solved {
-        background: rgba(63, 185, 80, 0.15);
-        color: var(--accent-green);
-    }
-
-    .topic-badge.announcement {
-        background: rgba(88, 166, 255, 0.15);
-        color: var(--accent-blue);
-    }
+    .topic-badge.pinned { background: rgba(210,153,29,0.12); color: var(--accent-orange); }
+    .topic-badge.solved { background: rgba(63,185,80,0.12); color: var(--accent-green); }
+    .topic-badge.announcement { background: rgba(88,166,255,0.12); color: var(--accent-blue); }
+    .topic-badge.question { background: rgba(188,140,255,0.12); color: var(--accent-purple); }
 
     .topic-meta {
-        font-size: 0.78rem;
-        color: var(--text-tertiary);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: 0.85rem;
+        font-size: 0.76rem;
+        color: var(--text-tertiary);
     }
 
     .topic-meta span {
@@ -276,53 +269,113 @@
         gap: 0.3rem;
     }
 
-    .topic-stats {
+    .topic-meta .meta-author { color: var(--text-secondary); font-weight: 500; }
+    .topic-meta .meta-tag {
+        background: var(--bg-tertiary);
+        padding: 0.08rem 0.4rem;
+        border-radius: var(--radius-full);
+        font-size: 0.68rem;
+    }
+
+    .topic-stats-col {
         text-align: center;
         flex-shrink: 0;
-        min-width: 60px;
+        min-width: 55px;
     }
 
-    .topic-replies {
-        font-weight: 700;
-        font-size: 1rem;
+    .topic-reply-count {
+        font-weight: 800;
+        font-size: 1.1rem;
         color: var(--text-primary);
+        line-height: 1;
     }
 
-    .topic-replies-label {
-        font-size: 0.7rem;
+    .topic-reply-label {
+        font-size: 0.65rem;
         color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
 
-    .topic-last-post {
+    .topic-reply-count.has-solution { color: var(--accent-green); }
+
+    .topic-last-col {
         width: 140px;
         flex-shrink: 0;
         text-align: right;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
     }
 
-    .topic-last-user {
+    .topic-last-author {
         color: var(--text-secondary);
         font-weight: 500;
     }
 
+    .topic-last-author a {
+        color: var(--text-secondary);
+        text-decoration: none;
+    }
+
+    .topic-last-author a:hover { color: var(--accent-purple); }
+
     .topic-last-time {
         color: var(--text-tertiary);
-        font-size: 0.72rem;
+        font-size: 0.7rem;
     }
 
     @media (max-width: 700px) {
-        .topic-last-post {
-            display: none;
-        }
-
-        .topic-stats {
-            min-width: 40px;
-        }
-
-        .topic-item {
-            padding: 0.85rem 1rem;
-        }
+        .topic-last-col { display: none; }
+        .topic-stats-col { min-width: 35px; }
+        .topic-card { padding: 0.9rem 1rem; }
     }
+
+    /* ============================================================
+    EMPTY STATE
+    ============================================================ */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-tertiary);
+        margin-bottom: 1rem;
+        display: block;
+        opacity: 0.4;
+    }
+
+    .empty-state h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+    .empty-state p { color: var(--text-tertiary); margin-bottom: 1.25rem; }
+
+    /* ============================================================
+    PAGINATION
+    ============================================================ */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.35rem;
+        margin-top: 2rem;
+    }
+
+    .page-btn {
+        padding: 0.5rem 0.85rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .page-btn:hover { border-color: var(--accent-purple); color: var(--text-primary); }
+    .page-btn.active { background: var(--accent-purple); color: #fff; border-color: var(--accent-purple); }
+    .page-btn.disabled { opacity: 0.35; pointer-events: none; }
 
     /* ============================================================
     SIDEBAR
@@ -330,7 +383,7 @@
     .forum-sidebar {
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
+        gap: 1rem;
         position: sticky;
         top: calc(var(--navbar-height) + 1.5rem);
     }
@@ -339,33 +392,29 @@
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
-        padding: 1.5rem;
+        padding: 1.25rem;
     }
 
     .sidebar-card h3 {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         font-weight: 700;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--text-secondary);
+        letter-spacing: 0.05em;
+        color: var(--text-tertiary);
+        margin-bottom: 0.85rem;
     }
 
-    .sidebar-card h3 i {
-        color: var(--accent-purple);
-    }
-
-    .sidebar-stats {
+    .sidebar-stats-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
+        gap: 0.65rem;
     }
 
-    .sidebar-stat {
+    .sidebar-stat-item {
         text-align: center;
+        padding: 0.5rem;
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-sm);
     }
 
     .sidebar-stat-value {
@@ -376,21 +425,52 @@
     }
 
     .sidebar-stat-label {
-        font-size: 0.72rem;
+        font-size: 0.65rem;
         color: var(--text-tertiary);
         text-transform: uppercase;
         letter-spacing: 0.04em;
     }
 
-    .active-users {
+    .tag-cloud {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.35rem;
     }
 
-    .active-user-avatar {
-        width: 34px;
-        height: 34px;
+    .tag-pill {
+        padding: 0.2rem 0.55rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-full);
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .tag-pill:hover {
+        border-color: var(--accent-purple);
+        color: var(--accent-purple);
+        background: rgba(188,140,255,0.05);
+    }
+
+    .top-contributors {
+        list-style: none;
+    }
+
+    .top-contributor {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .top-contributor:last-child { border-bottom: none; }
+
+    .contributor-avatar {
+        width: 30px;
+        height: 30px;
         border-radius: var(--radius-full);
         background: var(--gradient-blue);
         display: flex;
@@ -398,70 +478,21 @@
         justify-content: center;
         font-weight: 700;
         color: #fff;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
-        cursor: pointer;
-        transition: var(--transition);
-        border: 2px solid transparent;
+        flex-shrink: 0;
     }
 
-    .active-user-avatar:hover {
-        border-color: var(--accent-purple);
-        transform: scale(1.1);
-    }
-
-    .tag-cloud {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-    }
-
-    .tag {
-        padding: 0.25rem 0.65rem;
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-full);
-        font-size: 0.72rem;
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: var(--transition);
-    }
-
-    .tag:hover {
-        border-color: var(--accent-purple);
-        color: var(--accent-purple);
-        background: rgba(188, 140, 255, 0.05);
-    }
-
-    /* Pagination */
-    .pagination {
-        display: flex;
-        justify-content: center;
-        gap: 0.4rem;
-        margin-top: 2rem;
-    }
-
-    .page-btn {
-        padding: 0.5rem 0.9rem;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        color: var(--text-secondary);
-        text-decoration: none;
-        font-size: 0.85rem;
-        font-weight: 500;
-        transition: var(--transition);
-    }
-
-    .page-btn:hover {
-        border-color: var(--accent-purple);
-        color: var(--text-primary);
-    }
-
-    .page-btn.active {
-        background: var(--accent-purple);
-        color: #fff;
-        border-color: var(--accent-purple);
+    .contributor-info { flex: 1; min-width: 0; }
+    .contributor-name { font-weight: 600; font-size: 0.82rem; }
+    .contributor-name a { color: var(--text-primary); text-decoration: none; }
+    .contributor-name a:hover { color: var(--accent-purple); }
+    .contributor-count { font-size: 0.68rem; color: var(--text-tertiary); }
+    .contributor-rank {
+        font-family: var(--font-mono);
+        font-weight: 800;
+        color: var(--text-tertiary);
+        opacity: 0.4;
     }
 </style>
 {% endblock %}
@@ -474,6 +505,24 @@ PAGE HEADER
     <div class="container">
         <h1><i class="fas fa-comments"></i> Forum</h1>
         <p>Discuss Goscript, GPM, share knowledge, and connect with the Zarch community</p>
+        <div class="forum-mini-stats">
+            <span class="forum-mini-stat topics">
+                <i class="fas fa-file-alt"></i>
+                <strong>{{ total_topics }}</strong> topics
+            </span>
+            <span class="forum-mini-stat replies">
+                <i class="fas fa-reply"></i>
+                <strong>{{ total_replies }}</strong> replies
+            </span>
+            <span class="forum-mini-stat solved">
+                <i class="fas fa-check-circle"></i>
+                <strong>{{ solved_count }}</strong> solved
+            </span>
+            <span class="forum-mini-stat users">
+                <i class="fas fa-users"></i>
+                <strong>{{ total_users }}</strong> participants
+            </span>
+        </div>
     </div>
 </section>
 
@@ -486,403 +535,228 @@ FORUM CONTENT
         <div class="forum-main">
             <!-- Toolbar -->
             <div class="forum-toolbar">
-                <div class="search-wrapper">
+                <div class="toolbar-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" class="search-input" placeholder="Search topics..." id="forumSearch">
+                    <input type="text" id="topicSearch" placeholder="Search topics..." value="{{ current_search or '' }}">
+                </div>
+                <div class="toolbar-filters">
+                    <a href="?category=all&sort={{ current_sort }}" class="filter-chip {{ 'active' if current_category == 'all' }}">All</a>
+                    {% for cat in categories %}
+                    <a href="?category={{ cat.name }}&sort={{ current_sort }}" class="filter-chip {{ 'active' if current_category == cat.name }}">{{ cat.label }}</a>
+                    {% endfor %}
+                </div>
+                <div class="toolbar-filters" style="margin-left: 0.5rem;">
+                    <a href="?category={{ current_category }}&sort=latest" class="filter-chip {{ 'active' if current_sort == 'latest' }}">Latest</a>
+                    <a href="?category={{ current_category }}&sort=popular" class="filter-chip {{ 'active' if current_sort == 'popular' }}">Popular</a>
+                    <a href="?category={{ current_category }}&sort=solved" class="filter-chip {{ 'active' if current_sort == 'solved' }}">Solved</a>
                 </div>
                 {% if session.get('user') %}
                 <a href="/forum/new" class="btn-new-topic">
                     <i class="fas fa-plus"></i> New Topic
                 </a>
                 {% else %}
-                <a href="/login" class="btn-new-topic">
+                <a href="/login?next=/forum/new" class="btn-new-topic">
                     <i class="fas fa-sign-in-alt"></i> Login to Post
                 </a>
                 {% endif %}
             </div>
 
-            <!-- Announcements -->
-            <div class="category-section">
-                <div class="category-header">
-                    <i class="fas fa-bullhorn"></i>
-                    Announcements
-                    <span class="category-count">2 topics</span>
-                </div>
-                <ul class="topic-list">
-                    <li>
-                        <a href="/forum/topic/welcome-to-zarch-hub" class="topic-item">
-                            <div class="topic-icon pinned">
-                                <i class="fas fa-thumbtack"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">
-                                    Welcome to Zarch Hub Forum!
-                                    <span class="topic-badge announcement">Announcement</span>
-                                </div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> zarch-team</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-28</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">15</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">gopu-inc</div>
-                                <div class="topic-last-time">2 hours ago</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/goscript-v2-released" class="topic-item">
-                            <div class="topic-icon pinned">
-                                <i class="fas fa-thumbtack"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">
-                                    Goscript v2.0 Released - What's New
-                                    <span class="topic-badge announcement">Announcement</span>
-                                </div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> gopu-inc</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-25</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">42</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">dev_user</div>
-                                <div class="topic-last-time">30 min ago</div>
-                            </div>
-                        </a>
-                    </li>
-                </ul>
+            <!-- Topics List -->
+            {% if topics %}
+            <div class="topics-list">
+                {% for topic in topics %}
+                <a href="/forum/topic/{{ topic.slug }}" class="topic-card {{ 'pinned' if topic.pinned }} {{ 'solved' if topic.solved }}">
+                    <!-- Icon -->
+                    <div class="topic-icon-wrap {{ 'pinned' if topic.pinned else 'hot' if topic.views > 100 else 'solved' if topic.solved else 'normal' }}">
+                        {% if topic.pinned %}
+                        <i class="fas fa-thumbtack"></i>
+                        {% elif topic.solved %}
+                        <i class="fas fa-check-circle"></i>
+                        {% elif topic.reply_count > 10 %}
+                        <i class="fas fa-fire"></i>
+                        {% else %}
+                        <i class="fas fa-comment"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="topic-content">
+                        <div class="topic-title">
+                            <span class="topic-title-text">{{ topic.title }}</span>
+                            {% if topic.pinned %}
+                            <span class="topic-badge pinned">📌 Pinned</span>
+                            {% endif %}
+                            {% if topic.solved %}
+                            <span class="topic-badge solved">✅ Solved</span>
+                            {% endif %}
+                            {% if topic.category == 'announcements' %}
+                            <span class="topic-badge announcement">📢 Announcement</span>
+                            {% elif topic.category == 'help' %}
+                            <span class="topic-badge question">❓ Help</span>
+                            {% endif %}
+                        </div>
+                        <div class="topic-meta">
+                            <span>
+                                <i class="fas fa-user-circle"></i>
+                                <span class="meta-author">{{ topic.author }}</span>
+                            </span>
+                            <span>
+                                <i class="far fa-clock"></i>
+                                {{ topic.created_at[:10] if topic.created_at else 'N/A' }}
+                            </span>
+                            {% for tag in topic.tags[:3] %}
+                            <span class="meta-tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="topic-stats-col">
+                        <div class="topic-reply-count {{ 'has-solution' if topic.solved }}">
+                            {{ topic.reply_count or 0 }}
+                        </div>
+                        <div class="topic-reply-label">replies</div>
+                    </div>
+                    
+                    <!-- Last Post -->
+                    <div class="topic-last-col">
+                        {% if topic.last_reply_by %}
+                        <div class="topic-last-author">
+                            <a href="/@{{ topic.last_reply_by }}">{{ topic.last_reply_by }}</a>
+                        </div>
+                        <div class="topic-last-time">{{ topic.last_reply_at[:10] if topic.last_reply_at else '' }}</div>
+                        {% else %}
+                        <div class="topic-last-author">{{ topic.author }}</div>
+                        <div class="topic-last-time">{{ topic.created_at[:10] if topic.created_at else '' }}</div>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
             </div>
-
-            <!-- General Discussion -->
-            <div class="category-section">
-                <div class="category-header">
-                    <i class="fas fa-comments"></i>
-                    General Discussion
-                    <span class="category-count">4 topics</span>
-                </div>
-                <ul class="topic-list">
-                    <li>
-                        <a href="/forum/topic/best-practices-gpm" class="topic-item">
-                            <div class="topic-icon hot">
-                                <i class="fas fa-fire"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">Best practices for GPM package structure?</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> developer42</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-29</span>
-                                    <span><i class="fas fa-tag"></i> gpm, best-practices</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">8</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">senior_dev</div>
-                                <div class="topic-last-time">1 hour ago</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/showcase-projects" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">Showcase: Share your Goscript projects!</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> community_mod</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-27</span>
-                                    <span><i class="fas fa-tag"></i> showcase, projects</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">23</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">new_user</div>
-                                <div class="topic-last-time">3 hours ago</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/async-await-patterns" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">Understanding async/await in Goscript</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> learner_dev</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-26</span>
-                                    <span><i class="fas fa-tag"></i> goscript, async</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">5</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">core_dev</div>
-                                <div class="topic-last-time">5 hours ago</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/zarch-ecosystem-future" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">The future of the Zarch ecosystem</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> visionary_dev</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-24</span>
-                                    <span><i class="fas fa-tag"></i> community, roadmap</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">31</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">gopu-inc</div>
-                                <div class="topic-last-time">yesterday</div>
-                            </div>
-                        </a>
-                    </li>
-                </ul>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <h3>No topics yet</h3>
+                <p>{% if current_category != 'all' %}No topics in this category. {% endif %}Be the first to start a discussion!</p>
+                {% if session.get('user') %}
+                <a href="/forum/new" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Create First Topic
+                </a>
+                {% else %}
+                <a href="/login" class="btn btn-primary btn-sm">
+                    <i class="fas fa-sign-in-alt"></i> Login to Post
+                </a>
+                {% endif %}
             </div>
-
-            <!-- Help & Support -->
-            <div class="category-section">
-                <div class="category-header">
-                    <i class="fas fa-question-circle"></i>
-                    Help & Support
-                    <span class="category-count">3 topics</span>
-                </div>
-                <ul class="topic-list">
-                    <li>
-                        <a href="/forum/topic/install-issues-alpine" class="topic-item">
-                            <div class="topic-icon solved">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">
-                                    Installation issues on Alpine Linux
-                                    <span class="topic-badge solved">Solved</span>
-                                </div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> alpine_user</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-28</span>
-                                    <span><i class="fas fa-tag"></i> help, installation, alpine</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">7</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">support_team</div>
-                                <div class="topic-last-time">solved</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/manifest-validation-error" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-question"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">Manifest.toml validation error on publish</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> new_publisher</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-29</span>
-                                    <span><i class="fas fa-tag"></i> help, manifest, publish</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">3</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">new_publisher</div>
-                                <div class="topic-last-time">2 hours ago</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/ffi-calling-c-from-goscript" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-question"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">How to call C functions from Goscript via FFI?</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> systems_prog</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-27</span>
-                                    <span><i class="fas fa-tag"></i> help, ffi, c-interop</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">11</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">core_dev</div>
-                                <div class="topic-last-time">yesterday</div>
-                            </div>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Package Development -->
-            <div class="category-section">
-                <div class="category-header">
-                    <i class="fas fa-code"></i>
-                    Package Development
-                    <span class="category-count">2 topics</span>
-                </div>
-                <ul class="topic-list">
-                    <li>
-                        <a href="/forum/topic/creating-first-package" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">Guide: Creating your first Goscript package</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> tutorial_master</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-25</span>
-                                    <span><i class="fas fa-tag"></i> tutorial, package-dev</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">19</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">new_user</div>
-                                <div class="topic-last-time">4 hours ago</div>
-                            </div>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/forum/topic/dependency-management" class="topic-item">
-                            <div class="topic-icon normal">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                            <div class="topic-content">
-                                <div class="topic-title">Advanced dependency management with GPM</div>
-                                <div class="topic-meta">
-                                    <span><i class="fas fa-user"></i> package_author</span>
-                                    <span><i class="fas fa-clock"></i> 2026-04-23</span>
-                                    <span><i class="fas fa-tag"></i> gpm, dependencies</span>
-                                </div>
-                            </div>
-                            <div class="topic-stats">
-                                <div class="topic-replies">6</div>
-                                <div class="topic-replies-label">replies</div>
-                            </div>
-                            <div class="topic-last-post">
-                                <div class="topic-last-user">package_author</div>
-                                <div class="topic-last-time">1 day ago</div>
-                            </div>
-                        </a>
-                    </li>
-                </ul>
-            </div>
+            {% endif %}
 
             <!-- Pagination -->
+            {% if total_pages > 1 %}
             <div class="pagination">
-                <span class="page-btn active">1</span>
-                <a href="?page=2" class="page-btn">2</a>
-                <a href="?page=3" class="page-btn">3</a>
-                <a href="?page=2" class="page-btn">
+                {% if page > 1 %}
+                <a href="?category={{ current_category }}&sort={{ current_sort }}&page={{ page - 1 }}" class="page-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% else %}
+                <span class="page-btn disabled"><i class="fas fa-chevron-left"></i></span>
+                {% endif %}
+                
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == page %}
+                    <span class="page-btn active">{{ p }}</span>
+                    {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+                    <a href="?category={{ current_category }}&sort={{ current_sort }}&page={{ p }}" class="page-btn">{{ p }}</a>
+                    {% elif p == 4 or p == total_pages - 3 %}
+                    <span class="page-btn disabled">...</span>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page < total_pages %}
+                <a href="?category={{ current_category }}&sort={{ current_sort }}&page={{ page + 1 }}" class="page-btn">
                     <i class="fas fa-chevron-right"></i>
                 </a>
+                {% else %}
+                <span class="page-btn disabled"><i class="fas fa-chevron-right"></i></span>
+                {% endif %}
             </div>
+            {% endif %}
         </div>
 
         <!-- Sidebar -->
         <aside class="forum-sidebar">
             <!-- Stats -->
             <div class="sidebar-card">
-                <h3><i class="fas fa-chart-bar"></i> Forum Stats</h3>
-                <div class="sidebar-stats">
-                    <div class="sidebar-stat">
-                        <div class="sidebar-stat-value" style="color: var(--accent-blue);">11</div>
+                <h3>📊 Forum Stats</h3>
+                <div class="sidebar-stats-grid">
+                    <div class="sidebar-stat-item">
+                        <div class="sidebar-stat-value" style="color: var(--accent-blue);">{{ total_topics }}</div>
                         <div class="sidebar-stat-label">Topics</div>
                     </div>
-                    <div class="sidebar-stat">
-                        <div class="sidebar-stat-value" style="color: var(--accent-purple);">170</div>
+                    <div class="sidebar-stat-item">
+                        <div class="sidebar-stat-value" style="color: var(--accent-green);">{{ total_replies }}</div>
                         <div class="sidebar-stat-label">Replies</div>
                     </div>
-                    <div class="sidebar-stat">
-                        <div class="sidebar-stat-value" style="color: var(--accent-green);">42</div>
+                    <div class="sidebar-stat-item">
+                        <div class="sidebar-stat-value" style="color: var(--accent-orange);">{{ solved_count }}</div>
+                        <div class="sidebar-stat-label">Solved</div>
+                    </div>
+                    <div class="sidebar-stat-item">
+                        <div class="sidebar-stat-value" style="color: var(--accent-purple);">{{ total_users }}</div>
                         <div class="sidebar-stat-label">Users</div>
                     </div>
-                    <div class="sidebar-stat">
-                        <div class="sidebar-stat-value" style="color: var(--accent-orange);">8</div>
-                        <div class="sidebar-stat-label">Online</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Active Users -->
-            <div class="sidebar-card">
-                <h3><i class="fas fa-users"></i> Online Now</h3>
-                <div class="active-users">
-                    <div class="active-user-avatar" title="gopu-inc" style="background: var(--gradient-purple);">G</div>
-                    <div class="active-user-avatar" title="core_dev" style="background: var(--gradient-blue);">C</div>
-                    <div class="active-user-avatar" title="developer42" style="background: var(--gradient-green);">D</div>
-                    <div class="active-user-avatar" title="new_user" style="background: linear-gradient(135deg, #f97316, #eab308);">N</div>
-                    <div class="active-user-avatar" title="senior_dev" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">S</div>
-                    <div class="active-user-avatar" title="tutorial_master" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">T</div>
-                    <div class="active-user-avatar" title="alpine_user" style="background: var(--gradient-blue);">A</div>
-                    <div class="active-user-avatar" title="support_team" style="background: var(--gradient-green);">S</div>
                 </div>
             </div>
 
             <!-- Popular Tags -->
             <div class="sidebar-card">
-                <h3><i class="fas fa-tags"></i> Popular Tags</h3>
+                <h3>🏷️ Popular Tags</h3>
                 <div class="tag-cloud">
-                    <a href="/forum?tag=goscript" class="tag">goscript</a>
-                    <a href="/forum?tag=gpm" class="tag">gpm</a>
-                    <a href="/forum?tag=help" class="tag">help</a>
-                    <a href="/forum?tag=tutorial" class="tag">tutorial</a>
-                    <a href="/forum?tag=packages" class="tag">packages</a>
-                    <a href="/forum?tag=ffi" class="tag">ffi</a>
-                    <a href="/forum?tag=async" class="tag">async</a>
-                    <a href="/forum?tag=showcase" class="tag">showcase</a>
-                    <a href="/forum?tag=best-practices" class="tag">best-practices</a>
-                    <a href="/forum?tag=installation" class="tag">installation</a>
-                    <a href="/forum?tag=alpine" class="tag">alpine</a>
-                    <a href="/forum?tag=manifest" class="tag">manifest</a>
+                    {% set all_tags = [] %}
+                    {% for topic in topics %}
+                        {% for tag in topic.tags %}
+                            {% if tag not in all_tags %}{% set _ = all_tags.append(tag) %}{% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% for tag in all_tags[:15] %}
+                    <a href="/forum?tag={{ tag }}" class="tag-pill">{{ tag }}</a>
+                    {% endfor %}
+                    {% if all_tags|length == 0 %}
+                    <span style="font-size: 0.75rem; color: var(--text-tertiary);">No tags yet</span>
+                    {% endif %}
                 </div>
+            </div>
+
+            <!-- Top Contributors -->
+            <div class="sidebar-card">
+                <h3>🏆 Top Contributors</h3>
+                {% if top_contributors %}
+                <ul class="top-contributors">
+                    {% for user in top_contributors[:5] %}
+                    <li class="top-contributor">
+                        <div class="contributor-avatar" style="background: {% if loop.index == 1 %}var(--gradient-purple){% elif loop.index == 2 %}var(--gradient-blue){% elif loop.index == 3 %}var(--gradient-green){% else %}var(--bg-tertiary){% endif %};">
+                            {{ user.username[:1] }}
+                        </div>
+                        <div class="contributor-info">
+                            <div class="contributor-name">
+                                <a href="/@{{ user.username }}">{{ user.username }}</a>
+                            </div>
+                            <div class="contributor-count">{{ user.topics }} topic(s)</div>
+                        </div>
+                        <span class="contributor-rank">#{{ loop.index }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="font-size: 0.8rem; color: var(--text-tertiary); text-align: center;">No contributors yet</p>
+                {% endif %}
             </div>
 
             <!-- CTA -->
             {% if not session.get('user') %}
             <div class="sidebar-card" style="text-align: center; background: var(--gradient-hero);">
-                <h3 style="color: var(--text-primary); text-transform: none; letter-spacing: 0; font-size: 1rem;">
-                    Join the conversation!
-                </h3>
-                <p style="font-size: 0.82rem; color: var(--text-tertiary); margin-bottom: 1rem;">
-                    Create an account to post topics, reply, and connect with the community.
+                <h3 style="color: var(--text-primary); font-size: 0.9rem; text-transform: none; letter-spacing: 0;">Join the conversation!</h3>
+                <p style="font-size: 0.78rem; color: var(--text-tertiary); margin-bottom: 0.85rem;">
+                    Create an account to post topics and connect.
                 </p>
                 <a href="/register" class="btn btn-primary btn-sm" style="width: 100%;">
                     <i class="fas fa-user-plus"></i> Create Account
@@ -896,21 +770,39 @@ FORUM CONTENT
 
 {% block extra_js %}
 <script>
-    // Search functionality
-    const forumSearch = document.getElementById('forumSearch');
-    if (forumSearch) {
-        forumSearch.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            const topics = document.querySelectorAll('.topic-item');
-            
-            topics.forEach(topic => {
-                const text = topic.textContent.toLowerCase();
-                if (query === '' || text.includes(query)) {
-                    topic.style.display = '';
-                } else {
-                    topic.style.display = 'none';
-                }
-            });
+    // Live search with debounce
+    const topicSearch = document.getElementById('topicSearch');
+    let searchTimer;
+    
+    if (topicSearch) {
+        topicSearch.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                const query = this.value.trim().toLowerCase();
+                const cards = document.querySelectorAll('.topic-card');
+                
+                cards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    if (query === '' || text.includes(query)) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide empty state
+                const visibleCards = document.querySelectorAll('.topic-card[style*="display:"]').length;
+                const totalCards = cards.length;
+            }, 300);
+        });
+        
+        // Keyboard shortcut: / to focus search
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '/' && document.activeElement !== topicSearch && 
+                !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                topicSearch.focus();
+            }
         });
     }
 </script>
