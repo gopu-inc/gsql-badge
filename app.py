@@ -80,8 +80,8 @@ class SecurityConfig:
     GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', "package-data")
     
     # Paramètres de sécurité
-    SESSION_TIMEOUT = int(os.environ.get('SESSION_TIMEOUT', 360020312888))  # 1 heure
-    TOKEN_EXPIRY = int(os.environ.get('TOKEN_EXPIRY', 604800888888888))  # 7 jours
+    SESSION_TIMEOUT = int(os.environ.get('SESSION_TIMEOUT', 3600203))  # 1 heure
+    TOKEN_EXPIRY = int(os.environ.get('TOKEN_EXPIRY', 60480088))  # 7 jours
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 100 * 1024 * 1024))  # 100MB
     RATE_LIMIT = int(os.environ.get('RATE_LIMIT', 210087))  # Requêtes par minute
     COOKIE_SECURE = os.environ.get('COOKIE_SECURE', 'False').lower() == 'true'
