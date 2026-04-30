@@ -1,15 +1,30 @@
 {% extends "base.html" %}
 
 {% block head_extra %}
-<meta property="og:title" content="Zarch Hub - Package Registry for APKM, APSM & BOOL">
-<meta property="og:description" content="Discover, publish and manage packages for the Zarch ecosystem. {{ total_packages }}+ packages, {{ total_downloads }}+ downloads.">
-<meta property="og:url" content="https://gsql-badge.onrender.com/">
-<meta name="description" content="Zarch Hub - The official package registry for APKM, APSM, and BOOL. {{ total_packages }}+ packages available.">
-<meta name="keywords" content="zarch, apkm, apsm, bool, package registry, gopu-inc, package manager">
-<link rel="canonical" href="https://gsql-badge.onrender.com/">
+<meta property="og:title" content="Zarch Hub - Package Registry for GPM & Goscript">
+<meta property="og:description" content="Discover, publish and manage Goscript packages. {{ total_packages }}+ packages, {{ total_downloads }}+ downloads. Join the Zarch community.">
+<meta property="og:url" content="https://zenv-hub.onrender.com/">
+<meta name="description" content="Zarch Hub - The official package registry for GPM and Goscript. {{ total_packages }}+ packages available. Discover, publish, connect.">
+<meta name="keywords" content="zarch, gpm, goscript, package registry, gopu-inc, package manager, forum, community">
+<link rel="canonical" href="https://zenv-hub.onrender.com/">
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Zarch Hub",
+    "url": "https://zenv-hub.onrender.com",
+    "description": "The official package registry for GPM and Goscript",
+    "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://zenv-hub.onrender.com/packages?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+    }
+}
+</script>
 {% endblock %}
 
-{% block title %}Zarch Hub - Package Registry{% endblock %}
+{% block title %}Zarch Hub - GPM & Goscript Package Registry{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -102,10 +117,17 @@
         background-clip: text;
     }
 
+    .hero h1 .highlight-purple {
+        background: var(--gradient-purple);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
     .hero p {
         font-size: 1.15rem;
         color: var(--text-secondary);
-        max-width: 500px;
+        max-width: 550px;
         margin-bottom: 2rem;
         line-height: 1.7;
     }
@@ -124,10 +146,10 @@
     }
 
     .hero-image img {
-        width: 280px;
-        height: 280px;
+        width: 240px;
+        height: 240px;
         border-radius: var(--radius-2xl);
-        box-shadow: var(--shadow-xl), 0 0 60px rgba(88, 166, 255, 0.1);
+        box-shadow: var(--shadow-xl), 0 0 80px rgba(88, 166, 255, 0.1);
         object-fit: contain;
         animation: float 6s ease-in-out infinite;
     }
@@ -135,6 +157,32 @@
     @keyframes float {
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(-20px); }
+    }
+
+    /* Hero Quick Links */
+    .hero-quick-links {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .hero-quick-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-tertiary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        transition: var(--transition);
+    }
+
+    .hero-quick-link:hover {
+        color: var(--text-primary);
+    }
+
+    .hero-quick-link i {
+        font-size: 0.9rem;
     }
 
     @media (max-width: 968px) {
@@ -152,10 +200,14 @@
         .hero-actions {
             justify-content: center;
         }
+
+        .hero-quick-links {
+            justify-content: center;
+        }
         
         .hero-image img {
-            width: 180px;
-            height: 180px;
+            width: 150px;
+            height: 150px;
         }
     }
 
@@ -168,8 +220,8 @@
 
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1.25rem;
     }
 
     .stat-card {
@@ -179,22 +231,50 @@
         padding: 2rem 1.5rem;
         text-align: center;
         transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-blue);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
     }
 
     .stat-card:hover {
-        border-color: var(--accent-blue);
         transform: translateY(-4px);
+        border-color: var(--accent-blue);
         box-shadow: var(--shadow-glow-blue);
     }
 
+    .stat-card:hover::after {
+        transform: scaleX(1);
+    }
+
+    .stat-card:nth-child(2)::after {
+        background: var(--gradient-green);
+    }
+    .stat-card:nth-child(3)::after {
+        background: var(--gradient-purple);
+    }
+    .stat-card:nth-child(4)::after {
+        background: linear-gradient(135deg, var(--accent-orange), var(--accent-yellow));
+    }
+
     .stat-icon {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         margin-bottom: 1rem;
     }
 
     .stat-value {
         font-family: var(--font-mono);
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: 800;
         color: var(--text-primary);
         line-height: 1;
@@ -202,14 +282,92 @@
     }
 
     .stat-label {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         color: var(--text-tertiary);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        font-weight: 600;
     }
 
     /* ============================================================
-    PACKAGES GRID
+    FEATURES SECTION
+    ============================================================ */
+    .features-section {
+        padding: 4rem 0;
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .feature-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        text-align: center;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-6px);
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .feature-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto 1.25rem;
+    }
+
+    .feature-icon.blue {
+        background: rgba(88, 166, 255, 0.12);
+        color: var(--accent-blue);
+    }
+
+    .feature-icon.green {
+        background: rgba(63, 185, 80, 0.12);
+        color: var(--accent-green);
+    }
+
+    .feature-icon.purple {
+        background: rgba(188, 140, 255, 0.12);
+        color: var(--accent-purple);
+    }
+
+    .feature-icon.orange {
+        background: rgba(210, 153, 29, 0.12);
+        color: var(--accent-orange);
+    }
+
+    .feature-card h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
+        line-height: 1.5;
+    }
+
+    /* ============================================================
+    PACKAGES SECTION
     ============================================================ */
     .packages-section {
         padding: 4rem 0;
@@ -227,6 +385,13 @@
     .section-header h2 {
         font-size: 1.8rem;
         font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-header h2 i {
+        color: var(--accent-blue);
     }
 
     .package-card {
@@ -239,7 +404,7 @@
         color: inherit;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.85rem;
     }
 
     .package-card:hover {
@@ -251,12 +416,12 @@
     .package-card-header {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.85rem;
     }
 
     .package-card-icon {
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         background: var(--gradient-blue);
         border-radius: var(--radius-md);
         display: flex;
@@ -276,7 +441,7 @@
 
     .package-card-version {
         font-size: 0.8rem;
-        color: var(--text-tertiary);
+        color: var(--accent-blue);
         font-family: var(--font-mono);
     }
 
@@ -285,7 +450,7 @@
         color: var(--text-secondary);
         display: flex;
         align-items: center;
-        gap: 0.3rem;
+        gap: 0.35rem;
     }
 
     .package-card-stats {
@@ -302,41 +467,125 @@
     }
 
     /* ============================================================
-    CTA SECTION
+    COMMUNITY CTA
     ============================================================ */
-    .cta-section {
+    .community-cta {
         padding: 5rem 0;
         text-align: center;
     }
 
-    .cta-card {
+    .community-card {
         background: var(--gradient-card);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-2xl);
-        padding: 3rem 2rem;
+        padding: 3.5rem 2rem;
         position: relative;
         overflow: hidden;
     }
 
-    .cta-card h2 {
+    .community-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(188, 140, 255, 0.06) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .community-card h2 {
         font-size: 2rem;
         font-weight: 800;
         margin-bottom: 1rem;
+        position: relative;
     }
 
-    .cta-card p {
+    .community-card p {
         color: var(--text-secondary);
         margin-bottom: 2rem;
         max-width: 500px;
         margin-left: auto;
         margin-right: auto;
+        position: relative;
+        line-height: 1.6;
     }
 
-    .cta-actions {
+    .community-actions {
         display: flex;
         gap: 1rem;
         justify-content: center;
         flex-wrap: wrap;
+        position: relative;
+    }
+
+    .btn-forum {
+        padding: 0.85rem 2rem;
+        font-weight: 700;
+        font-size: 1rem;
+        border-radius: var(--radius-md);
+        background: var(--gradient-purple);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(188, 140, 255, 0.3);
+    }
+
+    .btn-forum:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(188, 140, 255, 0.5);
+    }
+
+    /* ============================================================
+    INSTALL SECTION
+    ============================================================ */
+    .install-section {
+        padding: 3rem 0;
+    }
+
+    .install-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .install-command {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.25rem;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        color: var(--accent-green);
+        display: inline-block;
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .install-command:hover {
+        border-color: var(--accent-green);
+    }
+
+    .copy-hint {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
     }
 </style>
 {% endblock %}
@@ -355,27 +604,97 @@ HERO
                 </span>
                 <h1>
                     The <span class="highlight">Package Registry</span><br>
-                    for Zarch Ecosystem
+                    for <span class="highlight-purple">GPM & Goscript</span>
                 </h1>
                 <p>
-                    Discover, publish, and manage packages for 
-                    <strong>APKM</strong>, <strong>APSM</strong>, and <strong>BOOL</strong>.
-                    Join thousands of developers building the future of package management.
+                    Discover, publish, and manage Goscript packages with 
+                    <strong>GPM</strong>. Join the Zarch community of developers 
+                    building the future of package management.
                 </p>
                 <div class="hero-actions">
                     <a href="/packages" class="btn btn-primary btn-lg">
                         <i class="fas fa-compass"></i> Explore Packages
                     </a>
-                    <a href="/upload" class="btn btn-secondary btn-lg">
-                        <i class="fas fa-upload"></i> Publish Package
+                    <a href="/docs" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-book"></i> Documentation
+                    </a>
+                </div>
+                <div class="hero-quick-links">
+                    <a href="/forum" class="hero-quick-link">
+                        <i class="fas fa-comments"></i> Community Forum
+                    </a>
+                    <a href="/community" class="hero-quick-link">
+                        <i class="fas fa-users"></i> Contributors
+                    </a>
+                    <a href="/stats" class="hero-quick-link">
+                        <i class="fas fa-chart-bar"></i> Statistics
                     </a>
                 </div>
             </div>
             <div class="hero-image">
                 <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png" 
                      alt="Zarch Hub Logo"
-                     loading="eager">
+                     loading="eager"
+                     onerror="this.style.display='none';">
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+QUICK INSTALL
+================================================================ -->
+<section class="install-section">
+    <div class="container">
+        <div class="install-card">
+            <p style="color: var(--text-secondary); margin-bottom: 0.75rem; font-weight: 500;">
+                <i class="fas fa-download" style="color: var(--accent-green);"></i> 
+                Install GPM in one command:
+            </p>
+            <div class="install-command" onclick="copyInstallCommand()" title="Click to copy">
+                <code>curl -sL https://zenv-hub.onrender.com/install.sh | sh</code>
+            </div>
+            <div class="copy-hint">
+                <i class="fas fa-hand-pointer"></i> Click to copy
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+FEATURES
+================================================================ -->
+<section class="features-section">
+    <div class="container">
+        <div class="features-grid">
+            <a href="/packages" class="feature-card">
+                <div class="feature-icon blue">
+                    <i class="fas fa-box-open"></i>
+                </div>
+                <h3>Browse Packages</h3>
+                <p>Discover {{ total_packages }}+ Goscript packages for your projects</p>
+            </a>
+            <a href="/docs" class="feature-card">
+                <div class="feature-icon green">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h3>Goscript Language</h3>
+                <p>Modern scripting with async, structs, enums, and FFI</p>
+            </a>
+            <a href="/forum" class="feature-card">
+                <div class="feature-icon purple">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Community Forum</h3>
+                <p>Discuss, ask questions, and share your knowledge</p>
+            </a>
+            <a href="/upload" class="feature-card">
+                <div class="feature-icon orange">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3>Publish Packages</h3>
+                <p>Share your Goscript packages with the world</p>
+            </a>
         </div>
     </div>
 </section>
@@ -402,9 +721,9 @@ STATS
                 <div class="stat-label">Authors</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">⚡</div>
-                <div class="stat-value">5.2</div>
-                <div class="stat-label">API Version</div>
+                <div class="stat-icon">💬</div>
+                <div class="stat-value">Forum</div>
+                <div class="stat-label">Community</div>
             </div>
         </div>
     </div>
@@ -416,7 +735,7 @@ RECENT PACKAGES
 <section class="packages-section">
     <div class="container">
         <div class="section-header">
-            <h2><i class="fas fa-clock" style="color: var(--accent-blue); margin-right: 0.5rem;"></i> Recent Packages</h2>
+            <h2><i class="fas fa-clock"></i> Recent Packages</h2>
             <a href="/packages" class="btn btn-outline btn-sm">
                 View All <i class="fas fa-arrow-right"></i>
             </a>
@@ -445,9 +764,12 @@ RECENT PACKAGES
                 </a>
                 {% endfor %}
             {% else %}
-                <div class="text-center" style="grid-column: 1 / -1; padding: 2rem; color: var(--text-tertiary);">
-                    <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-                    <p>No packages yet. Be the first to publish!</p>
+                <div class="text-center" style="grid-column: 1 / -1; padding: 3rem; color: var(--text-tertiary);">
+                    <i class="fas fa-box-open" style="font-size: 3.5rem; margin-bottom: 1rem; display: block; opacity: 0.4;"></i>
+                    <p style="font-size: 1.1rem;">No packages yet. Be the first to publish!</p>
+                    <a href="/upload" class="btn btn-primary btn-sm" style="margin-top: 1rem;">
+                        <i class="fas fa-upload"></i> Publish Your First Package
+                    </a>
                 </div>
             {% endif %}
         </div>
@@ -455,19 +777,22 @@ RECENT PACKAGES
 </section>
 
 <!-- ================================================================
-CTA
+COMMUNITY CTA
 ================================================================ -->
-<section class="cta-section">
+<section class="community-cta">
     <div class="container">
-        <div class="cta-card">
-            <h2>Ready to Share Your Package?</h2>
-            <p>Publish your first package in minutes with APKM, APSM, and BOOL. Join the Zarch community today.</p>
-            <div class="cta-actions">
-                <a href="/register" class="btn btn-primary btn-lg">
-                    <i class="fas fa-user-plus"></i> Create Account
+        <div class="community-card">
+            <h2>🎙️ Join the Conversation</h2>
+            <p>
+                Connect with Goscript developers, share your projects, 
+                ask questions, and help shape the future of the Zarch ecosystem.
+            </p>
+            <div class="community-actions">
+                <a href="/forum" class="btn-forum">
+                    <i class="fas fa-comments"></i> Visit the Forum
                 </a>
-                <a href="/docs" class="btn btn-secondary btn-lg">
-                    <i class="fas fa-book"></i> Read Docs
+                <a href="/register" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-user-plus"></i> Create Account
                 </a>
             </div>
         </div>
@@ -477,7 +802,7 @@ CTA
 
 {% block extra_js %}
 <script>
-    // Animation des compteurs
+    // Animated counters
     document.addEventListener('DOMContentLoaded', () => {
         const statValues = document.querySelectorAll('.stat-value[data-count]');
         statValues.forEach(el => {
@@ -490,7 +815,7 @@ CTA
             function update(currentTime) {
                 const elapsed = currentTime - start;
                 const progress = Math.min(elapsed / duration, 1);
-                const eased = 1 - Math.pow(1 - progress, 3); // ease-out
+                const eased = 1 - Math.pow(1 - progress, 3);
                 const current = Math.floor(target * eased);
                 el.textContent = current.toLocaleString();
                 
@@ -502,5 +827,32 @@ CTA
             requestAnimationFrame(update);
         });
     });
+
+    // Copy install command
+    function copyInstallCommand() {
+        const command = 'curl -sL https://zenv-hub.onrender.com/install.sh | sh';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(command).then(() => {
+                showToast('Install command copied to clipboard! 🚀', 'success');
+            }).catch(() => {
+                showToast('Failed to copy. Please try manually.', 'error');
+            });
+        } else {
+            // Fallback
+            const textarea = document.createElement('textarea');
+            textarea.value = command;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Install command copied! 🚀', 'success');
+            } catch (err) {
+                showToast('Failed to copy', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+    }
 </script>
 {% endblock %}
