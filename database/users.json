@@ -55,7 +55,7 @@
       "username": "testeur_zarch",
       "email": "test@zarch.com",
       "password": "$2b$12$DRLckV18DpNiYIfWlg4UjeWYQhx5eabnxtODwFGf3.hIdBkZoECUy",
-      "role": "testeur (✔️)",
+      "role": "testeur (\u2714\ufe0f)",
       "created_at": "2026-03-14T03:36:39.050494"
     },
     {
@@ -76,7 +76,7 @@
       "discord_token": "MTQ2NzU0MjkyMjEzOTUzNzQ2OQ.X2QrJ68rIU92wlcZhJZYaE9uxzQFFx",
       "discord_refresh_token": "pTWrVpBYy75zEN9EPB8ojkEmX3BiQf",
       "discord_token_expires": "2026-05-03T15:10:06.192285",
-      "role": "admin @ zarch (✔️)",
+      "role": "admin @ zarch (\u2714\ufe0f)",
       "created_at": "2026-04-26T15:10:06.192294",
       "last_login": "2026-04-26T15:10:06.192296",
       "provider": "discord",
@@ -111,7 +111,13 @@
       "role": "admin",
       "created_at": "2024-12-27T12:00:00",
       "is_verified": true,
-      "last_login": "2025-12-31T22:15:26.425195"
+      "last_login": "2025-12-31T22:15:26.425195",
+      "display_name": "admin",
+      "bio": " I m admin",
+      "website": "https://gsql-badge.onrender.com/",
+      "twitter": "@gopu",
+      "github": "gopu-inc",
+      "updated_at": "2026-04-30T06:35:47.396446"
     }
   ]
 }
