@@ -1,254 +1,552 @@
 {% extends "base.html" %}
 
+{% block head_extra %}
+<meta property="og:title" content="Upload Package - Zarch Hub">
+<meta property="og:description" content="Publish your package on Zarch Hub. Upload .tar.bool files for APKM, APSM, and BOOL.">
+<meta property="og:url" content="https://gsql-badge.onrender.com/upload">
+<meta name="description" content="Upload and publish packages on Zarch Hub. Supports .tar.bool format.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://gsql-badge.onrender.com/upload">
+{% endblock %}
+
 {% block title %}Upload Package - Zarch Hub{% endblock %}
 
+{% block extra_css %}
+<style>
+    .upload-page {
+        padding: 2rem 0 4rem;
+        min-height: calc(100vh - var(--navbar-height) - 300px);
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--accent-green);
+    }
+
+    .upload-container {
+        max-width: 640px;
+        margin: 0 auto;
+    }
+
+    .upload-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-2xl);
+        padding: 2.5rem;
+        box-shadow: var(--shadow-md);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition);
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+        border-color: var(--accent-green);
+        background: rgba(63, 185, 80, 0.03);
+    }
+
+    .drop-zone i {
+        font-size: 3rem;
+        color: var(--text-tertiary);
+        margin-bottom: 1rem;
+        display: block;
+        transition: var(--transition);
+    }
+
+    .drop-zone.drag-over i {
+        color: var(--accent-green);
+    }
+
+    .drop-zone h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .drop-zone p {
+        color: var(--text-tertiary);
+        font-size: 0.85rem;
+    }
+
+    .drop-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    /* File info */
+    .file-info {
+        display: none;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .file-info.visible {
+        display: flex;
+    }
+
+    .file-info-icon {
+        font-size: 2rem;
+        color: var(--accent-green);
+    }
+
+    .file-info-details {
+        flex: 1;
+    }
+
+    .file-info-name {
+        font-weight: 600;
+        word-break: break-all;
+    }
+
+    .file-info-size {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+    }
+
+    .file-info-remove {
+        background: none;
+        border: none;
+        color: var(--accent-red);
+        cursor: pointer;
+        padding: 0.5rem;
+        font-size: 1.1rem;
+        transition: var(--transition);
+    }
+
+    .file-info-remove:hover {
+        color: #ff3333;
+    }
+
+    /* Form */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    @media (max-width: 480px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-input,
+    .form-select {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+        border-color: var(--accent-green);
+        box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.1);
+    }
+
+    .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.5rem;
+        cursor: pointer;
+    }
+
+    .form-hint {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-top: 0.3rem;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 0.9rem;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: var(--radius-md);
+        background: var(--gradient-green);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(63, 185, 80, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(63, 185, 80, 0.45);
+    }
+
+    .btn-submit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .btn-submit.loading .spinner { display: block; }
+    .btn-submit.loading .btn-text { display: none; }
+
+    /* Progress */
+    .progress-bar {
+        display: none;
+        height: 8px;
+        background: var(--border-color);
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--gradient-green);
+        border-radius: var(--radius-full);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    .upload-card {
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-green);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto" data-aos="fade-up">
-    <div class="glassmorphism rounded-2xl p-8">
-        <h1 class="text-3xl font-bold mb-2">Upload Package</h1>
-        <p class="text-gray-600 mb-8">Share your software with the APKM community</p>
-        
-        <form id="uploadForm" enctype="multipart/form-data" class="space-y-6">
-            <!-- Package Name -->
-            <div>
-                <label class="block text-gray-700 font-semibold mb-2">Package Name</label>
-                <input type="text" 
-                       name="name" 
-                       required
-                       pattern="[a-z0-9_-]+"
-                       title="Lowercase letters, numbers, hyphens, and underscores only"
-                       class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                       placeholder="e.g., my-awesome-app">
-                <p class="text-sm text-gray-500 mt-1">Lowercase letters, numbers, hyphens, and underscores only</p>
-            </div>
-            
-            <!-- Version -->
-            <div>
-                <label class="block text-gray-700 font-semibold mb-2">Version</label>
-                <input type="text" 
-                       name="version" 
-                       required
-                       pattern="\d+\.\d+\.\d+"
-                       title="Semantic versioning (e.g., 1.0.0)"
-                       class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                       placeholder="1.0.0">
-                <p class="text-sm text-gray-500 mt-1">Semantic versioning (e.g., 1.0.0)</p>
-            </div>
-            
-            <!-- Release and Architecture -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-gray-700 font-semibold mb-2">Release</label>
-                    <input type="text" 
-                           name="release" 
-                           value="r0"
-                           pattern="r\d+"
-                           class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                           placeholder="r0">
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 font-semibold mb-2">Architecture</label>
-                    <select name="arch" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500">
-                        <option value="x86_64">x86_64</option>
-                        <option value="aarch64">ARM64</option>
-                        <option value="armv7">ARMv7</option>
-                        <option value="x86">x86</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Scope -->
-            <div>
-                <label class="block text-gray-700 font-semibold mb-2">Visibility</label>
-                <div class="flex space-x-4">
-                    <label class="flex items-center">
-                        <input type="radio" name="scope" value="public" checked class="mr-2">
-                        <span>Public <span class="text-sm text-gray-500">(visible to everyone)</span></span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="scope" value="private" class="mr-2">
-                        <span>Private <span class="text-sm text-gray-500">(only you can see)</span></span>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Description -->
-            <div>
-                <label class="block text-gray-700 font-semibold mb-2">Description</label>
-                <textarea name="description" 
-                          rows="3"
-                          class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Brief description of your package"></textarea>
-            </div>
-            
-            <!-- File Upload -->
-            <div>
-                <label class="block text-gray-700 font-semibold mb-2">Package File</label>
-                <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-500 transition-colors"
-                     id="dropZone">
-                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-                    <p class="text-gray-600 mb-2">Drag and drop your .tar.bool file here</p>
-                    <p class="text-sm text-gray-500 mb-3">or</p>
-                    <label class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl cursor-pointer hover:from-indigo-700 hover:to-purple-700">
-                        Browse Files
-                        <input type="file" name="file" accept=".tar.bool" required class="hidden" id="fileInput">
-                    </label>
-                    <p class="text-sm text-gray-500 mt-3">Maximum file size: 100MB</p>
-                </div>
-                <div id="fileInfo" class="mt-3 hidden">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3">
-                            <i class="fas fa-file-archive text-indigo-600"></i>
-                            <span id="fileName" class="font-medium"></span>
-                            <span id="fileSize" class="text-sm text-gray-500"></span>
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-cloud-upload-alt"></i> Upload Package</h1>
+        <p style="color: var(--text-secondary);">Publish your .tar.bool package to Zarch Hub</p>
+    </div>
+</section>
+
+<section class="upload-page">
+    <div class="container">
+        <div class="upload-container">
+            <div class="upload-card">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <!-- Drop Zone -->
+                    <div class="drop-zone" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Drop your .tar.bool file here</h3>
+                        <p>or click to browse files</p>
+                        <input type="file" id="packageFile" name="file" accept=".tar.bool,.tar" required>
+                    </div>
+
+                    <!-- File Info -->
+                    <div class="file-info" id="fileInfo">
+                        <div class="file-info-icon">
+                            <i class="fas fa-file-archive"></i>
                         </div>
-                        <button type="button" onclick="clearFile()" class="text-red-500 hover:text-red-700">
-                            <i class="fas fa-times"></i>
+                        <div class="file-info-details">
+                            <div class="file-info-name" id="fileName"></div>
+                            <div class="file-info-size" id="fileSize"></div>
+                        </div>
+                        <button type="button" class="file-info-remove" id="fileRemove" aria-label="Remove file">
+                            <i class="fas fa-times-circle"></i>
                         </button>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Submit Button -->
-            <button type="submit" 
-                    id="submitBtn"
-                    class="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-upload mr-2"></i>Upload Package
-            </button>
-        </form>
-        
-        <!-- Progress Bar -->
-        <div id="progressContainer" class="mt-6 hidden">
-            <div class="flex justify-between text-sm mb-1">
-                <span>Uploading...</span>
-                <span id="progressPercent">0%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div id="progressBar" class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full" style="width: 0%"></div>
+
+                    <!-- Package Name -->
+                    <div class="form-group">
+                        <label for="packageName">Package Name *</label>
+                        <input type="text" id="packageName" name="name" class="form-input" 
+                               placeholder="my-awesome-package" required
+                               pattern="[a-zA-Z0-9_-]+" minlength="1" maxlength="64"
+                               autocomplete="off">
+                        <div class="form-hint">Only letters, numbers, hyphens, and underscores</div>
+                    </div>
+
+                    <!-- Row: Version + Release -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="version">Version *</label>
+                            <input type="text" id="version" name="version" class="form-input" 
+                                   placeholder="1.0.0" value="1.0.0" required
+                                   pattern="\d+\.\d+\.\d+">
+                        </div>
+                        <div class="form-group">
+                            <label for="release">Release</label>
+                            <input type="text" id="release" name="release" class="form-input" 
+                                   placeholder="r0" value="r0">
+                        </div>
+                    </div>
+
+                    <!-- Row: Architecture + Scope -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="arch">Architecture</label>
+                            <select id="arch" name="arch" class="form-select">
+                                <option value="x86_64">x86_64</option>
+                                <option value="aarch64">aarch64</option>
+                                <option value="armv7">armv7</option>
+                                <option value="i686">i686</option>
+                                <option value="noarch">noarch</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="scope">Scope</label>
+                            <select id="scope" name="scope" class="form-select">
+                                <option value="public">Public</option>
+                                <option value="private">Private</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                        <span class="btn-text"><i class="fas fa-rocket"></i> Publish Package</span>
+                        <span class="spinner"></span>
+                    </button>
+
+                    <!-- Progress -->
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    
-    <!-- Guidelines -->
-    <div class="mt-8 glassmorphism rounded-2xl p-6">
-        <h2 class="text-xl font-semibold mb-4">Package Upload Guidelines</h2>
-        <ul class="space-y-2 text-gray-600">
-            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Package names must be lowercase and may contain hyphens and underscores</li>
-            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Use semantic versioning (e.g., 1.0.0, 2.1.3)</li>
-            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Include a README.md file in your package for documentation</li>
-            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>Maximum file size is 100MB</li>
-            <li><i class="fas fa-check-circle text-green-500 mr-2"></i>All packages are scanned for security issues</li>
-        </ul>
-    </div>
-</div>
+</section>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileInfo = document.getElementById('fileInfo');
-const fileName = document.getElementById('fileName');
-const fileSize = document.getElementById('fileSize');
-const uploadForm = document.getElementById('uploadForm');
-const submitBtn = document.getElementById('submitBtn');
-const progressContainer = document.getElementById('progressContainer');
-const progressBar = document.getElementById('progressBar');
-const progressPercent = document.getElementById('progressPercent');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('packageFile');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileRemove = document.getElementById('fileRemove');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const packageName = document.getElementById('packageName');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
 
-// Drag and drop handlers
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
-});
+    let selectedFile = null;
 
-dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
-});
+    // ============================================================
+    // FILE HANDLING
+    // ============================================================
+    function handleFile(file) {
+        if (!file) return;
 
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
-    
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.tar.bool')) {
-        fileInput.files = e.dataTransfer.files;
-        updateFileInfo(file);
-    } else {
-        alert('Please upload a .tar.bool file');
+        // Validate file type
+        if (!file.name.endsWith('.tar.bool') && !file.name.endsWith('.tar')) {
+            showToast('Please select a .tar.bool file', 'error');
+            return;
+        }
+
+        // Validate file size (100MB max)
+        if (file.size > 100 * 1024 * 1024) {
+            showToast('File size must be less than 100MB', 'error');
+            return;
+        }
+
+        selectedFile = file;
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        fileInfo.classList.add('visible');
+        dropZone.querySelector('h3').textContent = 'Change file';
+        dropZone.querySelector('p').textContent = 'Click or drop to change';
+
+        // Auto-fill package name from filename
+        if (!packageName.value) {
+            const autoName = file.name.replace(/-\d+\.\d+\.\d+.*/, '').replace('.tar.bool', '').replace('.tar', '');
+            packageName.value = autoName;
+        }
+
+        updateSubmitButton();
     }
-});
 
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files[0]) {
-        updateFileInfo(e.target.files[0]);
+    function removeFile() {
+        selectedFile = null;
+        fileInput.value = '';
+        fileInfo.classList.remove('visible');
+        dropZone.querySelector('h3').textContent = 'Drop your .tar.bool file here';
+        dropZone.querySelector('p').textContent = 'or click to browse files';
+        updateSubmitButton();
     }
-});
 
-function updateFileInfo(file) {
-    fileName.textContent = file.name;
-    fileSize.textContent = `(${(file.size / 1024).toFixed(2)} KB)`;
-    fileInfo.classList.remove('hidden');
-}
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
 
-function clearFile() {
-    fileInput.value = '';
-    fileInfo.classList.add('hidden');
-}
+    function updateSubmitButton() {
+        submitBtn.disabled = !(selectedFile && packageName.value.trim() && packageName.checkValidity());
+    }
 
-// Form submission
-uploadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(uploadForm);
-    const name = formData.get('name');
-    const scope = formData.get('scope');
-    
-    try {
-        submitBtn.disabled = true;
-        progressContainer.classList.remove('hidden');
-        
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const percent = (e.loaded / e.total) * 100;
-                progressBar.style.width = percent + '%';
-                progressPercent.textContent = Math.round(percent) + '%';
-            }
-        });
-        
-        xhr.addEventListener('load', () => {
-            if (xhr.status === 200) {
-                const response = JSON.parse(xhr.responseText);
-                window.location.href = `/package/${name}`;
+    // Drag & Drop events
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            fileInput.files = e.dataTransfer.files;
+            handleFile(file);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        handleFile(e.target.files[0]);
+    });
+
+    fileRemove.addEventListener('click', removeFile);
+
+    packageName.addEventListener('input', updateSubmitButton);
+
+    // ============================================================
+    // FORM SUBMISSION
+    // ============================================================
+    uploadForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (!selectedFile || !packageName.value.trim()) return;
+
+        setLoading(true);
+        progressBar.style.display = 'block';
+        progressFill.style.width = '30%';
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('name', packageName.value.trim());
+        formData.append('version', document.getElementById('version').value.trim());
+        formData.append('release', document.getElementById('release').value.trim());
+        formData.append('arch', document.getElementById('arch').value);
+        formData.append('scope', document.getElementById('scope').value);
+
+        const scope = document.getElementById('scope').value;
+        const name = packageName.value.trim();
+        const url = `/v5.2/package/upload/${scope}/${encodeURIComponent(name)}`;
+
+        try {
+            progressFill.style.width = '60%';
+
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            progressFill.style.width = '90%';
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                progressFill.style.width = '100%';
+                showToast('Package published successfully! 🎉', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = `/package/${data.package.name}`;
+                }, 1000);
             } else {
-                let error = 'Upload failed';
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    error = response.error || error;
-                } catch {}
-                alert(error);
-                submitBtn.disabled = false;
-                progressContainer.classList.add('hidden');
+                showToast(data.error || 'Upload failed. Please try again.', 'error');
+                setLoading(false);
+                progressBar.style.display = 'none';
             }
-        });
-        
-        xhr.addEventListener('error', () => {
-            alert('Network error occurred');
-            submitBtn.disabled = false;
-            progressContainer.classList.add('hidden');
-        });
-        
-        xhr.open('POST', `/v5.2/package/upload/${scope}/${name}`);
-        xhr.send(formData);
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        alert('Failed to upload package');
-        submitBtn.disabled = false;
-        progressContainer.classList.add('hidden');
+        } catch (error) {
+            showToast('Network error. Please check your connection.', 'error');
+            setLoading(false);
+            progressBar.style.display = 'none';
+            console.error('Upload error:', error);
+        }
+    });
+
+    function setLoading(isLoading) {
+        if (isLoading) {
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+        } else {
+            submitBtn.classList.remove('loading');
+            updateSubmitButton();
+        }
     }
-});
 </script>
 {% endblock %}
