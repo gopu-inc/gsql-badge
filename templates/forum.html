@@ -1,365 +1,917 @@
 {% extends "base.html" %}
 
-{% block title %}Community Forum - Zarch Hub{% endblock %}
+{% block head_extra %}
+<meta property="og:title" content="Forum - Zarch Hub Community">
+<meta property="og:description" content="Join the Zarch Hub community forum. Discuss Goscript, GPM, share packages, and connect with developers.">
+<meta property="og:url" content="https://zenv-hub.onrender.com/forum">
+<meta name="description" content="Zarch Hub Forum - Discuss Goscript, GPM packages, development, and connect with the community.">
+<link rel="canonical" href="https://zenv-hub.onrender.com/forum">
+{% endblock %}
+
+{% block title %}Forum - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .forum-page {
+        padding: 2rem 0 4rem;
+        min-height: calc(100vh - var(--navbar-height) - 300px);
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header h1 i {
+        color: var(--accent-purple);
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+
+    .forum-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 2rem;
+        align-items: start;
+        max-width: var(--container-max);
+        margin: 0 auto;
+        padding: 0 var(--container-padding);
+    }
+
+    @media (max-width: 900px) {
+        .forum-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ============================================================
+    MAIN CONTENT
+    ============================================================ */
+    .forum-main {
+        min-width: 0;
+    }
+
+    /* Toolbar */
+    .forum-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+    }
+
+    .forum-toolbar .search-wrapper {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+    }
+
+    .forum-toolbar .search-wrapper i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-tertiary);
+        pointer-events: none;
+        font-size: 0.85rem;
+    }
+
+    .forum-toolbar .search-input {
+        width: 100%;
+        padding: 0.6rem 1rem 0.6rem 2.5rem;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.88rem;
+        outline: none;
+        transition: var(--transition);
+    }
+
+    .forum-toolbar .search-input:focus {
+        border-color: var(--accent-purple);
+        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
+    }
+
+    .btn-new-topic {
+        padding: 0.6rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.88rem;
+        border-radius: var(--radius-md);
+        background: var(--gradient-purple);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(188, 140, 255, 0.3);
+    }
+
+    .btn-new-topic:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(188, 140, 255, 0.45);
+    }
+
+    /* Categories */
+    .category-section {
+        margin-bottom: 2rem;
+    }
+
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .category-header i {
+        color: var(--accent-purple);
+        font-size: 1.1rem;
+    }
+
+    .category-count {
+        margin-left: auto;
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        font-weight: 500;
+    }
+
+    .topic-list {
+        list-style: none;
+    }
+
+    .topic-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-top: none;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .topic-item:last-child {
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+
+    .topic-item:hover {
+        background: var(--bg-hover);
+        border-color: var(--border-hover);
+    }
+
+    .topic-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .topic-icon.pinned {
+        background: rgba(210, 153, 29, 0.15);
+        color: var(--accent-orange);
+    }
+
+    .topic-icon.normal {
+        background: rgba(88, 166, 255, 0.12);
+        color: var(--accent-blue);
+    }
+
+    .topic-icon.hot {
+        background: rgba(248, 81, 73, 0.12);
+        color: var(--accent-red);
+    }
+
+    .topic-icon.solved {
+        background: rgba(63, 185, 80, 0.12);
+        color: var(--accent-green);
+    }
+
+    .topic-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .topic-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.3rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .topic-badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--radius-full);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+
+    .topic-badge.pinned {
+        background: rgba(210, 153, 29, 0.15);
+        color: var(--accent-orange);
+    }
+
+    .topic-badge.solved {
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--accent-green);
+    }
+
+    .topic-badge.announcement {
+        background: rgba(88, 166, 255, 0.15);
+        color: var(--accent-blue);
+    }
+
+    .topic-meta {
+        font-size: 0.78rem;
+        color: var(--text-tertiary);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .topic-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .topic-stats {
+        text-align: center;
+        flex-shrink: 0;
+        min-width: 60px;
+    }
+
+    .topic-replies {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+
+    .topic-replies-label {
+        font-size: 0.7rem;
+        color: var(--text-tertiary);
+    }
+
+    .topic-last-post {
+        width: 140px;
+        flex-shrink: 0;
+        text-align: right;
+        font-size: 0.78rem;
+    }
+
+    .topic-last-user {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .topic-last-time {
+        color: var(--text-tertiary);
+        font-size: 0.72rem;
+    }
+
+    @media (max-width: 700px) {
+        .topic-last-post {
+            display: none;
+        }
+
+        .topic-stats {
+            min-width: 40px;
+        }
+
+        .topic-item {
+            padding: 0.85rem 1rem;
+        }
+    }
+
+    /* ============================================================
+    SIDEBAR
+    ============================================================ */
+    .forum-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        position: sticky;
+        top: calc(var(--navbar-height) + 1.5rem);
+    }
+
+    .sidebar-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+    }
+
+    .sidebar-card h3 {
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-secondary);
+    }
+
+    .sidebar-card h3 i {
+        color: var(--accent-purple);
+    }
+
+    .sidebar-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .sidebar-stat {
+        text-align: center;
+    }
+
+    .sidebar-stat-value {
+        font-family: var(--font-mono);
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .sidebar-stat-label {
+        font-size: 0.72rem;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .active-users {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .active-user-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-full);
+        background: var(--gradient-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: var(--transition);
+        border: 2px solid transparent;
+    }
+
+    .active-user-avatar:hover {
+        border-color: var(--accent-purple);
+        transform: scale(1.1);
+    }
+
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .tag {
+        padding: 0.25rem 0.65rem;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-full);
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .tag:hover {
+        border-color: var(--accent-purple);
+        color: var(--accent-purple);
+        background: rgba(188, 140, 255, 0.05);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.4rem;
+        margin-top: 2rem;
+    }
+
+    .page-btn {
+        padding: 0.5rem 0.9rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .page-btn:hover {
+        border-color: var(--accent-purple);
+        color: var(--text-primary);
+    }
+
+    .page-btn.active {
+        background: var(--accent-purple);
+        color: #fff;
+        border-color: var(--accent-purple);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="mb-8" data-aos="fade-up">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 class="text-4xl font-bold text-white mb-2">Community Forum</h1>
-            <p class="text-slate-400">Discuss, share knowledge, and get help from the community</p>
-        </div>
-        <div class="flex gap-3">
-            <a href="/forum/search" 
-               class="px-4 py-2 bg-slate-800/50 text-slate-300 rounded-xl hover:bg-slate-700/50 transition-all border border-slate-700">
-                <i class="fas fa-search mr-2"></i>Search
-            </a>
-            <a href="/forum/new" 
-               class="px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-                <i class="fas fa-plus mr-2"></i>New Topic
-            </a>
-        </div>
+<!-- ================================================================
+PAGE HEADER
+================================================================ -->
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-comments"></i> Forum</h1>
+        <p>Discuss Goscript, GPM, share knowledge, and connect with the Zarch community</p>
     </div>
-</div>
+</section>
 
-<!-- Forum Stats -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" data-aos="fade-up" data-aos-delay="50">
-    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
-        <div class="text-2xl font-bold text-sky-400">2,547</div>
-        <div class="text-xs text-slate-400 uppercase tracking-wider">Topics</div>
-    </div>
-    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
-        <div class="text-2xl font-bold text-sky-400">18.3k</div>
-        <div class="text-xs text-slate-400 uppercase tracking-wider">Posts</div>
-    </div>
-    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
-        <div class="text-2xl font-bold text-sky-400">1.2k</div>
-        <div class="text-xs text-slate-400 uppercase tracking-wider">Members</div>
-    </div>
-    <div class="glass-card rounded-xl p-4 text-center border border-slate-700/50">
-        <div class="text-2xl font-bold text-sky-400">142</div>
-        <div class="text-xs text-slate-400 uppercase tracking-wider">Online</div>
-    </div>
-</div>
+<!-- ================================================================
+FORUM CONTENT
+================================================================ -->
+<section class="forum-page">
+    <div class="forum-layout">
+        <!-- Main Content -->
+        <div class="forum-main">
+            <!-- Toolbar -->
+            <div class="forum-toolbar">
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" class="search-input" placeholder="Search topics..." id="forumSearch">
+                </div>
+                {% if session.get('user') %}
+                <a href="/forum/new" class="btn-new-topic">
+                    <i class="fas fa-plus"></i> New Topic
+                </a>
+                {% else %}
+                <a href="/login" class="btn-new-topic">
+                    <i class="fas fa-sign-in-alt"></i> Login to Post
+                </a>
+                {% endif %}
+            </div>
 
-<!-- Categories Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-    <!-- General Discussion -->
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="100">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-400 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-comments text-white text-xl"></i>
+            <!-- Announcements -->
+            <div class="category-section">
+                <div class="category-header">
+                    <i class="fas fa-bullhorn"></i>
+                    Announcements
+                    <span class="category-count">2 topics</span>
                 </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">General Discussion</h3>
-                    <p class="text-xs text-slate-400">2.3k topics</p>
+                <ul class="topic-list">
+                    <li>
+                        <a href="/forum/topic/welcome-to-zarch-hub" class="topic-item">
+                            <div class="topic-icon pinned">
+                                <i class="fas fa-thumbtack"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">
+                                    Welcome to Zarch Hub Forum!
+                                    <span class="topic-badge announcement">Announcement</span>
+                                </div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> zarch-team</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-28</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">15</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">gopu-inc</div>
+                                <div class="topic-last-time">2 hours ago</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/goscript-v2-released" class="topic-item">
+                            <div class="topic-icon pinned">
+                                <i class="fas fa-thumbtack"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">
+                                    Goscript v2.0 Released - What's New
+                                    <span class="topic-badge announcement">Announcement</span>
+                                </div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> gopu-inc</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-25</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">42</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">dev_user</div>
+                                <div class="topic-last-time">30 min ago</div>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- General Discussion -->
+            <div class="category-section">
+                <div class="category-header">
+                    <i class="fas fa-comments"></i>
+                    General Discussion
+                    <span class="category-count">4 topics</span>
+                </div>
+                <ul class="topic-list">
+                    <li>
+                        <a href="/forum/topic/best-practices-gpm" class="topic-item">
+                            <div class="topic-icon hot">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">Best practices for GPM package structure?</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> developer42</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-29</span>
+                                    <span><i class="fas fa-tag"></i> gpm, best-practices</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">8</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">senior_dev</div>
+                                <div class="topic-last-time">1 hour ago</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/showcase-projects" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">Showcase: Share your Goscript projects!</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> community_mod</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-27</span>
+                                    <span><i class="fas fa-tag"></i> showcase, projects</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">23</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">new_user</div>
+                                <div class="topic-last-time">3 hours ago</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/async-await-patterns" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">Understanding async/await in Goscript</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> learner_dev</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-26</span>
+                                    <span><i class="fas fa-tag"></i> goscript, async</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">5</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">core_dev</div>
+                                <div class="topic-last-time">5 hours ago</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/zarch-ecosystem-future" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">The future of the Zarch ecosystem</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> visionary_dev</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-24</span>
+                                    <span><i class="fas fa-tag"></i> community, roadmap</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">31</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">gopu-inc</div>
+                                <div class="topic-last-time">yesterday</div>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Help & Support -->
+            <div class="category-section">
+                <div class="category-header">
+                    <i class="fas fa-question-circle"></i>
+                    Help & Support
+                    <span class="category-count">3 topics</span>
+                </div>
+                <ul class="topic-list">
+                    <li>
+                        <a href="/forum/topic/install-issues-alpine" class="topic-item">
+                            <div class="topic-icon solved">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">
+                                    Installation issues on Alpine Linux
+                                    <span class="topic-badge solved">Solved</span>
+                                </div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> alpine_user</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-28</span>
+                                    <span><i class="fas fa-tag"></i> help, installation, alpine</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">7</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">support_team</div>
+                                <div class="topic-last-time">solved</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/manifest-validation-error" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-question"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">Manifest.toml validation error on publish</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> new_publisher</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-29</span>
+                                    <span><i class="fas fa-tag"></i> help, manifest, publish</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">3</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">new_publisher</div>
+                                <div class="topic-last-time">2 hours ago</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/ffi-calling-c-from-goscript" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-question"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">How to call C functions from Goscript via FFI?</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> systems_prog</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-27</span>
+                                    <span><i class="fas fa-tag"></i> help, ffi, c-interop</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">11</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">core_dev</div>
+                                <div class="topic-last-time">yesterday</div>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Package Development -->
+            <div class="category-section">
+                <div class="category-header">
+                    <i class="fas fa-code"></i>
+                    Package Development
+                    <span class="category-count">2 topics</span>
+                </div>
+                <ul class="topic-list">
+                    <li>
+                        <a href="/forum/topic/creating-first-package" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">Guide: Creating your first Goscript package</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> tutorial_master</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-25</span>
+                                    <span><i class="fas fa-tag"></i> tutorial, package-dev</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">19</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">new_user</div>
+                                <div class="topic-last-time">4 hours ago</div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/forum/topic/dependency-management" class="topic-item">
+                            <div class="topic-icon normal">
+                                <i class="fas fa-comment"></i>
+                            </div>
+                            <div class="topic-content">
+                                <div class="topic-title">Advanced dependency management with GPM</div>
+                                <div class="topic-meta">
+                                    <span><i class="fas fa-user"></i> package_author</span>
+                                    <span><i class="fas fa-clock"></i> 2026-04-23</span>
+                                    <span><i class="fas fa-tag"></i> gpm, dependencies</span>
+                                </div>
+                            </div>
+                            <div class="topic-stats">
+                                <div class="topic-replies">6</div>
+                                <div class="topic-replies-label">replies</div>
+                            </div>
+                            <div class="topic-last-post">
+                                <div class="topic-last-user">package_author</div>
+                                <div class="topic-last-time">1 day ago</div>
+                            </div>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <span class="page-btn active">1</span>
+                <a href="?page=2" class="page-btn">2</a>
+                <a href="?page=3" class="page-btn">3</a>
+                <a href="?page=2" class="page-btn">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="forum-sidebar">
+            <!-- Stats -->
+            <div class="sidebar-card">
+                <h3><i class="fas fa-chart-bar"></i> Forum Stats</h3>
+                <div class="sidebar-stats">
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-value" style="color: var(--accent-blue);">11</div>
+                        <div class="sidebar-stat-label">Topics</div>
+                    </div>
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-value" style="color: var(--accent-purple);">170</div>
+                        <div class="sidebar-stat-label">Replies</div>
+                    </div>
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-value" style="color: var(--accent-green);">42</div>
+                        <div class="sidebar-stat-label">Users</div>
+                    </div>
+                    <div class="sidebar-stat">
+                        <div class="sidebar-stat-value" style="color: var(--accent-orange);">8</div>
+                        <div class="sidebar-stat-label">Online</div>
+                    </div>
                 </div>
             </div>
-            <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">342 online</span>
-        </div>
-        <p class="text-sm text-slate-400 mb-4">Talk about anything related to Zarch Hub, APKM, and package management</p>
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">Last post: 5 min ago</span>
-            <a href="/forum/category/general" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
-                Browse <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
+
+            <!-- Active Users -->
+            <div class="sidebar-card">
+                <h3><i class="fas fa-users"></i> Online Now</h3>
+                <div class="active-users">
+                    <div class="active-user-avatar" title="gopu-inc" style="background: var(--gradient-purple);">G</div>
+                    <div class="active-user-avatar" title="core_dev" style="background: var(--gradient-blue);">C</div>
+                    <div class="active-user-avatar" title="developer42" style="background: var(--gradient-green);">D</div>
+                    <div class="active-user-avatar" title="new_user" style="background: linear-gradient(135deg, #f97316, #eab308);">N</div>
+                    <div class="active-user-avatar" title="senior_dev" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">S</div>
+                    <div class="active-user-avatar" title="tutorial_master" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">T</div>
+                    <div class="active-user-avatar" title="alpine_user" style="background: var(--gradient-blue);">A</div>
+                    <div class="active-user-avatar" title="support_team" style="background: var(--gradient-green);">S</div>
+                </div>
+            </div>
+
+            <!-- Popular Tags -->
+            <div class="sidebar-card">
+                <h3><i class="fas fa-tags"></i> Popular Tags</h3>
+                <div class="tag-cloud">
+                    <a href="/forum?tag=goscript" class="tag">goscript</a>
+                    <a href="/forum?tag=gpm" class="tag">gpm</a>
+                    <a href="/forum?tag=help" class="tag">help</a>
+                    <a href="/forum?tag=tutorial" class="tag">tutorial</a>
+                    <a href="/forum?tag=packages" class="tag">packages</a>
+                    <a href="/forum?tag=ffi" class="tag">ffi</a>
+                    <a href="/forum?tag=async" class="tag">async</a>
+                    <a href="/forum?tag=showcase" class="tag">showcase</a>
+                    <a href="/forum?tag=best-practices" class="tag">best-practices</a>
+                    <a href="/forum?tag=installation" class="tag">installation</a>
+                    <a href="/forum?tag=alpine" class="tag">alpine</a>
+                    <a href="/forum?tag=manifest" class="tag">manifest</a>
+                </div>
+            </div>
+
+            <!-- CTA -->
+            {% if not session.get('user') %}
+            <div class="sidebar-card" style="text-align: center; background: var(--gradient-hero);">
+                <h3 style="color: var(--text-primary); text-transform: none; letter-spacing: 0; font-size: 1rem;">
+                    Join the conversation!
+                </h3>
+                <p style="font-size: 0.82rem; color: var(--text-tertiary); margin-bottom: 1rem;">
+                    Create an account to post topics, reply, and connect with the community.
+                </p>
+                <a href="/register" class="btn btn-primary btn-sm" style="width: 100%;">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </a>
+            </div>
+            {% endif %}
+        </aside>
     </div>
+</section>
+{% endblock %}
 
-    <!-- Package Development -->
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="150">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-400 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-cube text-white text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">Package Development</h3>
-                    <p class="text-xs text-slate-400">856 topics</p>
-                </div>
-            </div>
-            <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">124 online</span>
-        </div>
-        <p class="text-sm text-slate-400 mb-4">Discuss package creation, PKGBUILD files, and build processes</p>
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">Last post: 12 min ago</span>
-            <a href="/forum/category/development" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
-                Browse <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-    </div>
-
-    <!-- Help & Support -->
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="200">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-400 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-life-ring text-white text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">Help & Support</h3>
-                    <p class="text-xs text-slate-400">1.1k topics</p>
-                </div>
-            </div>
-            <span class="px-2 py-1 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">89 online</span>
-        </div>
-        <p class="text-sm text-slate-400 mb-4">Get help with installation, configuration, and troubleshooting</p>
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">Last post: 2 min ago</span>
-            <a href="/forum/category/support" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
-                Browse <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-    </div>
-
-    <!-- Announcements -->
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="250">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-400 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-bullhorn text-white text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">Announcements</h3>
-                    <p class="text-xs text-slate-400">124 topics</p>
-                </div>
-            </div>
-            <span class="px-2 py-1 bg-yellow-500/10 text-yellow-400 rounded-full text-xs border border-yellow-500/30">Official</span>
-        </div>
-        <p class="text-sm text-slate-400 mb-4">Official announcements about Zarch Hub updates and events</p>
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">Last post: 1 hour ago</span>
-            <a href="/forum/category/announcements" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
-                Browse <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-    </div>
-
-    <!-- Feature Requests -->
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="300">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-400 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-lightbulb text-white text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">Feature Requests</h3>
-                    <p class="text-xs text-slate-400">342 topics</p>
-                </div>
-            </div>
-            <span class="px-2 py-1 bg-pink-500/10 text-pink-400 rounded-full text-xs border border-pink-500/30">Voting</span>
-        </div>
-        <p class="text-sm text-slate-400 mb-4">Suggest new features and improvements for Zarch Hub</p>
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">Last post: 30 min ago</span>
-            <a href="/forum/category/features" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
-                Browse <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-    </div>
-
-    <!-- Show & Tell -->
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="350">
-        <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-400 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-rocket text-white text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">Show & Tell</h3>
-                    <p class="text-xs text-slate-400">567 topics</p>
-                </div>
-            </div>
-            <span class="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-xs border border-indigo-500/30">Showcase</span>
-        </div>
-        <p class="text-sm text-slate-400 mb-4">Show off your packages and projects built with APKM</p>
-        <div class="flex items-center justify-between text-sm">
-            <span class="text-slate-500">Last post: 15 min ago</span>
-            <a href="/forum/category/showcase" class="text-sky-400 hover:text-sky-300 group-hover:translate-x-1 transition-transform">
-                Browse <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Topics -->
-<div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="400">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-white">Recent Discussions</h2>
-        <a href="/forum/latest" class="text-sky-400 hover:text-sky-300 text-sm">
-            View all <i class="fas fa-arrow-right ml-1"></i>
-        </a>
-    </div>
-
-    <div class="space-y-4">
-        <!-- Topic 1 -->
-        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
-            <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-gradient-to-br from-sky-500 to-sky-400 rounded-lg flex items-center justify-center text-white font-bold">
-                    JD
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <h3 class="text-lg font-semibold text-white truncate">
-                        <a href="/forum/topic/1" class="hover:text-sky-400">How to create my first APKM package?</a>
-                    </h3>
-                    <span class="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-full text-xs border border-blue-500/30">New</span>
-                </div>
-                <div class="flex items-center text-sm text-slate-400 space-x-4">
-                    <span>by <span class="text-sky-400">JohnDoe</span></span>
-                    <span><i class="far fa-clock mr-1"></i>2 hours ago</span>
-                    <span><i class="far fa-comment mr-1"></i>12 replies</span>
-                    <span><i class="far fa-eye mr-1"></i>234 views</span>
-                </div>
-            </div>
-            <div class="flex-shrink-0 ml-4 text-right">
-                <span class="text-xs text-slate-500">Last reply</span>
-                <p class="text-sm text-slate-300">by <span class="text-sky-400">JaneSmith</span></p>
-                <p class="text-xs text-slate-500">5 min ago</p>
-            </div>
-        </div>
-
-        <!-- Topic 2 -->
-        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
-            <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-400 rounded-lg flex items-center justify-center text-white font-bold">
-                    MK
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <h3 class="text-lg font-semibold text-white truncate">
-                        <a href="/forum/topic/2" class="hover:text-sky-400">PKGBUILD dependencies not resolving</a>
-                    </h3>
-                    <span class="px-2 py-0.5 bg-red-500/10 text-red-400 rounded-full text-xs border border-red-500/30">Urgent</span>
-                </div>
-                <div class="flex items-center text-sm text-slate-400 space-x-4">
-                    <span>by <span class="text-sky-400">MikeK</span></span>
-                    <span><i class="far fa-clock mr-1"></i>5 hours ago</span>
-                    <span><i class="far fa-comment mr-1"></i>8 replies</span>
-                    <span><i class="far fa-eye mr-1"></i>156 views</span>
-                </div>
-            </div>
-            <div class="flex-shrink-0 ml-4 text-right">
-                <span class="text-xs text-slate-500">Last reply</span>
-                <p class="text-sm text-slate-300">by <span class="text-sky-400">SarahDev</span></p>
-                <p class="text-xs text-slate-500">20 min ago</p>
-            </div>
-        </div>
-
-        <!-- Topic 3 -->
-        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
-            <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-400 rounded-lg flex items-center justify-center text-white font-bold">
-                    AL
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <h3 class="text-lg font-semibold text-white truncate">
-                        <a href="/forum/topic/3" class="hover:text-sky-400">Announcing: Zarch Hub CLI Tool v2.0</a>
-                    </h3>
-                    <span class="px-2 py-0.5 bg-green-500/10 text-green-400 rounded-full text-xs border border-green-500/30">Announcement</span>
-                </div>
-                <div class="flex items-center text-sm text-slate-400 space-x-4">
-                    <span>by <span class="text-sky-400">AlexL</span></span>
-                    <span><i class="far fa-clock mr-1"></i>1 day ago</span>
-                    <span><i class="far fa-comment mr-1"></i>24 replies</span>
-                    <span><i class="far fa-eye mr-1"></i>1.2k views</span>
-                </div>
-            </div>
-            <div class="flex-shrink-0 ml-4 text-right">
-                <span class="text-xs text-slate-500">Last reply</span>
-                <p class="text-sm text-slate-300">by <span class="text-sky-400">ChrisP</span></p>
-                <p class="text-xs text-slate-500">1 hour ago</p>
-            </div>
-        </div>
-
-        <!-- Topic 4 -->
-        <div class="flex items-start p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all border border-slate-700 hover:border-sky-500/30 group">
-            <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-400 rounded-lg flex items-center justify-center text-white font-bold">
-                    EM
-                </div>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    <h3 class="text-lg font-semibold text-white truncate">
-                        <a href="/forum/topic/4" class="hover:text-sky-400">Best practices for package versioning?</a>
-                    </h3>
-                    <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded-full text-xs border border-purple-500/30">Discussion</span>
-                </div>
-                <div class="flex items-center text-sm text-slate-400 space-x-4">
-                    <span>by <span class="text-sky-400">EmmaM</span></span>
-                    <span><i class="far fa-clock mr-1"></i>2 days ago</span>
-                    <span><i class="far fa-comment mr-1"></i>15 replies</span>
-                    <span><i class="far fa-eye mr-1"></i>345 views</span>
-                </div>
-            </div>
-            <div class="flex-shrink-0 ml-4 text-right">
-                <span class="text-xs text-slate-500">Last reply</span>
-                <p class="text-sm text-slate-300">by <span class="text-sky-400">TomW</span></p>
-                <p class="text-xs text-slate-500">3 hours ago</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Popular Tags -->
-<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="450">
-    <h2 class="text-lg font-semibold text-white mb-4">Popular Tags</h2>
-    <div class="flex flex-wrap gap-2">
-        <a href="/forum/tag/apkm" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#apkm</a>
-        <a href="/forum/tag/package" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#package</a>
-        <a href="/forum/tag/help" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#help</a>
-        <a href="/forum/tag/development" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#development</a>
-        <a href="/forum/tag/pkbuilder" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#pkbuilder</a>
-        <a href="/forum/tag/bug" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#bug</a>
-        <a href="/forum/tag/feature" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#feature</a>
-        <a href="/forum/tag/discord" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#discord</a>
-        <a href="/forum/tag/tutorial" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#tutorial</a>
-        <a href="/forum/tag/showcase" class="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-sm hover:bg-sky-500 hover:text-white transition-all">#showcase</a>
-    </div>
-</div>
-
-<!-- Online Members -->
-<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="500">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-white">Online Members</h2>
-        <span class="text-sm text-green-400"><span class="w-2 h-2 bg-green-400 rounded-full inline-block mr-2 animate-pulse"></span>142 online</span>
-    </div>
-    <div class="flex flex-wrap gap-2">
-        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
-            <div class="w-6 h-6 bg-gradient-to-br from-sky-500 to-sky-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">JD</div>
-            <span class="text-sm text-slate-300">JohnDoe</span>
-            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-        </div>
-        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
-            <div class="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">AS</div>
-            <span class="text-sm text-slate-300">AliceSmith</span>
-            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-        </div>
-        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
-            <div class="w-6 h-6 bg-gradient-to-br from-green-500 to-green-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">MK</div>
-            <span class="text-sm text-slate-300">MikeK</span>
-            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-        </div>
-        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
-            <div class="w-6 h-6 bg-gradient-to-br from-yellow-500 to-yellow-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">SR</div>
-            <span class="text-sm text-slate-300">SarahR</span>
-            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-        </div>
-        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
-            <div class="w-6 h-6 bg-gradient-to-br from-pink-500 to-pink-400 rounded-lg flex items-center justify-center text-white text-xs font-bold">TL</span>
-            <span class="text-sm text-slate-300">TomL</span>
-            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-        </div>
-        <div class="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg">
-            <span class="text-sm text-slate-400">+137 others</span>
-        </div>
-    </div>
-</div>
+{% block extra_js %}
+<script>
+    // Search functionality
+    const forumSearch = document.getElementById('forumSearch');
+    if (forumSearch) {
+        forumSearch.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const topics = document.querySelectorAll('.topic-item');
+            
+            topics.forEach(topic => {
+                const text = topic.textContent.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    topic.style.display = '';
+                } else {
+                    topic.style.display = 'none';
+                }
+            });
+        });
+    }
+</script>
 {% endblock %}
