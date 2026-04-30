@@ -1,316 +1,604 @@
 {% extends "base.html" %}
 
-{% block title %}Packages - Zarch Hub Registry{% endblock %}
+{% block head_extra %}
+<meta property="og:title" content="Packages - Zarch Hub">
+<meta property="og:description" content="Browse {{ total_packages }}+ packages on Zarch Hub. Search, filter, and discover packages for APKM, APSM, and BOOL.">
+<meta property="og:url" content="https://gsql-badge.onrender.com/packages">
+<meta name="description" content="Browse all packages on Zarch Hub - {{ total_packages }}+ packages available. Filter by scope, sort by downloads or recency.">
+<link rel="canonical" href="https://gsql-badge.onrender.com/packages">
+{% endblock %}
+
+{% block title %}Packages - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+    PAGE HEADER
+    ============================================================ */
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--accent-blue);
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+
+    /* ============================================================
+    SEARCH BAR
+    ============================================================ */
+    .search-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-wrapper {
+        position: relative;
+        max-width: 100%;
+    }
+
+    .search-wrapper i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-tertiary);
+        font-size: 1rem;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.9rem 1rem 0.9rem 3rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 1rem;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .search-input:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+    }
+
+    .search-input::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    .search-clear {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        padding: 0.25rem;
+        font-size: 1rem;
+        display: none;
+        z-index: 1;
+        transition: var(--transition);
+    }
+
+    .search-clear:hover {
+        color: var(--text-primary);
+    }
+
+    .search-clear.visible {
+        display: block;
+    }
+
+    /* ============================================================
+    FILTERS BAR
+    ============================================================ */
+    .filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-full);
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+    }
+
+    .filter-btn:hover {
+        border-color: var(--accent-blue);
+        color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+        background: var(--accent-blue);
+        color: #fff;
+        border-color: var(--accent-blue);
+    }
+
+    .results-count {
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
+        margin-left: auto;
+        white-space: nowrap;
+    }
+
+    /* ============================================================
+    PACKAGES GRID
+    ============================================================ */
+    .packages-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .package-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .package-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at top right, rgba(88, 166, 255, 0.02) 0%, transparent 50%);
+        opacity: 0;
+        transition: var(--transition);
+    }
+
+    .package-card:hover {
+        border-color: var(--accent-blue);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .package-card:hover::after {
+        opacity: 1;
+    }
+
+    .card-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--gradient-blue);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .card-name {
+        font-weight: 700;
+        font-size: 1.15rem;
+        color: var(--text-primary);
+        word-break: break-word;
+        line-height: 1.2;
+    }
+
+    .card-version {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--accent-blue);
+        margin-top: 0.2rem;
+    }
+
+    .card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        font-size: 0.82rem;
+        color: var(--text-tertiary);
+    }
+
+    .card-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .card-meta .author-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .card-meta .author-link:hover {
+        color: var(--accent-purple);
+    }
+
+    .card-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2rem 0.6rem;
+        border-radius: var(--radius-full);
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .card-badge.public {
+        background: rgba(63, 185, 80, 0.1);
+        color: var(--accent-green);
+        border: 1px solid rgba(63, 185, 80, 0.2);
+    }
+
+    .card-badge.private {
+        background: rgba(248, 81, 73, 0.1);
+        color: var(--accent-red);
+        border: 1px solid rgba(248, 81, 73, 0.2);
+    }
+
+    /* ============================================================
+    PAGINATION
+    ============================================================ */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 2.5rem;
+        flex-wrap: wrap;
+    }
+
+    .page-btn {
+        padding: 0.55rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        cursor: pointer;
+        text-decoration: none;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .page-btn:hover:not(.disabled):not(.active) {
+        border-color: var(--accent-blue);
+        color: var(--text-primary);
+    }
+
+    .page-btn.active {
+        background: var(--accent-blue);
+        color: #fff;
+        border-color: var(--accent-blue);
+    }
+
+    .page-btn.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .page-info {
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
+        padding: 0 1rem;
+    }
+
+    /* ============================================================
+    EMPTY STATE
+    ============================================================ */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        grid-column: 1 / -1;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-tertiary);
+        margin-bottom: 1rem;
+        display: block;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--text-tertiary);
+    }
+
+    /* ============================================================
+    RESPONSIVE
+    ============================================================ */
+    @media (max-width: 480px) {
+        .packages-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filters-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+        }
+
+        .results-count {
+            margin-left: 0;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="mb-8" data-aos="fade-up">
-    <h1 class="text-4xl font-bold text-white mb-2">Package Registry</h1>
-    <p class="text-slate-400">Browse and search available packages from the community</p>
-</div>
+<!-- ================================================================
+PAGE HEADER
+================================================================ -->
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-box"></i> Packages</h1>
+        <p>Browse {{ total_packages }}+ packages in the Zarch ecosystem</p>
+    </div>
+</section>
 
-<!-- Search and Filters -->
-<div class="glass-card rounded-2xl p-6 mb-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="100">
-    <form method="GET" class="space-y-4">
-        <div class="flex flex-col md:flex-row gap-4">
-            <!-- Search Input -->
-            <div class="flex-1 relative">
-                <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
+<!-- ================================================================
+SEARCH & FILTERS
+================================================================ -->
+<section style="padding-bottom: 3rem;">
+    <div class="container">
+        <!-- Search -->
+        <div class="search-section">
+            <div class="search-wrapper">
+                <i class="fas fa-search"></i>
                 <input type="text" 
-                       name="q" 
+                       id="searchInput" 
+                       class="search-input" 
+                       placeholder="Search packages by name, description, or author..."
                        value="{{ query }}"
-                       placeholder="Search packages by name, description, or author..." 
-                       class="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
-            </div>
-            
-            <!-- Filter Controls -->
-            <div class="flex flex-wrap gap-2">
-                <select name="sort" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
-                    <option value="recent" {% if sort == 'recent' %}selected{% endif %}>📅 Most Recent</option>
-                    <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>📥 Most Downloads</option>
-                    <option value="name" {% if sort == 'name' %}selected{% endif %}>📝 Name (A-Z)</option>
-                    <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>📝 Name (Z-A)</option>
-                </select>
-                
-                <select name="scope" class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all">
-                    <option value="all" {% if scope == 'all' %}selected{% endif %}>🌍 All Packages</option>
-                    <option value="public" {% if scope == 'public' %}selected{% endif %}>🔓 Public</option>
-                    <option value="private" {% if scope == 'private' %}selected{% endif %}>🔒 Private</option>
-                </select>
-                
-                <button type="submit" 
-                        class="px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-                    <i class="fas fa-filter mr-2"></i>Apply
+                       autocomplete="off">
+                <button class="search-clear {{ 'visible' if query else '' }}" id="searchClear" aria-label="Clear search">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
         </div>
-    </form>
-    
-    <!-- Active Filters -->
-    {% if query or scope != 'all' or sort != 'recent' %}
-    <div class="mt-4 flex flex-wrap items-center gap-2 pt-4 border-t border-slate-800">
-        <span class="text-sm text-slate-400">Active filters:</span>
-        {% if query %}
-        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
-            <i class="fas fa-search mr-1"></i> "{{ query }}"
-            <a href="?{% if scope != 'all' %}scope={{ scope }}&{% endif %}{% if sort != 'recent' %}sort={{ sort }}{% endif %}" class="ml-2 hover:text-white">×</a>
-        </span>
-        {% endif %}
-        {% if scope != 'all' %}
-        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
-            <i class="fas fa-{% if scope == 'public' %}globe{% else %}lock{% endif %} mr-1"></i> {{ scope|capitalize }}
-            <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort != 'recent' %}sort={{ sort }}{% endif %}" class="ml-2 hover:text-white">×</a>
-        </span>
-        {% endif %}
-        {% if sort != 'recent' %}
-        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
-            <i class="fas fa-sort mr-1"></i> Sort: {{ sort }}
-            <a href="?{% if query %}q={{ query }}&{% endif %}{% if scope != 'all' %}scope={{ scope }}{% endif %}" class="ml-2 hover:text-white">×</a>
-        </span>
-        {% endif %}
-        <a href="/packages" class="text-sm text-slate-500 hover:text-sky-400 ml-auto">
-            <i class="fas fa-times mr-1"></i>Clear all
-        </a>
-    </div>
-    {% endif %}
-</div>
 
-<!-- Results Info -->
-<div class="flex justify-between items-center mb-6" data-aos="fade-up" data-aos-delay="150">
-    <div class="text-slate-400">
-        <span class="text-white font-semibold">{{ total_results }}</span> packages found
-    </div>
-    <div class="text-sm text-slate-500">
-        Page <span class="text-white">{{ page }}</span> of {{ total_pages }}
-    </div>
-</div>
-
-<!-- Packages Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-    {% for package in packages %}
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" 
-         data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
-        <!-- Package Header -->
-        <div class="flex items-start justify-between mb-4">
-            <div>
-                <h3 class="text-xl font-semibold">
-                    <a href="/package/{{ package.name }}" class="text-white hover:text-sky-400 transition-colors">
-                        {{ package.name }}
-                    </a>
-                </h3>
-                <p class="text-sm text-slate-400">
-                    <i class="fas fa-user mr-1 text-sky-400/70"></i>{{ package.author }}
-                </p>
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="filter-group">
+                <span style="color: var(--text-tertiary); font-size: 0.85rem; display: flex; align-items: center; padding-right: 0.5rem;">
+                    Scope:
+                </span>
+                <a href="?q={{ query }}&sort={{ sort }}" class="filter-btn {{ 'active' if scope == 'all' or not scope }}">
+                    <i class="fas fa-globe"></i> All
+                </a>
+                <a href="?q={{ query }}&sort={{ sort }}&scope=public" class="filter-btn {{ 'active' if scope == 'public' }}">
+                    <i class="fas fa-globe"></i> Public
+                </a>
+                <a href="?q={{ query }}&sort={{ sort }}&scope=private" class="filter-btn {{ 'active' if scope == 'private' }}">
+                    <i class="fas fa-lock"></i> Private
+                </a>
             </div>
-            <span class="px-3 py-1 bg-sky-500/10 text-sky-400 rounded-full text-sm border border-sky-500/30">
-                v{{ package.version }}
-            </span>
+
+            <div class="filter-group">
+                <span style="color: var(--text-tertiary); font-size: 0.85rem; display: flex; align-items: center; padding-right: 0.5rem;">
+                    Sort:
+                </span>
+                <a href="?q={{ query }}&scope={{ scope }}&sort=recent" class="filter-btn {{ 'active' if sort == 'recent' or not sort }}">
+                    <i class="fas fa-clock"></i> Recent
+                </a>
+                <a href="?q={{ query }}&scope={{ scope }}&sort=downloads" class="filter-btn {{ 'active' if sort == 'downloads' }}">
+                    <i class="fas fa-download"></i> Downloads
+                </a>
+                <a href="?q={{ query }}&scope={{ scope }}&sort=name" class="filter-btn {{ 'active' if sort == 'name' }}">
+                    <i class="fas fa-sort-alpha-down"></i> Name
+                </a>
+            </div>
+
+            <div class="results-count">
+                <strong>{{ total_results }}</strong> result{{ 's' if total_results != 1 else '' }}
+            </div>
         </div>
-        
-        <!-- Description -->
-        {% if package.description %}
-        <p class="text-slate-400 mb-4 text-sm line-clamp-2">{{ package.description }}</p>
+
+        <!-- Packages Grid -->
+        {% if packages %}
+        <div class="packages-grid">
+            {% for pkg in packages %}
+            <a href="/package/{{ pkg.name }}" class="package-card">
+                <div class="card-top">
+                    <div class="card-icon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">{{ pkg.name }}</div>
+                        <div class="card-version">v{{ pkg.version }}</div>
+                    </div>
+                </div>
+                <div class="card-meta">
+                    <span>
+                        <i class="fas fa-user-astronaut"></i>
+                        <span class="author-link">{{ pkg.author }}</span>
+                    </span>
+                    <span>
+                        <i class="fas fa-download"></i>
+                        {{ pkg.downloads }}
+                    </span>
+                    <span>
+                        <span class="card-badge {{ pkg.scope }}">{{ pkg.scope }}</span>
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
         {% else %}
-        <p class="text-slate-500 mb-4 text-sm italic">No description available</p>
-        {% endif %}
-        
-        <!-- Package Metadata -->
-        <div class="flex items-center justify-between text-sm mb-4">
-            <div class="flex items-center space-x-3">
-                <span class="text-slate-400">
-                    <i class="fas fa-download mr-1 text-sky-400"></i>{{ package.downloads }}
-                </span>
-                <span class="text-slate-400">
-                    <i class="far fa-clock mr-1 text-sky-400"></i>{{ package.created_at[:10] }}
-                </span>
-            </div>
-            <span class="px-2 py-1 bg-slate-800 text-slate-300 rounded-full text-xs border border-slate-700">
-                {% if package.scope == 'public' %}
-                <i class="fas fa-globe text-sky-400 mr-1"></i>public
+        <div class="empty-state">
+            <i class="fas fa-search"></i>
+            <h3>No packages found</h3>
+            <p>
+                {% if query %}
+                    No results for "<strong>{{ query }}</strong>". Try a different search term.
                 {% else %}
-                <i class="fas fa-lock text-yellow-400 mr-1"></i>private
+                    No packages available yet. Be the first to publish!
                 {% endif %}
-            </span>
-        </div>
-        
-        <!-- Architecture Badges -->
-        <div class="flex flex-wrap gap-1 mb-4">
-            <span class="px-2 py-1 bg-slate-800 text-xs text-slate-400 rounded-lg border border-slate-700">
-                {{ package.arch }}
-            </span>
-            <span class="px-2 py-1 bg-slate-800 text-xs text-slate-400 rounded-lg border border-slate-700">
-                {{ package.release }}
-            </span>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="flex space-x-2">
-            <a href="/package/{{ package.name }}" 
-               class="flex-1 text-center px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-lg font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button text-sm">
-                <i class="fas fa-info-circle mr-1"></i>Details
+            </p>
+            {% if query %}
+            <a href="/packages" class="btn btn-secondary btn-sm" style="margin-top: 1rem;">
+                <i class="fas fa-times"></i> Clear Search
             </a>
-            <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}"
-               class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-sky-500 hover:text-white transition-all group"
-               title="Download">
-                <i class="fas fa-download group-hover:scale-110 transition-transform"></i>
-            </a>
-            <button onclick="quickInstall('{{ package.name }}', '{{ package.version }}')"
-                    class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-sky-500 hover:text-white transition-all group"
-                    title="Quick install">
-                <i class="fas fa-terminal group-hover:scale-110 transition-transform"></i>
-            </button>
+            {% endif %}
         </div>
-    </div>
-    {% else %}
-    <!-- No Results -->
-    <div class="col-span-full text-center py-16">
-        <div class="w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <i class="fas fa-box-open text-4xl text-slate-600"></i>
-        </div>
-        <h3 class="text-2xl font-semibold text-white mb-2">No packages found</h3>
-        <p class="text-slate-400 mb-6">Try adjusting your search or filters</p>
-        <a href="/upload" 
-           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-            <i class="fas fa-plus mr-2"></i>Upload a Package
-        </a>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- Pagination -->
-{% if total_pages > 1 %}
-<div class="flex justify-center items-center space-x-2" data-aos="fade-up">
-    <!-- Previous Page -->
-    {% if page > 1 %}
-    <a href="?page={{ page-1 }}&q={{ query }}&sort={{ sort }}&scope={{ scope }}" 
-       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-700 hover:border-sky-500">
-        <i class="fas fa-chevron-left"></i>
-    </a>
-    {% endif %}
-    
-    <!-- Page Numbers -->
-    {% for p in range(1, total_pages + 1) %}
-        {% if p == page %}
-        <span class="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold shadow-lg shadow-sky-500/20">
-            {{ p }}
-        </span>
-        {% elif p >= page-2 and p <= page+2 %}
-        <a href="?page={{ p }}&q={{ query }}&sort={{ sort }}&scope={{ scope }}" 
-           class="w-10 h-10 flex items-center justify-center bg-slate-800/50 text-slate-400 rounded-xl hover:bg-sky-500 hover:text-white transition-all border border-slate-700 hover:border-sky-500">
-            {{ p }}
-        </a>
         {% endif %}
-    {% endfor %}
-    
-    <!-- Next Page -->
-    {% if page < total_pages %}
-    <a href="?page={{ page+1 }}&q={{ query }}&sort={{ sort }}&scope={{ scope }}" 
-       class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-xl text-slate-400 hover:bg-sky-500 hover:text-white transition-all border border-slate-700 hover:border-sky-500">
-        <i class="fas fa-chevron-right"></i>
-    </a>
-    {% endif %}
-</div>
-{% endif %}
 
-<!-- Quick Install Modal -->
-<div id="installModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="backdrop-filter: blur(8px);">
-    <div class="glass-card rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700/50" data-aos="zoom-in">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-bold text-white">Quick Install</h3>
-            <button onclick="hideInstallModal()" class="text-slate-400 hover:text-white transition-colors">
-                <i class="fas fa-times text-xl"></i>
-            </button>
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="?q={{ query }}&sort={{ sort }}&scope={{ scope }}&page={{ page - 1 }}" class="page-btn">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+            {% else %}
+            <span class="page-btn disabled">
+                <i class="fas fa-chevron-left"></i> Previous
+            </span>
+            {% endif %}
+
+            <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
+
+            {% if page < total_pages %}
+            <a href="?q={{ query }}&sort={{ sort }}&scope={{ scope }}&page={{ page + 1 }}" class="page-btn">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="page-btn disabled">
+                Next <i class="fas fa-chevron-right"></i>
+            </span>
+            {% endif %}
         </div>
-        
-        <div class="space-y-4">
-            <div>
-                <p class="text-sm text-slate-400 mb-2">APKM Command</p>
-                <div class="code-block relative group">
-                    <pre id="installCommand" class="text-sm"></pre>
-                    <button onclick="copyInstallCommand()" 
-                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
-                        <i class="far fa-copy mr-1"></i>Copy
-                    </button>
-                </div>
-            </div>
-            
-            <div>
-                <p class="text-sm text-slate-400 mb-2">Direct Download</p>
-                <div class="code-block relative group">
-                    <pre id="downloadCommand" class="text-sm"></pre>
-                    <button onclick="copyDownloadCommand()" 
-                            class="absolute top-2 right-2 px-3 py-1 bg-slate-700 rounded-lg text-xs text-slate-300 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
-                        <i class="far fa-copy mr-1"></i>Copy
-                    </button>
-                </div>
-            </div>
-            
-            <div class="pt-4">
-                <button onclick="hideInstallModal()"
-                        class="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-                    Close
-                </button>
-            </div>
-        </div>
+        {% endif %}
     </div>
-</div>
+</section>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-let currentPackage = null;
-let currentVersion = null;
+    // Search with debounce
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
 
-function quickInstall(pkgName, version) {
-    currentPackage = pkgName;
-    currentVersion = version;
-    
-    document.getElementById('installCommand').textContent = `apkm install ${pkgName}`;
-    document.getElementById('downloadCommand').textContent = `curl -O https://gsql-badge.onrender.com/package/download/public/${pkgName}/${version}/r0/x86_64/${pkgName}-${version}-r0-x86_64.tar.bool`;
-    
-    document.getElementById('installModal').classList.remove('hidden');
-    document.getElementById('installModal').classList.add('flex');
-}
+    let debounceTimer;
 
-function hideInstallModal() {
-    document.getElementById('installModal').classList.add('hidden');
-    document.getElementById('installModal').classList.remove('flex');
-}
+    searchInput.addEventListener('input', function() {
+        const value = this.value;
+        
+        // Show/hide clear button
+        if (value) {
+            searchClear.classList.add('visible');
+        } else {
+            searchClear.classList.remove('visible');
+        }
 
-function copyInstallCommand() {
-    const cmd = document.getElementById('installCommand').textContent;
-    navigator.clipboard.writeText(cmd).then(() => {
-        showNotification('Install command copied!', 'success');
+        // Debounced search
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const url = new URL(window.location.href);
+            if (value) {
+                url.searchParams.set('q', value);
+            } else {
+                url.searchParams.delete('q');
+            }
+            url.searchParams.set('page', '1');
+            window.location.href = url.toString();
+        }, 400);
     });
-}
 
-function copyDownloadCommand() {
-    const cmd = document.getElementById('downloadCommand').textContent;
-    navigator.clipboard.writeText(cmd).then(() => {
-        showNotification('Download command copied!', 'success');
+    // Clear search
+    searchClear.addEventListener('click', function() {
+        searchInput.value = '';
+        searchClear.classList.remove('visible');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('q');
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
     });
-}
 
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-24 right-4 glass-card px-6 py-3 rounded-xl border z-50 animate-float ${
-        type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-400' : 'border-sky-500/50 bg-sky-500/10 text-sky-400'
-    }`;
-    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 2000);
-}
-
-// Close modal on escape key
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('installModal').classList.contains('flex')) {
-        hideInstallModal();
-    }
-});
-
-// Close modal on click outside
-document.getElementById('installModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('installModal')) {
-        hideInstallModal();
-    }
-});
+    // Focus search on '/' key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && document.activeElement !== searchInput && 
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            searchInput.focus();
+        }
+    });
 </script>
 {% endblock %}
