@@ -102,7 +102,7 @@
       "password": "$2b$12$.B4I142UolJly4iszZXf.ORLSu3x5WjTmjjezTbS8PVMtTG4gwCiS",
       "role": "admin (Creator gopu inc)",
       "created_at": "2026-04-30T00:41:57.248303"
-    }
+    },
     {
       "id": "1",
       "username": "admin",
@@ -112,6 +112,6 @@
       "created_at": "2024-12-27T12:00:00",
       "is_verified": true,
       "last_login": "2025-12-31T22:15:26.425195"
-    },
+    }
   ]
 }
