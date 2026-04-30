@@ -651,6 +651,47 @@ def rate_limit(limit=SecurityConfig.RATE_LIMIT, per=60):
     return decorator
 
 # ============================================================================
+# FONCTION UTILITAIRE : LECTURE SÉCURISÉE DE JSON DEPUIS GITHUB
+# ============================================================================
+
+def safe_read_json(path, default=None):
+    """
+    Lit un fichier JSON depuis GitHub et garantit un dict en retour.
+    Évite les erreurs de type quand GitHub retourne une string au lieu d'un dict.
+    
+    Args:
+        path: Chemin du fichier dans le repo GitHub
+        default: Valeur par défaut si le fichier n'existe pas (doit être un dict)
+    
+    Returns:
+        dict: Le contenu parsé (jamais None, jamais une string)
+    """
+    if default is None:
+        default = {}
+    
+    try:
+        data = GitHubManager.read_from_github(path, default)
+        
+        # Si c'est une string, essayer de parser en JSON
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+                app.logger.debug(f"📄 Parsed JSON string from {path}")
+            except json.JSONDecodeError:
+                app.logger.warning(f"⚠️ Invalid JSON in {path}, using default")
+                return default
+        
+        # Vérifier que c'est bien un dict
+        if not isinstance(data, dict):
+            app.logger.warning(f"⚠️ Unexpected type for {path}: {type(data).__name__}, using default")
+            return default
+        
+        return data
+        
+    except Exception as e:
+        app.logger.error(f"❌ Error reading {path}: {type(e).__name__}: {str(e)}")
+        return default
+# ============================================================================
 # ROUTES API VERSIONNÉES (/v5.2/)
 # ============================================================================
 
