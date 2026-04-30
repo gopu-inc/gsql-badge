@@ -13,14 +13,14 @@
         "new-post"
       ],
       "views": 5,
-      "reply_count": 0,
+      "reply_count": 1,
       "pinned": false,
       "solved": false,
       "locked": false,
       "created_at": "2026-04-30T01:58:02.192824",
-      "updated_at": "2026-04-30T01:58:02.192834",
-      "last_reply_at": null,
-      "last_reply_by": null
+      "updated_at": "2026-04-30T09:11:34.499956",
+      "last_reply_at": "2026-04-30T09:11:34.499920",
+      "last_reply_by": "gopu"
     }
   ]
 }
