@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block title %}New Topic - Forum - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .new-topic-page {
+        padding: 2rem 0 4rem;
+        min-height: calc(100vh - var(--navbar-height) - 300px);
+        max-width: 800px;
+        margin: 0 auto;
+        padding-left: var(--container-padding);
+        padding-right: var(--container-padding);
+    }
+
+    .breadcrumb {
+        font-size: 0.82rem;
+        color: var(--text-tertiary);
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        align-items: center;
+    }
+
+    .breadcrumb a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .breadcrumb a:hover {
+        color: var(--accent-blue);
+    }
+
+    .breadcrumb i {
+        font-size: 0.6rem;
+        margin: 0 0.3rem;
+    }
+
+    .form-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 2.5rem;
+    }
+
+    .form-card h1 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-card h1 i {
+        color: var(--accent-purple);
+    }
+
+    .form-card .subtitle {
+        color: var(--text-tertiary);
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-group label .required {
+        color: var(--accent-red);
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: var(--accent-purple);
+        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.5rem;
+        cursor: pointer;
+        outline: none;
+        transition: var(--transition);
+    }
+
+    .form-select:focus {
+        border-color: var(--accent-purple);
+        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
+    }
+
+    .form-textarea {
+        width: 100%;
+        min-height: 280px;
+        padding: 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        line-height: 1.7;
+        resize: vertical;
+        outline: none;
+        transition: var(--transition);
+    }
+
+    .form-textarea:focus {
+        border-color: var(--accent-purple);
+        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
+    }
+
+    .form-hint {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-top: 0.35rem;
+    }
+
+    .form-toolbar {
+        display: flex;
+        gap: 0.3rem;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .form-toolbar button {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 0.35rem 0.6rem;
+        border-radius: var(--radius-xs);
+        cursor: pointer;
+        font-size: 0.78rem;
+        font-family: var(--font-mono);
+        transition: var(--transition);
+    }
+
+    .form-toolbar button:hover {
+        border-color: var(--accent-purple);
+        color: var(--accent-purple);
+        background: rgba(188, 140, 255, 0.05);
+    }
+
+    .tags-input-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        padding: 0.5rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        min-height: 44px;
+        align-items: center;
+        cursor: text;
+        transition: var(--transition);
+    }
+
+    .tags-input-wrapper:focus-within {
+        border-color: var(--accent-purple);
+        box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
+    }
+
+    .tag-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.55rem;
+        background: rgba(188, 140, 255, 0.12);
+        border: 1px solid rgba(188, 140, 255, 0.25);
+        color: var(--accent-purple);
+        border-radius: var(--radius-full);
+        font-size: 0.78rem;
+        font-weight: 500;
+    }
+
+    .tag-pill button {
+        background: none;
+        border: none;
+        color: var(--accent-purple);
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.75rem;
+        opacity: 0.6;
+        transition: var(--transition);
+    }
+
+    .tag-pill button:hover {
+        opacity: 1;
+    }
+
+    .tags-input {
+        border: none;
+        background: none;
+        outline: none;
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.85rem;
+        flex: 1;
+        min-width: 100px;
+        padding: 0.25rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-submit {
+        padding: 0.8rem 2rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border-radius: var(--radius-md);
+        background: var(--gradient-purple);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(188, 140, 255, 0.3);
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(188, 140, 255, 0.45);
+    }
+
+    .btn-submit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .btn-cancel {
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .btn-cancel:hover {
+        border-color: var(--text-tertiary);
+        color: var(--text-primary);
+    }
+
+    .preview-box {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-top: 0.75rem;
+        display: none;
+    }
+
+    .preview-box.visible {
+        display: block;
+    }
+
+    .preview-box h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-tertiary);
+        margin-bottom: 0.75rem;
+    }
+
+    @media (max-width: 600px) {
+        .form-card {
+            padding: 1.5rem;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn-submit, .btn-cancel {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="new-topic-page">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <a href="/"><i class="fas fa-home"></i></a>
+        <i class="fas fa-chevron-right"></i>
+        <a href="/forum">Forum</a>
+        <i class="fas fa-chevron-right"></i>
+        <span>New Topic</span>
+    </div>
+
+    <!-- Form -->
+    <div class="form-card">
+        <h1><i class="fas fa-plus-circle"></i> Create New Topic</h1>
+        <p class="subtitle">Start a new discussion in the Zarch Hub community. Be clear and descriptive!</p>
+
+        <form method="POST" action="/forum/new" id="newTopicForm">
+            <!-- Title -->
+            <div class="form-group">
+                <label for="title">Title <span class="required">*</span></label>
+                <input type="text" id="title" name="title" class="form-input" 
+                       placeholder="e.g., How to optimize Goscript async performance?"
+                       required minlength="10" maxlength="200" autofocus>
+                <div class="form-hint">A descriptive title helps others find and answer your topic (min 10 characters)</div>
+            </div>
+
+            <!-- Category -->
+            <div class="form-group">
+                <label for="category">Category <span class="required">*</span></label>
+                <select id="category" name="category" class="form-select" required>
+                    <option value="">Select a category...</option>
+                    <option value="general">General Discussion</option>
+                    <option value="help">Help & Support</option>
+                    <option value="packages">Package Development</option>
+                    <option value="goscript">Goscript Language</option>
+                    <option value="gpm">GPM Package Manager</option>
+                    <option value="showcase">Project Showcase</option>
+                    <option value="tutorials">Tutorials & Guides</option>
+                    <option value="feedback">Feedback & Suggestions</option>
+                </select>
+            </div>
+
+            <!-- Content -->
+            <div class="form-group">
+                <label for="content">Content <span class="required">*</span></label>
+                <div class="form-toolbar">
+                    <button type="button" onclick="insertFormat('**', '**')" title="Bold"><strong>B</strong></button>
+                    <button type="button" onclick="insertFormat('*', '*')" title="Italic"><em>I</em></button>
+                    <button type="button" onclick="insertFormat('`', '`')" title="Inline Code">&lt;/&gt;</button>
+                    <button type="button" onclick="insertFormat('\n```goscript\n', '\n```\n')" title="Code Block">{ }</button>
+                    <button type="button" onclick="insertFormat('> ', '')" title="Quote">❝</button>
+                    <button type="button" onclick="insertFormat('[text](', ')')" title="Link">🔗</button>
+                    <button type="button" onclick="insertFormat('- ', '')" title="List">≡</button>
+                    <button type="button" onclick="insertFormat('1. ', '')" title="Numbered List">1.</button>
+                    <button type="button" onclick="togglePreview()" title="Preview" style="margin-left: auto;">👁 Preview</button>
+                </div>
+                <textarea id="content" name="content" class="form-textarea" 
+                          placeholder="Write your topic content here... Markdown is supported.
+
+## What I'm trying to do
+Explain your goal or question clearly.
+
+## What I've tried
+Describe what you've already attempted.
+
+## Code example
+```goscript
+// Your code here
+```"
+                          required minlength="20"></textarea>
+                <div class="form-hint">Markdown is supported. Use the toolbar above for formatting help.</div>
+                
+                <!-- Preview -->
+                <div class="preview-box" id="previewBox">
+                    <h3>📄 Preview</h3>
+                    <div id="previewContent"></div>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="form-group">
+                <label for="tags">Tags</label>
+                <div class="tags-input-wrapper" id="tagsWrapper">
+                    <input type="text" class="tags-input" id="tagInput" 
+                           placeholder="Add tags (press Enter or comma)...">
+                </div>
+                <input type="hidden" name="tags" id="tagsHidden">
+                <div class="form-hint">Add up to 5 tags to help categorize your topic</div>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <i class="fas fa-paper-plane"></i> Create Topic
+                </button>
+                <a href="/forum" class="btn-cancel">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tags = new Set();
+    const tagsWrapper = document.getElementById('tagsWrapper');
+    const tagInput = document.getElementById('tagInput');
+    const tagsHidden = document.getElementById('tagsHidden');
+    const MAX_TAGS = 5;
+
+    function updateTags() {
+        tagsHidden.value = Array.from(tags).join(',');
+    }
+
+    function addTag(tagText) {
+        const tag = tagText.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 30);
+        if (!tag || tags.has(tag) || tags.size >= MAX_TAGS) return;
+        
+        tags.add(tag);
+        
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill';
+        pill.innerHTML = `${tag} <button type="button" onclick="removeTag('${tag}', this.parentElement)">&times;</button>`;
+        
+        tagsWrapper.insertBefore(pill, tagInput);
+        tagInput.value = '';
+        updateTags();
+    }
+
+    function removeTag(tag, pillElement) {
+        tags.delete(tag);
+        pillElement.remove();
+        updateTags();
+    }
+
+    tagInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTag(tagInput.value);
+        }
+    });
+
+    tagInput.addEventListener('blur', function() {
+        if (tagInput.value.trim()) {
+            addTag(tagInput.value);
+        }
+    });
+
+    tagsWrapper.addEventListener('click', function(e) {
+        if (e.target === tagsWrapper) {
+            tagInput.focus();
+        }
+    });
+
+    // Insert formatting
+    function insertFormat(before, after) {
+        const textarea = document.getElementById('content');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = textarea.value.substring(start, end);
+        const replacement = before + selected + after;
+        
+        textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+        textarea.focus();
+        
+        if (selected.length > 0) {
+            textarea.selectionStart = start + before.length;
+            textarea.selectionEnd = start + before.length + selected.length;
+        } else {
+            textarea.selectionStart = start + before.length;
+            textarea.selectionEnd = start + before.length;
+        }
+    }
+
+    // Toggle preview
+    function togglePreview() {
+        const previewBox = document.getElementById('previewBox');
+        const previewContent = document.getElementById('previewContent');
+        
+        if (previewBox.classList.contains('visible')) {
+            previewBox.classList.remove('visible');
+        } else {
+            // Simple Markdown-like rendering
+            let text = document.getElementById('content').value;
+            text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            text = text.replace(/`(.+?)`/g, '<code>$1</code>');
+            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            text = text.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+            text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+            text = text.replace(/\n\n/g, '</p><p>');
+            text = '<p>' + text + '</p>';
+            
+            previewContent.innerHTML = text;
+            previewBox.classList.add('visible');
+        }
+    }
+
+    // Ctrl+Enter to submit
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            const form = document.getElementById('newTopicForm');
+            if (form && document.activeElement === document.getElementById('content')) {
+                e.preventDefault();
+                form.dispatchEvent(new Event('submit'));
+            }
+        }
+    });
+</script>
+{% endblock %}
