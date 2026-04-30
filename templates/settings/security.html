@@ -1,138 +1,230 @@
 {% extends "base.html" %}
 
-{% block title %}Security Settings - {{ user.username }} | Zarch Hub{% endblock %}
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block title %}Security - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .security-page {
+        padding: 2rem 0 4rem;
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .page-header h1 i {
+        color: var(--accent-red);
+    }
+
+    .form-container {
+        max-width: 560px;
+    }
+
+    .form-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-card h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-card h3 i {
+        color: var(--accent-red);
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 0.9rem;
+        transition: var(--transition);
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: var(--accent-red);
+        box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.1);
+    }
+
+    .btn-save {
+        padding: 0.7rem 1.5rem;
+        font-weight: 700;
+        border-radius: var(--radius-md);
+        background: var(--accent-red);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .btn-save:hover {
+        background: #e04848;
+        transform: translateY(-2px);
+    }
+
+    .sessions-list {
+        list-style: none;
+    }
+
+    .session-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--border-color);
+        gap: 1rem;
+    }
+
+    .session-item:last-child {
+        border-bottom: none;
+    }
+
+    .session-device {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .session-device i {
+        font-size: 1.2rem;
+        color: var(--text-tertiary);
+    }
+
+    .session-current {
+        font-size: 0.7rem;
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--accent-green);
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--radius-full);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <!-- En-tête -->
-    <div class="flex items-center gap-4 mb-8">
-        <a href="/settings" class="text-purple-600 hover:text-purple-700">
-            <i class="fas fa-arrow-left text-xl"></i>
-        </a>
-        <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Security Settings
-        </h1>
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-shield-alt"></i> Security</h1>
     </div>
+</section>
 
-    <div class="space-y-6">
-        <!-- Changement de mot de passe -->
-        <div class="glass-card rounded-2xl p-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-key text-purple-600 mr-2"></i>
-                Change Password
-            </h2>
-            
-            <form id="passwordForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Current Password</label>
-                    <input type="password" id="current_password" 
-                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
-                           placeholder="Enter current password">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">New Password</label>
-                    <input type="password" id="new_password" 
-                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
-                           placeholder="Enter new password">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Confirm New Password</label>
-                    <input type="password" id="confirm_password" 
-                           class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 dark:focus:ring-purple-900/30 transition-all"
-                           placeholder="Confirm new password">
-                </div>
-                
-                <button type="submit" 
-                        class="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all">
-                    Update Password
-                </button>
-            </form>
-        </div>
-
-        <!-- Two-Factor Authentication -->
-        <div class="glass-card rounded-2xl p-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-mobile-alt text-green-600 mr-2"></i>
-                Two-Factor Authentication
-            </h2>
-            
-            <p class="text-gray-600 dark:text-gray-400 mb-4">
-                Add an extra layer of security to your account by enabling two-factor authentication.
-            </p>
-            
-            <button class="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all opacity-50 cursor-not-allowed" disabled>
-                <i class="fas fa-clock mr-2"></i>Coming Soon
-            </button>
-        </div>
-
-        <!-- Sessions actives -->
-        <div class="glass-card rounded-2xl p-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-laptop text-blue-600 mr-2"></i>
-                Active Sessions
-            </h2>
-            
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-globe text-blue-600"></i>
-                        </div>
-                        <div>
-                            <p class="font-medium">Current Session</p>
-                            <p class="text-xs text-gray-500">IP: {{ request.remote_addr }} • Last active: now</p>
-                        </div>
+<section class="security-page">
+    <div class="container">
+        <div class="form-container">
+            <!-- Change Password -->
+            <div class="form-card">
+                <h3><i class="fas fa-lock"></i> Change Password</h3>
+                <form method="POST" action="/settings/security">
+                    <div class="form-group">
+                        <label for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" class="form-input" 
+                               placeholder="Enter current password" required>
                     </div>
-                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded-full text-xs font-medium">Active</span>
-                </div>
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" class="form-input" 
+                               placeholder="Enter new password" required minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-input" 
+                               placeholder="Confirm new password" required minlength="8">
+                    </div>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-key"></i> Update Password
+                    </button>
+                </form>
             </div>
-            
-            <button class="mt-4 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all">
-                <i class="fas fa-sign-out-alt mr-2"></i>Logout All Other Sessions
-            </button>
-        </div>
 
-        <!-- Journal de connexion -->
-        <div class="glass-card rounded-2xl p-6">
-            <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <i class="fas fa-history text-purple-600 mr-2"></i>
-                Login History
-            </h2>
-            
-            <p class="text-gray-500 text-center py-4">
-                <i class="fas fa-clock mr-2"></i>
-                Coming soon
-            </p>
+            <!-- Active Sessions -->
+            <div class="form-card">
+                <h3><i class="fas fa-desktop"></i> Active Sessions</h3>
+                <ul class="sessions-list">
+                    <li class="session-item">
+                        <div class="session-device">
+                            <i class="fas fa-desktop"></i>
+                            <div>
+                                <strong>Current Session</strong>
+                                <div style="font-size: 0.78rem; color: var(--text-tertiary);">Chrome • Linux • Now</div>
+                            </div>
+                        </div>
+                        <span class="session-current">Active</span>
+                    </li>
+                    <li class="session-item">
+                        <div class="session-device">
+                            <i class="fas fa-mobile-alt"></i>
+                            <div>
+                                <strong>Mobile Safari</strong>
+                                <div style="font-size: 0.78rem; color: var(--text-tertiary);">iPhone • 2 hours ago</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" style="color: var(--accent-red);">
+                            <i class="fas fa-times"></i> Revoke
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Discord Connection -->
+            <div class="form-card">
+                <h3><i class="fab fa-discord"></i> Discord Connection</h3>
+                {% if user.get('discord_id') %}
+                <p style="color: var(--accent-green); margin-bottom: 1rem;">
+                    <i class="fas fa-check-circle"></i> Connected as <strong>{{ user.get('discord_username', 'Unknown') }}</strong>
+                </p>
+                <button class="btn btn-sm btn-secondary" style="color: var(--accent-red);">
+                    <i class="fas fa-unlink"></i> Disconnect Discord
+                </button>
+                {% else %}
+                <p style="color: var(--text-tertiary); margin-bottom: 1rem;">
+                    <i class="fas fa-circle"></i> Not connected
+                </p>
+                <a href="/auth/discord" class="btn btn-sm" style="background: #5865F2; color: #fff;">
+                    <i class="fab fa-discord"></i> Connect Discord
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
-</div>
-
-<script>
-document.getElementById('passwordForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const current = document.getElementById('current_password').value;
-    const newPass = document.getElementById('new_password').value;
-    const confirm = document.getElementById('confirm_password').value;
-    
-    if (!current || !newPass || !confirm) {
-        alert('Please fill in all fields');
-        return;
-    }
-    
-    if (newPass !== confirm) {
-        alert('New passwords do not match');
-        return;
-    }
-    
-    if (newPass.length < 8) {
-        alert('Password must be at least 8 characters');
-        return;
-    }
-    
-    alert('Password change coming soon!');
-});
-</script>
+</section>
 {% endblock %}
