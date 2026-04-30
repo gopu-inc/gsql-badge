@@ -1,203 +1,493 @@
 {% extends "base.html" %}
 
+{% block head_extra %}
+<meta property="og:title" content="Documentation - Zarch Hub">
+<meta property="og:description" content="Learn how to use GPM and Goscript. Complete documentation for the Zarch package ecosystem.">
+<meta property="og:url" content="https://zenv-hub.onrender.com/docs">
+<meta name="description" content="Zarch Hub Documentation - Guides, API reference, and tutorials for GPM and Goscript.">
+<link rel="canonical" href="https://zenv-hub.onrender.com/docs">
+{% endblock %}
+
 {% block title %}Documentation - Zarch Hub{% endblock %}
 
+{% block extra_css %}
+<style>
+    .docs-page {
+        padding: 2rem 0 4rem;
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .page-header h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    .docs-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    /* Sidebar */
+    .docs-sidebar {
+        position: sticky;
+        top: calc(var(--navbar-height) + 2rem);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        max-height: calc(100vh - var(--navbar-height) - 4rem);
+        overflow-y: auto;
+    }
+
+    .docs-sidebar h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-tertiary);
+        margin-bottom: 1rem;
+    }
+
+    .docs-nav {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .docs-nav a {
+        display: block;
+        padding: 0.55rem 0.75rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.88rem;
+        border-radius: var(--radius-sm);
+        transition: var(--transition);
+    }
+
+    .docs-nav a:hover {
+        color: var(--text-primary);
+        background: var(--bg-tertiary);
+    }
+
+    .docs-nav a.active {
+        color: var(--accent-blue);
+        background: rgba(88, 166, 255, 0.08);
+        font-weight: 600;
+    }
+
+    /* Content */
+    .docs-content {
+        min-width: 0;
+    }
+
+    .docs-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .docs-section h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .docs-section h2 i {
+        color: var(--accent-blue);
+    }
+
+    .docs-section h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 1.5rem 0 0.75rem;
+        color: var(--accent-purple);
+    }
+
+    .docs-section p {
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 1rem;
+    }
+
+    .docs-section ul, .docs-section ol {
+        color: var(--text-secondary);
+        margin: 0.75rem 0 1rem 1.5rem;
+        line-height: 1.7;
+    }
+
+    .docs-section li {
+        margin-bottom: 0.4rem;
+    }
+
+    /* Code blocks */
+    .code-block {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1rem 1.25rem;
+        margin: 1rem 0;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        line-height: 1.6;
+        position: relative;
+    }
+
+    .code-block .lang-tag {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.75rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        font-weight: 600;
+        letter-spacing: 0.05em;
+    }
+
+    .code-block code {
+        color: var(--accent-green);
+    }
+
+    .code-block .comment {
+        color: var(--text-tertiary);
+    }
+
+    .code-block .keyword {
+        color: var(--accent-purple);
+    }
+
+    .code-block .string {
+        color: var(--accent-orange);
+    }
+
+    .code-block .number {
+        color: var(--accent-cyan);
+    }
+
+    /* Note / Warning boxes */
+    .note-box {
+        border-left: 4px solid var(--accent-blue);
+        background: rgba(88, 166, 255, 0.05);
+        padding: 1rem 1.25rem;
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        margin: 1rem 0;
+    }
+
+    .note-box strong {
+        color: var(--accent-blue);
+    }
+
+    .warning-box {
+        border-left: 4px solid var(--accent-orange);
+        background: rgba(210, 153, 29, 0.05);
+        padding: 1rem 1.25rem;
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        margin: 1rem 0;
+    }
+
+    .warning-box strong {
+        color: var(--accent-orange);
+    }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+        .docs-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .docs-sidebar {
+            position: static;
+            max-height: none;
+            display: flex;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 1rem;
+        }
+
+        .docs-sidebar h3 {
+            display: none;
+        }
+
+        .docs-nav {
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
+        }
+
+        .docs-nav a {
+            white-space: nowrap;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .docs-section {
+            padding: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="text-center mb-12" data-aos="fade-up">
-        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl mb-6 shadow-lg">
-            <i class="fas fa-book text-white text-3xl"></i>
+<section class="page-header">
+    <div class="container">
+        <h1><i class="fas fa-book" style="color: var(--accent-blue);"></i> Documentation</h1>
+        <p>Everything you need to know about GPM and Goscript</p>
+    </div>
+</section>
+
+<section class="docs-page">
+    <div class="container">
+        <div class="docs-layout">
+            <!-- Sidebar -->
+            <aside class="docs-sidebar">
+                <h3>Contents</h3>
+                <ul class="docs-nav">
+                    <li><a href="#getting-started" class="active">Getting Started</a></li>
+                    <li><a href="#gpm-basics">GPM Basics</a></li>
+                    <li><a href="#manifest">Manifest.toml</a></li>
+                    <li><a href="#goscript-lang">Goscript Language</a></li>
+                    <li><a href="#publishing">Publishing</a></li>
+                    <li><a href="#api-reference">API Reference</a></li>
+                    <li><a href="#registry">Registry (Zarch Hub)</a></li>
+                </ul>
+            </aside>
+
+            <!-- Content -->
+            <div class="docs-content">
+                
+                <!-- Getting Started -->
+                <div class="docs-section" id="getting-started">
+                    <h2><i class="fas fa-rocket"></i> Getting Started</h2>
+                    <p>Welcome to the <strong>Zarch ecosystem</strong>! This guide will help you install GPM and start using Goscript packages.</p>
+                    
+                    <h3>Installation</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code>curl -sL https://zenv-hub.onrender.com/install.sh | sh</code>
+                    </div>
+                    <p>This script installs <strong>GPM</strong> (Goscript Package Manager) and sets up your environment.</p>
+
+                    <h3>Verify Installation</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code>gpm --version<br>gpm doctor</code>
+                    </div>
+
+                    <div class="note-box">
+                        <strong>💡 Tip:</strong> GPM stores its configuration in <code>~/.gpmrc</code>. Packages are installed globally in <code>/usr/local/lib/goscript/</code>.
+                    </div>
+                </div>
+
+                <!-- GPM Basics -->
+                <div class="docs-section" id="gpm-basics">
+                    <h2><i class="fas fa-box"></i> GPM Basics</h2>
+                    <p><strong>GPM</strong> (Goscript Package Manager) is the official package manager for the Zarch ecosystem.</p>
+
+                    <h3>Initialize a Project</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code>gpm init my-project</code>
+                    </div>
+                    <p>Creates a <code>Manifest.toml</code> file with your project metadata.</p>
+
+                    <h3>Install Packages</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code># Install a specific package<br>gpm install http<br><br># Install with version<br>gpm install http@1.2.0<br><br># Install all dependencies from Manifest.toml<br>gpm install</code>
+                    </div>
+
+                    <h3>Other Commands</h3>
+                    <ul>
+                        <li><code>gpm uninstall &lt;name&gt;</code> - Remove a package</li>
+                        <li><code>gpm update &lt;name&gt;</code> - Update to latest version</li>
+                        <li><code>gpm list</code> - List installed packages</li>
+                        <li><code>gpm search &lt;query&gt;</code> - Search the registry</li>
+                        <li><code>gpm publish</code> - Publish your package</li>
+                        <li><code>gpm build</code> - Build a .tar.bool archive</li>
+                        <li><code>gpm run &lt;script&gt;</code> - Execute a script</li>
+                    </ul>
+                </div>
+
+                <!-- Manifest.toml -->
+                <div class="docs-section" id="manifest">
+                    <h2><i class="fas fa-file-alt"></i> Manifest.toml</h2>
+                    <p>The <code>Manifest.toml</code> file defines your package metadata and dependencies.</p>
+
+                    <h3>Example</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">toml</span>
+                        <code><span class="comment"># Manifest.toml</span><br><br><span class="keyword">[metadata]</span><br>name = <span class="string">"my-package"</span><br>version = <span class="string">"1.0.0"</span><br>release = <span class="string">"r0"</span><br>arch = <span class="string">"x86_64"</span><br>description = <span class="string">"My awesome package"</span><br>author = <span class="string">"username"</span><br>license = <span class="string">"MIT"</span><br>main = <span class="string">"main.gjs"</span><br><br><span class="keyword">[dependencies]</span><br>http = <span class="string">"^1.2.0"</span><br>fs = <span class="string">"*"</span><br><br><span class="keyword">[scripts]</span><br>build = <span class="string">"gpm build"</span><br>test = <span class="string">"gpm run test.gjs"</span></code>
+                    </div>
+                </div>
+
+                <!-- Goscript Language -->
+                <div class="docs-section" id="goscript-lang">
+                    <h2><i class="fas fa-code"></i> Goscript Language</h2>
+                    <p><strong>Goscript</strong> is a modern scripting language designed for the Zarch ecosystem.</p>
+
+                    <h3>Hello World</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">goscript</span>
+                        <code><span class="keyword">fn</span> <span class="string">main</span>() {<br>    <span class="string">println</span>(<span class="string">"Hello, Zarch!"</span>)<br>    <span class="keyword">ret</span> <span class="number">0</span><br>}</code>
+                    </div>
+
+                    <h3>Variables</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">goscript</span>
+                        <code><span class="keyword">lt</span> name = <span class="string">"Goscript"</span>        <span class="comment">// Immutable</span><br><span class="keyword">muts</span> counter = <span class="number">0</span>           <span class="comment">// Mutable</span><br><span class="keyword">cn</span> PI = <span class="number">3.14159</span>            <span class="comment">// Constant</span></code>
+                    </div>
+
+                    <h3>Functions</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">goscript</span>
+                        <code><span class="keyword">fn</span> <span class="string">add</span>(a: <span class="keyword">int</span>, b: <span class="keyword">int</span>): <span class="keyword">int</span> {<br>    <span class="keyword">ret</span> a + b<br>}<br><br><span class="comment">// Async function</span><br><span class="keyword">async fn</span> <span class="string">fetch_data</span>(url: <span class="keyword">string</span>) {<br>    <span class="keyword">ret</span> <span class="keyword">await</span> <span class="string">f"curl -s '{url}'"</span><br>}</code>
+                    </div>
+
+                    <h3>Structs & Enums</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">goscript</span>
+                        <code><span class="keyword">struct</span> <span class="string">User</span> {<br>    name: <span class="keyword">string</span>,<br>    age: <span class="keyword">int</span><br>}<br><br><span class="keyword">enm</span> <span class="string">Status</span> {<br>    Active,<br>    Inactive<br>}<br><br><span class="keyword">lt</span> user = <span class="keyword">new</span> <span class="string">User</span>{ name: <span class="string">"Alice"</span>, age: <span class="number">30</span> }<br><span class="string">println</span>(user.name)</code>
+                    </div>
+
+                    <div class="note-box">
+                        <strong>💡 Learn more:</strong> Check the <a href="/package/__builtin__" style="color: var(--accent-blue);">__builtin__</a> module for standard library functions.
+                    </div>
+                </div>
+
+                <!-- Publishing -->
+                <div class="docs-section" id="publishing">
+                    <h2><i class="fas fa-cloud-upload-alt"></i> Publishing Packages</h2>
+                    
+                    <h3>1. Login</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code>gpm login your-username your-password</code>
+                    </div>
+
+                    <h3>2. Build</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code>gpm build</code>
+                    </div>
+                    <p>Creates a <code>.tar.bool</code> archive in the <code>build/</code> directory.</p>
+
+                    <h3>3. Publish</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code>gpm publish</code>
+                    </div>
+                    <p>Uploads your package to the <strong>Zarch Hub</strong> registry.</p>
+
+                    <div class="warning-box">
+                        <strong>⚠️ Important:</strong> Make sure your <code>Manifest.toml</code> has a valid <code>name</code>, <code>version</code>, and <code>arch</code> before publishing.
+                    </div>
+                </div>
+
+                <!-- API Reference -->
+                <div class="docs-section" id="api-reference">
+                    <h2><i class="fas fa-plug"></i> API Reference</h2>
+                    
+                    <h3>Authentication</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">http</span>
+                        <code><span class="keyword">POST</span> /v5.2/auth/login<br><span class="keyword">POST</span> /v5.2/auth/register</code>
+                    </div>
+
+                    <h3>Packages</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">http</span>
+                        <code><span class="keyword">GET</span>  /v5.2/package/search?q=query<br><span class="keyword">GET</span>  /v5.2/package/{name}<br><span class="keyword">POST</span> /v5.2/package/upload/{scope}/{name}<br><span class="keyword">GET</span>  /package/download/{scope}/{name}/{version}/{release}/{arch}</code>
+                    </div>
+
+                    <h3>Badges</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">http</span>
+                        <code><span class="keyword">GET</span> /badge/{label}-{value}-{color}<br><span class="keyword">GET</span> /badge/{label}-{value}-{color}?style=for-the-badge&logo=github</code>
+                    </div>
+                </div>
+
+                <!-- Registry -->
+                <div class="docs-section" id="registry">
+                    <h2><i class="fas fa-database"></i> Registry (Zarch Hub)</h2>
+                    <p>The <strong>Zarch Hub</strong> at <code>https://zenv-hub.onrender.com</code> is the official package registry.</p>
+
+                    <h3>Configuration</h3>
+                    <div class="code-block">
+                        <span class="lang-tag">shell</span>
+                        <code><span class="comment"># ~/.gpmrc</span><br>registry = <span class="string">"https://zenv-hub.onrender.com"</span><br>scope = <span class="string">"public"</span><br>arch = <span class="string">"x86_64"</span></code>
+                    </div>
+
+                    <h3>Package Naming</h3>
+                    <p>Packages follow this naming convention:</p>
+                    <div class="code-block">
+                        <span class="lang-tag">plain</span>
+                        <code>{name}-{version}-{release}-{arch}.tar.bool<br><br><span class="comment">Example:</span><br>http-1.2.0-r0-x86_64.tar.bool</code>
+                    </div>
+                </div>
+
+            </div>
         </div>
-        <h1 class="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Documentation
-        </h1>
-        <p class="text-xl text-gray-600 dark:text-gray-400">
-            Everything you need to know about Zarch Hub
-        </p>
     </div>
+</section>
+{% endblock %}
 
-    <!-- Quick Links -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12" data-aos="fade-up">
-        <a href="#getting-started" class="glass-card rounded-xl p-6 text-center hover:shadow-xl transition hover:-translate-y-1">
-            <i class="fas fa-rocket text-3xl text-purple-600 mb-3"></i>
-            <h3 class="font-bold mb-2">Getting Started</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Quick setup guide</p>
-        </a>
-        <a href="#apkm" class="glass-card rounded-xl p-6 text-center hover:shadow-xl transition hover:-translate-y-1">
-            <i class="fas fa-box text-3xl text-green-600 mb-3"></i>
-            <h3 class="font-bold mb-2">APKM</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Package manager</p>
-        </a>
-        <a href="#apsm" class="glass-card rounded-xl p-6 text-center hover:shadow-xl transition hover:-translate-y-1">
-            <i class="fas fa-upload text-3xl text-blue-600 mb-3"></i>
-            <h3 class="font-bold mb-2">APSM</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Publisher</p>
-        </a>
-        <a href="#bool" class="glass-card rounded-xl p-6 text-center hover:shadow-xl transition hover:-translate-y-1">
-            <i class="fas fa-hammer text-3xl text-orange-600 mb-3"></i>
-            <h3 class="font-bold mb-2">BOOL</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Builder</p>
-        </a>
-    </div>
+{% block extra_js %}
+<script>
+    // Smooth scroll for sidebar links
+    document.querySelectorAll('.docs-nav a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Update active state
+                document.querySelectorAll('.docs-nav a').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
 
-    <!-- Content -->
-    <div class="glass-card rounded-3xl p-8 md:p-12 space-y-8" data-aos="fade-up">
-        <!-- Getting Started -->
-        <section id="getting-started">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <i class="fas fa-rocket text-purple-600 mr-3"></i>
-                Getting Started
-            </h2>
-            <div class="space-y-4">
-                <p class="text-gray-700 dark:text-gray-300">
-                    Install Zarch Hub tools in one command:
-                </p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <code class="text-green-400">curl -sSL https://gsql-badge.onrender.com/install.sh | sudo bash</code>
-                </div>
-                <p class="text-gray-700 dark:text-gray-300">Or install from source:</p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <pre class="text-green-400">git clone https://github.com/gopu-inc/apkm-gest
-cd apkm-gest
-mkdir build && cd build
-cmake ..
-make -j4
-sudo make install</pre>
-                </div>
-            </div>
-        </section>
+    // Highlight active section on scroll
+    const sections = document.querySelectorAll('.docs-section[id]');
+    const navLinks = document.querySelectorAll('.docs-nav a');
 
-        <!-- APKM -->
-        <section id="apkm" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <i class="fas fa-box text-green-600 mr-3"></i>
-                APKM - Package Manager
-            </h2>
-            <div class="space-y-4">
-                <p class="text-gray-700 dark:text-gray-300">Basic commands:</p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <pre class="text-green-400"># Install a package
-apkm install nginx
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop - 100;
+            if (window.scrollY >= sectionTop) {
+                current = section.getAttribute('id');
+            }
+        });
 
-# Search for packages
-apkm search database
-
-# Show package info
-apkm info python
-
-# List installed packages
-apkm list
-
-# Update repository databases
-apkm update
-
-# Upgrade all packages
-apkm upgrade</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- APSM -->
-        <section id="apsm" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <i class="fas fa-upload text-blue-600 mr-3"></i>
-                APSM - Publisher
-            </h2>
-            <div class="space-y-4">
-                <p class="text-gray-700 dark:text-gray-300">Publish packages to Zarch Hub:</p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <pre class="text-green-400"># Login to Zarch Hub
-apsm login
-
-# Push a package (automatically reads Manifest.toml)
-apsm push mypackage-v1.0.0-r1.x86_64.tar.bool
-
-# Check authentication status
-apsm status
-
-# Logout
-apsm logout</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- BOOL -->
-        <section id="bool" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <i class="fas fa-hammer text-orange-600 mr-3"></i>
-                BOOL - Package Builder
-            </h2>
-            <div class="space-y-4">
-                <p class="text-gray-700 dark:text-gray-300">Build packages from APKMBUILD:</p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <pre class="text-green-400"># Initialize a new project
-bool --init
-
-# Build package (creates .tar.bool)
-bool --build
-
-# Show package info
-bool --info mypackage-v1.0.0-r1.x86_64.tar.bool
-
-# Verify package integrity
-bool --verify mypackage-v1.0.0-r1.x86_64.tar.bool</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- GET -->
-        <section id="get" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <i class="fas fa-file-alt text-pink-600 mr-3"></i>
-                GET - Manifest Parser
-            </h2>
-            <div class="space-y-4">
-                <p class="text-gray-700 dark:text-gray-300">Parse and display Manifest.toml files:</p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <pre class="text-green-400"># Display entire manifest
-get Manifest.toml
-
-# Display specific section
-get Manifest.toml metadata
-
-# Display with colors
-get --color Manifest.toml</pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- Manifest.toml -->
-        <section id="manifest" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 class="text-2xl font-bold mb-4 flex items-center">
-                <i class="fas fa-file-code text-yellow-600 mr-3"></i>
-                Manifest.toml Format
-            </h2>
-            <div class="space-y-4">
-                <p class="text-gray-700 dark:text-gray-300">Example manifest:</p>
-                <div class="bg-gray-900 rounded-xl p-4">
-                    <pre class="text-green-400">[metadata]
-name = "myapp"
-version = "1.0.0"
-release = "r1"
-arch = "x86_64"
-description = "My awesome application"
-maintainer = "Your Name <email@example.com>"
-license = "MIT"
-
-[metadata.badges]
-version = { label = "version", color = "blue" }
-license = { label = "license", color = "yellow" }
-
-[dependencies]
-libc = ">=2.30"
-gcc = ">=10.0"
-
-[build-dependencies]
-cmake = ">=3.20"</pre>
-                </div>
-            </div>
-        </section>
-    </div>
-</div>
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === '#' + current) {
+                link.classList.add('active');
+            }
+        });
+    });
+</script>
 {% endblock %}
