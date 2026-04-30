@@ -1,156 +1,335 @@
 {% extends "base.html" %}
 
-{% block title %}{{ profile_user.username }} - Zarch Hub{% endblock %}
+{% block head_extra %}
+<meta property="og:title" content="@{{ profile_user.username }} - Zarch Hub">
+<meta property="og:description" content="{{ profile_user.username }} - {{ total_packages }} packages, {{ total_downloads }} downloads on Zarch Hub">
+<meta property="og:url" content="https://zenv-hub.onrender.com/@{{ profile_user.username }}">
+<meta name="description" content="{{ profile_user.username }}'s profile on Zarch Hub - {{ total_packages }} packages published.">
+<link rel="canonical" href="https://zenv-hub.onrender.com/@{{ profile_user.username }}">
+{% endblock %}
+
+{% block title %}@{{ profile_user.username }} - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-page {
+        padding: 2rem 0 4rem;
+    }
+
+    .profile-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 3rem 0;
+    }
+
+    .profile-header-content {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .profile-avatar {
+        width: 96px;
+        height: 96px;
+        border-radius: var(--radius-full);
+        background: var(--gradient-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #fff;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: var(--radius-full);
+        object-fit: cover;
+    }
+
+    .profile-info h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-info .username {
+        color: var(--text-tertiary);
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-info .bio {
+        color: var(--text-secondary);
+        max-width: 500px;
+        line-height: 1.6;
+    }
+
+    .profile-stats {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1rem;
+    }
+
+    .profile-stat {
+        text-align: center;
+    }
+
+    .profile-stat-value {
+        font-family: var(--font-mono);
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .profile-stat-label {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .social-links {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .social-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: var(--transition);
+        font-size: 1rem;
+    }
+
+    .social-link:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        transform: translateY(-2px);
+    }
+
+    .packages-section {
+        margin-top: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .packages-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .package-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        text-decoration: none;
+        color: inherit;
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .package-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .pkg-top {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .pkg-icon-sm {
+        width: 36px;
+        height: 36px;
+        background: var(--gradient-blue);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .pkg-name {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .pkg-version {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--accent-blue);
+    }
+
+    .pkg-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+    }
+
+    .pkg-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-tertiary);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+        opacity: 0.5;
+    }
+
+    @media (max-width: 540px) {
+        .profile-header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .profile-stats {
+            justify-content: center;
+        }
+
+        .social-links {
+            justify-content: center;
+        }
+
+        .profile-info .bio {
+            margin: 0 auto;
+        }
+
+        .packages-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <!-- Profile Header -->
-    <div class="glassmorphism rounded-2xl p-8 mb-8" data-aos="fade-up">
-        <div class="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-            <!-- Avatar -->
-            <div class="relative">
-                {% if profile_user.discord_avatar %}
-                <img src="{{ profile_user.discord_avatar }}" 
-                     alt="{{ profile_user.username }}" 
-                     class="w-24 h-24 rounded-2xl object-cover">
+<section class="profile-header">
+    <div class="container">
+        <div class="profile-header-content">
+            <div class="profile-avatar">
+                {% if profile_user.get('discord_avatar') %}
+                <img src="{{ profile_user.discord_avatar }}" alt="{{ profile_user.username }}">
                 {% else %}
-                <div class="w-24 h-24 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white text-4xl font-bold">
-                    {{ profile_user.username[0]|upper }}
-                </div>
-                {% endif %}
-                
-                {% if profile_user.discord_id %}
-                <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-[#5865F2] rounded-full flex items-center justify-center">
-                    <i class="fab fa-discord text-white text-sm"></i>
-                </div>
+                {{ profile_user.username[:1] }}
                 {% endif %}
             </div>
-            
-            <!-- Info -->
-            <div class="flex-1">
-                <div class="flex items-center space-x-3 mb-2">
-                    <h1 class="text-3xl font-bold">{{ profile_user.username }}</h1>
-                    {% if profile_user.display_name and profile_user.display_name != profile_user.username %}
-                    <span class="text-gray-500">({{ profile_user.display_name }})</span>
-                    {% endif %}
-                </div>
-                
-                {% if profile_user.bio %}
-                <p class="text-gray-600 mb-4">{{ profile_user.bio }}</p>
+            <div class="profile-info">
+                <h1>{{ profile_user.get('display_name', profile_user.username) }}</h1>
+                <div class="username">@{{ profile_user.username }}</div>
+                {% if profile_user.get('bio') %}
+                <div class="bio">{{ profile_user.bio }}</div>
                 {% endif %}
                 
-                <div class="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <span><i class="fas fa-calendar-alt mr-1"></i>Joined {{ profile_user.created_at[:10] }}</span>
-                    <span><i class="fas fa-cube mr-1"></i>{{ total_packages }} packages</span>
-                    <span><i class="fas fa-download mr-1"></i>{{ total_downloads }} total downloads</span>
-                    {% if profile_user.website %}
-                    <span><i class="fas fa-globe mr-1"></i><a href="{{ profile_user.website }}" target="_blank" class="text-indigo-600 hover:underline">Website</a></span>
+                <div class="social-links">
+                    {% if profile_user.get('website') %}
+                    <a href="{{ profile_user.website }}" target="_blank" rel="noopener" class="social-link" title="Website">
+                        <i class="fas fa-globe"></i>
+                    </a>
                     {% endif %}
-                    {% if profile_user.github %}
-                    <span><i class="fab fa-github mr-1"></i><a href="https://github.com/{{ profile_user.github }}" target="_blank" class="text-indigo-600 hover:underline">GitHub</a></span>
+                    {% if profile_user.get('github') %}
+                    <a href="https://github.com/{{ profile_user.github }}" target="_blank" rel="noopener" class="social-link" title="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
                     {% endif %}
-                    {% if profile_user.twitter %}
-                    <span><i class="fab fa-twitter mr-1"></i><a href="https://twitter.com/{{ profile_user.twitter }}" target="_blank" class="text-indigo-600 hover:underline">Twitter</a></span>
+                    {% if profile_user.get('twitter') %}
+                    <a href="https://twitter.com/{{ profile_user.twitter }}" target="_blank" rel="noopener" class="social-link" title="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    {% endif %}
+                    {% if profile_user.get('discord_username') %}
+                    <span class="social-link" title="Discord: {{ profile_user.discord_username }}">
+                        <i class="fab fa-discord"></i>
+                    </span>
                     {% endif %}
                 </div>
+
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">{{ total_packages }}</div>
+                        <div class="profile-stat-label">Packages</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">{{ total_downloads }}</div>
+                        <div class="profile-stat-label">Downloads</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value">{{ profile_user.get('role', 'user') }}</div>
+                        <div class="profile-stat-label">Role</div>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<section class="profile-page">
+    <div class="container">
+        <div class="packages-section">
+            <h2 class="section-title"><i class="fas fa-box" style="color: var(--accent-blue);"></i> Packages</h2>
             
-            <!-- Badges -->
-            {% if badges %}
-            <div class="flex space-x-2">
-                {% for badge in badges %}
-                <img src="/badge/custom/{{ profile_user.username }}/{{ badge }}" alt="{{ badge }}" class="h-8">
+            {% if packages %}
+            <div class="packages-grid">
+                {% for pkg in packages %}
+                <a href="/package/{{ pkg.name }}" class="package-card">
+                    <div class="pkg-top">
+                        <div class="pkg-icon-sm"><i class="fas fa-cube"></i></div>
+                        <div>
+                            <div class="pkg-name">{{ pkg.name }}</div>
+                            <div class="pkg-version">v{{ pkg.version }}</div>
+                        </div>
+                    </div>
+                    <div class="pkg-meta">
+                        <span><i class="fas fa-download"></i> {{ pkg.downloads }}</span>
+                        <span><i class="fas fa-tag"></i> {{ pkg.scope }}</span>
+                    </div>
+                </a>
                 {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>No packages published yet.</p>
             </div>
             {% endif %}
         </div>
     </div>
-    
-    <!-- User's Packages -->
-    <div class="glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="100">
-        <h2 class="text-2xl font-bold mb-6">Packages by {{ profile_user.username }}</h2>
-        
-        {% if packages %}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% for package in packages %}
-            <div class="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                <div class="flex items-start justify-between mb-2">
-                    <h3 class="text-lg font-semibold">
-                        <a href="/package/{{ package.name }}" class="hover:text-indigo-600">
-                            {{ package.name }}
-                        </a>
-                    </h3>
-                    <span class="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm">
-                        v{{ package.version }}
-                    </span>
-                </div>
-                <p class="text-gray-600 text-sm mb-3">{{ package.description or 'No description' }}</p>
-                <div class="flex items-center justify-between text-sm text-gray-500">
-                    <span><i class="fas fa-download mr-1"></i>{{ package.downloads }} downloads</span>
-                    <span><i class="far fa-clock mr-1"></i>{{ package.created_at[:10] }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-center text-gray-500 py-8">No packages published yet</p>
-        {% endif %}
-    </div>
-    
-    <!-- Activity Timeline -->
-    {% if activity %}
-    <div class="mt-8 glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="150">
-        <h2 class="text-2xl font-bold mb-6">Recent Activity</h2>
-        <div class="space-y-4">
-            {% for event in activity %}
-            <div class="flex items-start space-x-3">
-                <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    {% if event.type == 'upload' %}
-                    <i class="fas fa-upload text-indigo-600"></i>
-                    {% elif event.type == 'review' %}
-                    <i class="fas fa-star text-yellow-500"></i>
-                    {% else %}
-                    {% else %}
-                    <i class="fas fa-code text-indigo-600"></i>
-                    {% endif %}
-                </div>
-                <div class="flex-1">
-                    <p class="text-gray-800">
-                        {% if event.type == 'upload' %}
-                        Uploaded package <a href="/package/{{ event.package }}" class="text-indigo-600 hover:underline">{{ event.package }} v{{ event.version }}</a>
-                        {% elif event.type == 'review' %}
-                        Reviewed package <a href="/package/{{ event.package }}" class="text-indigo-600 hover:underline">{{ event.package }}</a>
-                        {% else %}
-                        {{ event.description }}
-                        {% endif %}
-                    </p>
-                    <p class="text-sm text-gray-500">{{ event.created_at }}</p>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Contribution Graph -->
-    <div class="mt-8 glassmorphism rounded-2xl p-8" data-aos="fade-up" data-aos-delay="200">
-        <h2 class="text-2xl font-bold mb-6">Contribution Activity</h2>
-        <div class="grid grid-cols-7 gap-1">
-            {% for i in range(49) %}
-            <div class="aspect-square rounded-sm {% if loop.index % 5 == 0 %}bg-indigo-600{% elif loop.index % 3 == 0 %}bg-indigo-400{% elif loop.index % 2 == 0 %}bg-indigo-200{% else %}bg-gray-100{% endif %}" 
-                 title="{{ loop.index }} contributions"></div>
-            {% endfor %}
-        </div>
-        <div class="flex justify-between text-sm text-gray-500 mt-2">
-            <span>Less</span>
-            <div class="flex space-x-1">
-                <span class="w-3 h-3 bg-gray-100 rounded-sm"></span>
-                <span class="w-3 h-3 bg-indigo-200 rounded-sm"></span>
-                <span class="w-3 h-3 bg-indigo-400 rounded-sm"></span>
-                <span class="w-3 h-3 bg-indigo-600 rounded-sm"></span>
-            </div>
-            <span>More</span>
-        </div>
-    </div>
-</div>
+</section>
 {% endblock %}
