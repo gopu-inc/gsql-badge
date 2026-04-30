@@ -1456,56 +1456,60 @@ def api_package_dependencies(name):
                 manifest_found = False
                 with tarfile.open(temp_path, 'r:*') as tar:
                     for member in tar.getmembers():
-                        if member.name.endswith('Manifest.toml') or member.name == 'Manifest.toml':
+                        # Chercher Manifest.toml PEU IMPORTE le chemin
+                        member_name = member.name.lower()
+                        if member_name.endswith('manifest.toml') or member_name == 'manifest.toml':
                             manifest_found = True
                             app.logger.debug(f"📄 Found Manifest.toml at: {member.name}")
                             
                             manifest_content = tar.extractfile(member).read().decode('utf-8', errors='ignore')
-                            app.logger.debug(f"📄 Manifest.toml size: {len(manifest_content)} bytes")
+                            app.logger.debug(f"📄 Manifest.toml content ({len(manifest_content)} bytes):\n{manifest_content[:500]}")
                             
-                            # Simple TOML parser
+                            # Parser le TOML
                             current_section = ''
-                            line_number = 0
                             
                             for line in manifest_content.split('\n'):
-                                line_number += 1
                                 line = line.strip()
                                 
                                 # Skip comments and empty lines
                                 if not line or line.startswith('#'):
                                     continue
                                 
-                                # Section header detection
+                                # Section header
                                 if line.startswith('['):
                                     current_section = line.strip('[]').strip()
-                                    app.logger.debug(f"  📂 Section: [{current_section}] (line {line_number})")
+                                    app.logger.debug(f"  📂 Section: [{current_section}]")
+                                    continue
                                 
-                                # Parse key = value in dependencies section
-                                elif '=' in line and current_section == 'dependencies':
+                                # Parse key = value
+                                if '=' in line:
                                     key, val = line.split('=', 1)
-                                    dep_name = key.strip().strip('"').strip("'")
-                                    dep_version = val.strip().strip('"').strip("'")
-                                    deps.append({
-                                        'name': dep_name,
-                                        'version': dep_version,
-                                        'dev': False
-                                    })
-                                    app.logger.debug(f"  📦 Production dependency: {dep_name} = {dep_version}")
-                                
-                                # Parse key = value in dev-dependencies section
-                                elif '=' in line and current_section == 'dev-dependencies':
-                                    key, val = line.split('=', 1)
-                                    dep_name = key.strip().strip('"').strip("'")
-                                    dep_version = val.strip().strip('"').strip("'")
-                                    dev_deps.append({
-                                        'name': dep_name,
-                                        'version': dep_version,
-                                        'dev': True
-                                    })
-                                    app.logger.debug(f"  🛠️ Dev dependency: {dep_name} = {dep_version}")
+                                    key = key.strip().strip('"').strip("'")
+                                    val = val.strip().strip('"').strip("'")
+                                    
+                                    if current_section == 'dependencies':
+                                        deps.append({
+                                            'name': key,
+                                            'version': val,
+                                            'dev': False
+                                        })
+                                        app.logger.debug(f"  📦 Production dependency: {key} = {val}")
+                                    
+                                    elif current_section == 'dev-dependencies':
+                                        dev_deps.append({
+                                            'name': key,
+                                            'version': val,
+                                            'dev': True
+                                        })
+                                        app.logger.debug(f"  🛠️ Dev dependency: {key} = {val}")
                 
                 if not manifest_found:
-                    app.logger.debug(f"⚠️ No Manifest.toml found in archive for {name}")
+                    app.logger.warning(f"⚠️ No Manifest.toml found in archive for {name}")
+                    # Lister le contenu de l'archive pour debug
+                    with tarfile.open(temp_path, 'r:*') as tar:
+                        app.logger.debug(f"📋 Archive contents for {name}:")
+                        for m in tar.getmembers()[:20]:  # 20 premiers fichiers
+                            app.logger.debug(f"    {m.name}")
                 
             except tarfile.ReadError as e:
                 app.logger.warning(f"⚠️ Failed to read tar archive for {name}: {e}")
@@ -1515,9 +1519,9 @@ def api_package_dependencies(name):
                 shutil.rmtree(temp_dir, ignore_errors=True)
                 app.logger.debug(f"🧹 Cleaned up temp directory: {temp_dir}")
         else:
-            app.logger.debug(f"⚠️ Package archive not found at: {pkg_path}")
+            app.logger.warning(f"⚠️ Package archive not found at: {pkg_path}")
         
-        app.logger.debug(f"📊 Dependencies for {name}: {len(deps)} production, {len(dev_deps)} dev")
+        app.logger.info(f"📊 Dependencies for {name}: {len(deps)} production, {len(dev_deps)} dev")
         
         return jsonify({
             'dependencies': deps,
@@ -1526,10 +1530,7 @@ def api_package_dependencies(name):
     
     except Exception as e:
         app.logger.error(f"❌ Dependencies API error for {name}: {type(e).__name__}: {str(e)}")
-        app.logger.debug(f"Stack trace: {e.__traceback__}")
         return jsonify({'dependencies': [], 'dev_dependencies': [], 'error': str(e)})
-
-
 # ============================================================================
 # ROUTE API POUR LES REVIEWS D'UN PACKAGE
 # ============================================================================
