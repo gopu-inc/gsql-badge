@@ -1,160 +1,216 @@
 {% extends "base.html" %}
 
+{% block head_extra %}
+<meta property="og:title" content="Reviews for {{ package.name }} - Zarch Hub">
+<meta property="og:description" content="Read and write reviews for {{ package.name }} v{{ package.version }} on Zarch Hub.">
+{% endblock %}
+
+{% block title %}Reviews - {{ package.name }} - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reviews-page {
+        padding: 2rem 0 4rem;
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+    }
+
+    .breadcrumb {
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
+        margin-bottom: 0.5rem;
+    }
+
+    .breadcrumb a {
+        color: var(--text-secondary);
+        text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+        color: var(--accent-blue);
+    }
+
+    .reviews-summary {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .rating-big {
+        text-align: center;
+    }
+
+    .rating-number {
+        font-size: 3rem;
+        font-weight: 900;
+        color: var(--accent-orange);
+        line-height: 1;
+    }
+
+    .rating-stars {
+        color: var(--accent-orange);
+        font-size: 1.1rem;
+        margin-top: 0.25rem;
+    }
+
+    .rating-count {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+    }
+
+    .review-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .review-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .review-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-full);
+        background: var(--gradient-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: #fff;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .review-author {
+        font-weight: 600;
+    }
+
+    .review-date {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+    }
+
+    .review-stars {
+        color: var(--accent-orange);
+    }
+
+    .review-comment {
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-tertiary);
+    }
+
+    @media (max-width: 500px) {
+        .reviews-summary {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <!-- En-tête -->
-    <div class="flex items-center gap-4 mb-8">
-        <a href="/package/{{ package.name }}" class="text-purple-600 hover:text-purple-700">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        <h1 class="text-3xl font-bold">{{ package.name }} - Reviews</h1>
-    </div>
-
-    <!-- Note moyenne -->
-    <div class="glass-card rounded-2xl p-6 mb-8 text-center">
-        <div class="text-5xl font-bold text-purple-600 mb-2">{{ "%.1f"|format(reviews.average) }}</div>
-        <div class="flex justify-center gap-1 text-2xl mb-2">
-            {% for i in range(5) %}
-                {% if i < reviews.average|int %}
-                    <i class="fas fa-star text-yellow-400"></i>
-                {% elif i < reviews.average|round(0, 'ceil') %}
-                    <i class="fas fa-star-half-alt text-yellow-400"></i>
-                {% else %}
-                    <i class="far fa-star text-yellow-400"></i>
-                {% endif %}
-            {% endfor %}
+<section class="page-header">
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/">Home</a> /
+            <a href="/packages">Packages</a> /
+            <a href="/package/{{ package.name }}">{{ package.name }}</a> /
+            Reviews
         </div>
-        <p class="text-gray-600 dark:text-gray-400">Based on {{ reviews.reviews|length }} reviews</p>
+        <h1>Reviews for {{ package.name }}</h1>
     </div>
+</section>
 
-    <!-- Formulaire d'ajout -->
-    {% if session.user %}
-    <div class="glass-card rounded-2xl p-6 mb-8">
-        <h2 class="text-xl font-semibold mb-4">Add Your Review</h2>
-        <form id="reviewForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-2">Rating</label>
-                <div class="flex gap-2 text-2xl" id="ratingStars">
-                    {% for i in range(1, 6) %}
-                    <i class="far fa-star cursor-pointer hover:text-yellow-400 rating-star" data-rating="{{ i }}"></i>
-                    {% endfor %}
-                </div>
-                <input type="hidden" name="rating" id="rating" required>
+<section class="reviews-page">
+    <div class="container" style="max-width: 700px;">
+        <div class="reviews-summary">
+            <div class="rating-big">
+                <div class="rating-number">{{ reviews.average | round(1) if reviews.average else '--' }}</div>
+                <div class="rating-stars" id="summaryStars"></div>
+                <div class="rating-count">{{ reviews.reviews | length }} review(s)</div>
             </div>
-            
-            <div>
-                <label class="block text-sm font-medium mb-2">Comment (optional)</label>
-                <textarea name="comment" rows="3" 
-                          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                          placeholder="Share your experience..."></textarea>
+            <div style="flex: 1; color: var(--text-secondary);">
+                Based on {{ reviews.reviews | length }} user review(s). 
+                Share your experience with this package!
             </div>
-            
-            <button type="submit" 
-                    class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all">
-                Submit Review
-            </button>
-        </form>
-    </div>
-    {% endif %}
+        </div>
 
-    <!-- Liste des reviews -->
-    <div class="space-y-4">
-        {% for review in reviews.reviews %}
-        <div class="glass-card rounded-xl p-6">
-            <div class="flex justify-between items-start mb-3">
-                <div>
-                    <a href="/@{{ review.username }}" class="font-semibold hover:text-purple-600">
-                        {{ review.username }}
-                    </a>
-                    <div class="flex gap-1 text-sm mt-1">
+        {% if reviews.reviews %}
+            {% for review in reviews.reviews %}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="review-avatar">{{ review.username[:1] }}</div>
+                    <div>
+                        <div class="review-author">
+                            <a href="/@{{ review.username }}" style="color: inherit; text-decoration: none;">{{ review.username }}</a>
+                        </div>
+                        <div class="review-date">{{ review.created_at[:10] if review.created_at else '' }}</div>
+                    </div>
+                    <div style="margin-left: auto;" class="review-stars">
                         {% for i in range(5) %}
-                            {% if i < review.rating %}
-                                <i class="fas fa-star text-yellow-400"></i>
-                            {% else %}
-                                <i class="far fa-star text-yellow-400"></i>
-                            {% endif %}
+                        <i class="fas fa-star{{ '' if i < review.rating else '-empty' }}" style="opacity: {{ 1 if i < review.rating else 0.3 }};"></i>
                         {% endfor %}
                     </div>
                 </div>
-                <span class="text-sm text-gray-500">{{ review.created_at[:10] }}</span>
+                {% if review.comment %}
+                <div class="review-comment">{{ review.comment }}</div>
+                {% endif %}
             </div>
-            {% if review.comment %}
-            <p class="text-gray-600 dark:text-gray-400">{{ review.comment }}</p>
-            {% endif %}
-        </div>
+            {% endfor %}
         {% else %}
-        <p class="text-center text-gray-500 py-8">No reviews yet. Be the first!</p>
-        {% endfor %}
+        <div class="empty-state">
+            <i class="fas fa-star" style="font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.5;"></i>
+            <p>No reviews yet. Be the first to review this package!</p>
+        </div>
+        {% endif %}
     </div>
-</div>
+</section>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-// Gestion des étoiles
-const stars = document.querySelectorAll('.rating-star');
-const ratingInput = document.getElementById('rating');
-
-stars.forEach(star => {
-    star.addEventListener('mouseenter', function() {
-        const rating = this.dataset.rating;
-        highlightStars(rating);
-    });
-    
-    star.addEventListener('mouseleave', function() {
-        const current = ratingInput.value || 0;
-        highlightStars(current);
-    });
-    
-    star.addEventListener('click', function() {
-        const rating = this.dataset.rating;
-        ratingInput.value = rating;
-        highlightStars(rating);
-    });
-});
-
-function highlightStars(rating) {
-    stars.forEach((star, index) => {
-        if (index < rating) {
-            star.classList.remove('far');
-            star.classList.add('fas');
-        } else {
-            star.classList.remove('fas');
-            star.classList.add('far');
+    // Render summary stars
+    const avg = {{ reviews.average or 0 }};
+    const starsContainer = document.getElementById('summaryStars');
+    if (starsContainer) {
+        let html = '';
+        for (let i = 0; i < 5; i++) {
+            if (i < Math.floor(avg)) {
+                html += '<i class="fas fa-star"></i>';
+            } else if (i < avg) {
+                html += '<i class="fas fa-star-half-alt"></i>';
+            } else {
+                html += '<i class="fas fa-star" style="opacity: 0.3;"></i>';
+            }
         }
-    });
-}
-
-// Soumission du formulaire
-document.getElementById('reviewForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    if (!ratingInput.value) {
-        alert('Please select a rating');
-        return;
+        starsContainer.innerHTML = html;
     }
-    
-    const formData = {
-        rating: parseInt(ratingInput.value),
-        comment: document.querySelector('textarea[name="comment"]').value
-    };
-    
-    const token = localStorage.getItem('zarch_token');
-    
-    const response = await fetch('/api/v1/package/{{ package.name }}/review', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-        location.reload();
-    } else {
-        alert(data.error || 'Failed to submit review');
-    }
-});
 </script>
 {% endblock %}
