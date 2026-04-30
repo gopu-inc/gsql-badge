@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+
+{% block head_extra %}
+<meta property="og:title" content="Goscript Documentation - Zarch Hub">
+<meta property="og:description" content="Complete Goscript language reference. Master sysf() and sh() for powerful system scripting, FFI, structs, pattern matching, and more.">
+<meta property="og:url" content="https://zenv-hub.onrender.com/goscript/doc">
+<meta property="og:site_name" content="Zarch Hub">
+<meta property="og:image" content="https://zenv-hub.onrender.com/badge/Goscript-Documentation-blue?style=for-the-badge">
+<meta name="description" content="Goscript Language Documentation - Complete reference with focus on sysf()/sh() system calls, FFI, and modern syntax.">
+<meta name="keywords" content="goscript, documentation, sysf, sh, shell, scripting, ffi, gpm, zarch">
+<link rel="canonical" href="https://zenv-hub.onrender.com/goscript/doc">
+{% endblock %}
+
+{% block title %}Goscript Documentation - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doc-page {
+        padding: 0 0 4rem;
+        min-height: calc(100vh - var(--navbar-height));
+    }
+
+    .page-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 3rem 0 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -20%;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(88,166,255,0.05) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .page-header h1 {
+        font-size: 2.8rem;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .page-header h1 img {
+        width: 52px;
+        height: 52px;
+        border-radius: var(--radius-md);
+    }
+
+    .page-header .subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-top: 0.75rem;
+        position: relative;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .source-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-tertiary);
+        font-size: 0.82rem;
+        text-decoration: none;
+        margin-top: 1rem;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .source-link:hover { color: var(--accent-blue); }
+
+    /* Quick Nav Pills */
+    .quick-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+        position: relative;
+    }
+
+    .quick-nav a {
+        padding: 0.4rem 1rem;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-full);
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 500;
+        transition: var(--transition);
+        white-space: nowrap;
+    }
+
+    .quick-nav a:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        background: rgba(88,166,255,0.08);
+    }
+
+    .doc-container {
+        max-width: 950px;
+        margin: 2rem auto;
+        padding: 0 var(--container-padding);
+    }
+
+    .doc-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+        padding: 3rem;
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Markdown Styles */
+    .markdown-body {
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        line-height: 1.85;
+    }
+
+    .markdown-body h1 {
+        font-size: 2.2rem;
+        font-weight: 900;
+        margin: 2.5rem 0 1.25rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 2px solid var(--border-color);
+        letter-spacing: -0.02em;
+    }
+
+    .markdown-body h2 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin: 2.25rem 0 1rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .markdown-body h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin: 1.75rem 0 0.75rem;
+        color: var(--accent-blue);
+    }
+
+    .markdown-body h4 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 1.25rem 0 0.5rem;
+    }
+
+    .markdown-body p { margin: 0.85rem 0; }
+
+    .markdown-body a { color: var(--accent-blue); text-decoration: none; font-weight: 500; }
+    .markdown-body a:hover { text-decoration: underline; }
+
+    .markdown-body strong { color: var(--text-primary); font-weight: 700; }
+
+    .markdown-body code {
+        background: var(--bg-tertiary);
+        padding: 0.2rem 0.45rem;
+        border-radius: 4px;
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+        border: 1px solid var(--border-color);
+        color: var(--accent-green);
+        white-space: nowrap;
+    }
+
+    .markdown-body pre {
+        background: var(--bg-primary) !important;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        overflow-x: auto;
+        margin: 1.25rem 0;
+        position: relative;
+    }
+
+    .markdown-body pre code {
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--text-primary);
+        white-space: pre;
+    }
+
+    .markdown-body blockquote {
+        border-left: 4px solid var(--accent-purple);
+        padding: 0.85rem 1.25rem;
+        margin: 1.25rem 0;
+        background: rgba(188,140,255,0.04);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        color: var(--text-secondary);
+    }
+
+    .markdown-body blockquote p { margin: 0.4rem 0; }
+
+    .markdown-body ul, .markdown-body ol { margin: 0.85rem 0; padding-left: 2rem; }
+    .markdown-body li { margin: 0.4rem 0; }
+
+    .markdown-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.25rem 0;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        font-size: 0.88rem;
+    }
+
+    .markdown-body th {
+        background: var(--bg-tertiary);
+        padding: 0.8rem 1rem;
+        text-align: left;
+        font-weight: 700;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .markdown-body td {
+        padding: 0.7rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .markdown-body tr:last-child td { border-bottom: none; }
+    .markdown-body tr:hover td { background: var(--bg-tertiary); }
+
+    .markdown-body img { max-width: 100%; border-radius: var(--radius-sm); }
+
+    .markdown-body hr {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        margin: 2.5rem 0;
+    }
+
+    .markdown-body kbd {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.15rem 0.45rem;
+        font-family: var(--font-mono);
+        font-size: 0.8em;
+        box-shadow: 0 1px 0 var(--border-color);
+    }
+
+    /* Highlight boxes */
+    .markdown-body .highlight-box {
+        border: 1px solid var(--accent-green);
+        background: rgba(63,185,80,0.04);
+        border-radius: var(--radius-md);
+        padding: 1.25rem 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .markdown-body .highlight-box strong {
+        color: var(--accent-green);
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .markdown-body .warning-box {
+        border: 1px solid var(--accent-orange);
+        background: rgba(210,153,29,0.04);
+        border-radius: var(--radius-md);
+        padding: 1.25rem 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .markdown-body .warning-box strong {
+        color: var(--accent-orange);
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    /* Back to top */
+    .back-to-top {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 44px;
+        height: 44px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-full);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: var(--transition);
+        z-index: 100;
+        text-decoration: none;
+        box-shadow: var(--shadow-md);
+    }
+
+    .back-to-top.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .back-to-top:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        transform: translateY(-3px);
+    }
+
+    @media (max-width: 768px) {
+        .page-header h1 { font-size: 1.8rem; }
+        .doc-card { padding: 1.5rem; border-radius: var(--radius-lg); }
+        .markdown-body h1 { font-size: 1.6rem; }
+        .markdown-body h2 { font-size: 1.3rem; }
+        .markdown-body table { font-size: 0.78rem; }
+        .markdown-body th, .markdown-body td { padding: 0.5rem 0.6rem; }
+        .markdown-body pre { padding: 0.85rem; }
+        .back-to-top { bottom: 1rem; right: 1rem; width: 38px; height: 38px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ================================================================
+PAGE HEADER
+================================================================ -->
+<section class="page-header">
+    <div class="container">
+        <h1>
+            <img src="https://raw.githubusercontent.com/gopu-inc/apkm-gest/main/images/icon.png" 
+                 alt="Goscript Logo"
+                 onerror="this.style.display='none';">
+            Goscript Documentation
+        </h1>
+        <p class="subtitle">
+            A modern scripting language powered by <strong>sysf()</strong> and <strong>sh()</strong> — 
+            harness the full power of the shell directly in your code.
+        </p>
+        <div class="quick-nav">
+            <a href="#sysf-sh">sysf/sh</a>
+            <a href="#getting-started">Getting Started</a>
+            <a href="#variables">Variables</a>
+            <a href="#functions">Functions</a>
+            <a href="#structs">Structs</a>
+            <a href="#ffi">FFI</a>
+            <a href="#modules">Modules</a>
+            <a href="#gpm">GPM</a>
+            <a href="#cheat-sheet">Cheat Sheet</a>
+        </div>
+        <a href="https://github.com/gopu-inc/gsql-badge/blob/{{ config.get('GITHUB_BRANCH', 'package-data') }}/docs/README-GOSCRIPT.md" 
+           target="_blank" rel="noopener" class="source-link">
+            <i class="fab fa-github"></i> View source on GitHub
+        </a>
+    </div>
+</section>
+
+<!-- ================================================================
+DOC CONTENT
+================================================================ -->
+<section class="doc-page">
+    <div class="doc-container">
+        <div class="doc-card">
+            <div class="markdown-body">
+                {{ readme_html | safe }}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================================================================
+BACK TO TOP
+================================================================ -->
+<a href="#" class="back-to-top" id="backToTop" title="Back to top">
+    <i class="fas fa-arrow-up"></i>
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script>
+    // ============================================================
+    // HIGHLIGHT.JS
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        hljs.highlightAll();
+        
+        // Add IDs to headings
+        document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3').forEach(heading => {
+            const id = heading.textContent
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
+            heading.id = id;
+        });
+        
+        // Scroll to hash
+        if (window.location.hash) {
+            const target = document.querySelector(window.location.hash);
+            if (target) {
+                setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+            }
+        }
+    });
+
+    // ============================================================
+    // BACK TO TOP
+    // ============================================================
+    const backToTop = document.getElementById('backToTop');
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 500) {
+            backToTop.classList.add('visible');
+        } else {
+            backToTop.classList.remove('visible');
+        }
+    });
+
+    backToTop.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ============================================================
+    // CLICK HEADINGS TO COPY LINK
+    // ============================================================
+    document.querySelectorAll('.markdown-body h1[id], .markdown-body h2[id], .markdown-body h3[id]').forEach(heading => {
+        heading.style.cursor = 'pointer';
+        heading.title = 'Click to copy link to this section';
+        
+        heading.addEventListener('click', function() {
+            const url = window.location.origin + window.location.pathname + '#' + this.id;
+            
+            navigator.clipboard.writeText(url).then(() => {
+                // Brief visual feedback
+                const originalColor = this.style.color;
+                this.style.transition = 'color 0.3s';
+                this.style.color = 'var(--accent-green)';
+                setTimeout(() => { this.style.color = originalColor; }, 1200);
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = url;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            });
+        });
+    });
+
+    // ============================================================
+    // SMOOTH SCROLL FOR QUICK NAV
+    // ============================================================
+    document.querySelectorAll('.quick-nav a[href^="#"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                const offset = 80; // Account for navbar
+                const targetPosition = target.getBoundingClientRect().top + window.scrollY - offset;
+                window.scrollTo({ top: targetPosition, behavior: 'smooth' });
+            }
+        });
+    });
+
+    // ============================================================
+    // ADD COPY BUTTONS TO CODE BLOCKS
+    // ============================================================
+    document.querySelectorAll('.markdown-body pre').forEach(pre => {
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'code-copy-btn';
+        copyBtn.innerHTML = '<i class="far fa-copy"></i>';
+        copyBtn.title = 'Copy code';
+        copyBtn.style.cssText = `
+            position: absolute;
+            top: 0.5rem;
+            right: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-tertiary);
+            padding: 0.3rem 0.55rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            opacity: 0;
+        `;
+        
+        pre.style.position = 'relative';
+        pre.appendChild(copyBtn);
+        
+        pre.addEventListener('mouseenter', () => { copyBtn.style.opacity = '1'; });
+        pre.addEventListener('mouseleave', () => { copyBtn.style.opacity = '0'; });
+        
+        copyBtn.addEventListener('click', () => {
+            const code = pre.querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                copyBtn.style.color = 'var(--accent-green)';
+                copyBtn.style.borderColor = 'var(--accent-green)';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="far fa-copy"></i>';
+                    copyBtn.style.color = 'var(--text-tertiary)';
+                    copyBtn.style.borderColor = 'var(--border-color)';
+                }, 2000);
+            });
+        });
+    });
+</script>
+{% endblock %}
