@@ -2,215 +2,277 @@
 
 {% block head_extra %}
 <meta property="og:title" content="Reviews for {{ package.name }} - Zarch Hub">
-<meta property="og:description" content="Read and write reviews for {{ package.name }} v{{ package.version }} on Zarch Hub.">
+<meta property="og:description" content="Read and write reviews for {{ package.name }} v{{ package.version }} on Zarch Hub. Average rating: {{ reviews.average or 0 }}/5.">
+<meta property="og:url" content="https://zenv-hub.onrender.com/package/{{ package.name }}/reviews">
 {% endblock %}
 
 {% block title %}Reviews - {{ package.name }} - Zarch Hub{% endblock %}
 
 {% block extra_css %}
 <style>
-    .reviews-page {
-        padding: 2rem 0 4rem;
-    }
+    .reviews-page { padding: 2rem 0 4rem; max-width: 800px; margin: 0 auto; padding-left: var(--container-padding); padding-right: var(--container-padding); }
 
-    .page-header {
-        background: var(--gradient-hero);
-        border-bottom: 1px solid var(--border-color);
-        padding: 2rem 0;
-        margin-bottom: 2rem;
-    }
+    .breadcrumb { font-size: 0.85rem; color: var(--text-tertiary); margin-bottom: 1.5rem; }
+    .breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--accent-blue); }
 
-    .page-header h1 {
-        font-size: 1.8rem;
-        font-weight: 800;
-    }
-
-    .breadcrumb {
-        font-size: 0.85rem;
-        color: var(--text-tertiary);
-        margin-bottom: 0.5rem;
-    }
-
-    .breadcrumb a {
-        color: var(--text-secondary);
-        text-decoration: none;
-    }
-
-    .breadcrumb a:hover {
-        color: var(--accent-blue);
-    }
-
-    .reviews-summary {
+    .page-header-card {
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
-        padding: 1.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
         display: flex;
         align-items: center;
         gap: 2rem;
-        margin-bottom: 2rem;
+        flex-wrap: wrap;
     }
+    .page-header-card h1 { font-size: 1.6rem; font-weight: 800; flex: 1; min-width: 200px; }
+    .page-header-card h1 a { color: var(--text-primary); text-decoration: none; }
+    .page-header-card h1 a:hover { color: var(--accent-blue); }
+    .page-header-card .version { color: var(--accent-blue); font-size: 1rem; }
 
-    .rating-big {
-        text-align: center;
+    .review-summary {
+        display: flex; align-items: center; gap: 2rem;
+        padding: 1.75rem; background: var(--bg-card);
+        border: 1px solid var(--border-color); border-radius: var(--radius-lg);
+        margin-bottom: 2rem; flex-wrap: wrap;
     }
+    .review-rating-big { text-align: center; min-width: 100px; }
+    .review-rating-number { font-size: 4rem; font-weight: 900; color: var(--accent-orange); line-height: 1; }
+    .review-stars-display { color: var(--accent-orange); font-size: 1.1rem; margin-top: 0.25rem; }
+    .review-total { font-size: 0.82rem; color: var(--text-tertiary); margin-top: 0.25rem; }
 
-    .rating-number {
-        font-size: 3rem;
-        font-weight: 900;
-        color: var(--accent-orange);
-        line-height: 1;
-    }
-
-    .rating-stars {
-        color: var(--accent-orange);
-        font-size: 1.1rem;
-        margin-top: 0.25rem;
-    }
-
-    .rating-count {
-        font-size: 0.8rem;
-        color: var(--text-tertiary);
-    }
+    .review-bar-chart { flex: 1; min-width: 200px; }
+    .review-bar-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; font-size: 0.82rem; }
+    .review-bar-label { width: 30px; text-align: right; color: var(--text-secondary); }
+    .review-bar { flex: 1; height: 12px; background: var(--bg-tertiary); border-radius: var(--radius-full); overflow: hidden; }
+    .review-bar-fill { height: 100%; background: var(--accent-orange); border-radius: var(--radius-full); transition: width 1s ease; }
+    .review-bar-count { width: 30px; color: var(--text-tertiary); text-align: right; }
 
     .review-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        padding: 1.25rem;
-        margin-bottom: 1rem;
+        background: var(--bg-card); border: 1px solid var(--border-color);
+        border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 0.85rem;
+        transition: var(--transition);
     }
-
-    .review-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
-    }
-
+    .review-card:hover { border-color: var(--text-tertiary); box-shadow: var(--shadow-sm); }
+    .review-header { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.75rem; }
     .review-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: var(--radius-full);
+        width: 42px; height: 42px; border-radius: var(--radius-full);
         background: var(--gradient-blue);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        color: #fff;
-        font-size: 0.85rem;
-        text-transform: uppercase;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; color: #fff; font-size: 0.9rem;
+        text-transform: uppercase; flex-shrink: 0;
     }
+    .review-author-info { flex: 1; }
+    .review-author { font-weight: 600; }
+    .review-author a { color: var(--text-primary); text-decoration: none; }
+    .review-author a:hover { color: var(--accent-blue); }
+    .review-date { font-size: 0.75rem; color: var(--text-tertiary); }
+    .review-stars { color: var(--accent-orange); font-size: 0.85rem; }
+    .review-comment { color: var(--text-secondary); line-height: 1.7; font-size: 0.92rem; margin-top: 0.5rem; }
 
-    .review-author {
-        font-weight: 600;
+    .review-form-card {
+        background: var(--bg-card); border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg); padding: 2rem; margin-top: 2rem;
     }
-
-    .review-date {
-        font-size: 0.75rem;
-        color: var(--text-tertiary);
+    .review-form-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; }
+    .star-selector { display: flex; gap: 0.4rem; margin-bottom: 1.25rem; }
+    .star-selector button {
+        background: none; border: none; font-size: 1.8rem;
+        color: var(--text-tertiary); cursor: pointer; transition: var(--transition);
     }
-
-    .review-stars {
-        color: var(--accent-orange);
+    .star-selector button:hover,
+    .star-selector button.active { color: var(--accent-orange); transform: scale(1.2); }
+    .review-textarea {
+        width: 100%; min-height: 120px; padding: 1rem;
+        background: var(--bg-input); border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm); color: var(--text-primary);
+        font-family: var(--font-sans); font-size: 0.9rem;
+        resize: vertical; outline: none; transition: var(--transition);
+        margin-bottom: 1.25rem;
     }
-
-    .review-comment {
-        color: var(--text-secondary);
-        line-height: 1.6;
+    .review-textarea:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(88,166,255,0.1); }
+    .btn-submit {
+        padding: 0.75rem 2rem; font-weight: 700; border-radius: var(--radius-sm);
+        background: var(--gradient-blue); color: #fff; border: none;
+        cursor: pointer; transition: var(--transition);
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(88,166,255,0.3);
     }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(88,166,255,0.45); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .empty-state { text-align: center; padding: 3rem; color: var(--text-tertiary); }
+    .empty-state i { font-size: 3.5rem; margin-bottom: 1rem; display: block; opacity: 0.3; }
 
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: var(--text-tertiary);
-    }
-
-    @media (max-width: 500px) {
-        .reviews-summary {
-            flex-direction: column;
-            text-align: center;
-        }
+    @media (max-width: 540px) {
+        .page-header-card { flex-direction: column; text-align: center; }
+        .review-summary { flex-direction: column; text-align: center; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="page-header">
-    <div class="container">
-        <div class="breadcrumb">
-            <a href="/">Home</a> /
-            <a href="/packages">Packages</a> /
-            <a href="/package/{{ package.name }}">{{ package.name }}</a> /
-            Reviews
-        </div>
-        <h1>Reviews for {{ package.name }}</h1>
-    </div>
-</section>
-
 <section class="reviews-page">
-    <div class="container" style="max-width: 700px;">
-        <div class="reviews-summary">
-            <div class="rating-big">
-                <div class="rating-number">{{ reviews.average | round(1) if reviews.average else '--' }}</div>
-                <div class="rating-stars" id="summaryStars"></div>
-                <div class="rating-count">{{ reviews.reviews | length }} review(s)</div>
-            </div>
-            <div style="flex: 1; color: var(--text-secondary);">
-                Based on {{ reviews.reviews | length }} user review(s). 
-                Share your experience with this package!
-            </div>
-        </div>
-
-        {% if reviews.reviews %}
-            {% for review in reviews.reviews %}
-            <div class="review-card">
-                <div class="review-header">
-                    <div class="review-avatar">{{ review.username[:1] }}</div>
-                    <div>
-                        <div class="review-author">
-                            <a href="/@{{ review.username }}" style="color: inherit; text-decoration: none;">{{ review.username }}</a>
-                        </div>
-                        <div class="review-date">{{ review.created_at[:10] if review.created_at else '' }}</div>
-                    </div>
-                    <div style="margin-left: auto;" class="review-stars">
-                        {% for i in range(5) %}
-                        <i class="fas fa-star{{ '' if i < review.rating else '-empty' }}" style="opacity: {{ 1 if i < review.rating else 0.3 }};"></i>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% if review.comment %}
-                <div class="review-comment">{{ review.comment }}</div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        {% else %}
-        <div class="empty-state">
-            <i class="fas fa-star" style="font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.5;"></i>
-            <p>No reviews yet. Be the first to review this package!</p>
-        </div>
-        {% endif %}
+    <div class="breadcrumb">
+        <a href="/">Home</a> /
+        <a href="/packages">Packages</a> /
+        <a href="/package/{{ package.name }}">{{ package.name }}</a> /
+        Reviews
     </div>
+
+    <div class="page-header-card">
+        <h1><a href="/package/{{ package.name }}">{{ package.name }}</a> <span class="version">v{{ package.version }}</span></h1>
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary);">
+            <i class="fas fa-user-astronaut"></i>
+            <a href="/@{{ package.author }}" style="color: var(--text-secondary); text-decoration: none;">{{ package.author }}</a>
+        </div>
+    </div>
+
+    {% if reviews %}
+    <div class="review-summary" id="reviewSummary">
+        <div class="review-rating-big">
+            <div class="review-rating-number" id="avgRating">{{ "%.1f"|format(reviews.average) if reviews.average else '--' }}</div>
+            <div class="review-stars-display" id="avgStars"></div>
+            <div class="review-total">{{ reviews.reviews|length }} review(s)</div>
+        </div>
+        <div class="review-bar-chart" id="barChart"></div>
+    </div>
+
+    <div id="reviewList">
+        {% for review in reviews.reviews %}
+        <div class="review-card">
+            <div class="review-header">
+                <div class="review-avatar">{{ review.username[:1] }}</div>
+                <div class="review-author-info">
+                    <div class="review-author"><a href="/@{{ review.username }}">{{ review.username }}</a></div>
+                    <div class="review-date">{{ review.created_at[:10] if review.created_at else 'N/A' }}</div>
+                </div>
+                <div class="review-stars">
+                    {% for i in range(5) %}
+                    <i class="fas fa-star{{ '' if i < review.rating else '-empty' }}" style="opacity: {{ 1 if i < review.rating else 0.3 }};"></i>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if review.comment %}
+            <div class="review-comment">{{ review.comment }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-star"></i>
+        <h3>No reviews yet</h3>
+        <p>Be the first to review this package!</p>
+    </div>
+    {% endif %}
+
+    {% if session.get('user') %}
+    <div class="review-form-card" id="reviewForm">
+        <h3>Write a Review</h3>
+        <div class="star-selector" id="starSelector">
+            <button onclick="setRating(1)" title="1 star"><i class="far fa-star"></i></button>
+            <button onclick="setRating(2)" title="2 stars"><i class="far fa-star"></i></button>
+            <button onclick="setRating(3)" title="3 stars"><i class="far fa-star"></i></button>
+            <button onclick="setRating(4)" title="4 stars"><i class="far fa-star"></i></button>
+            <button onclick="setRating(5)" title="5 stars"><i class="far fa-star"></i></button>
+        </div>
+        <textarea class="review-textarea" id="reviewComment" placeholder="Share your experience with this package... (optional)"></textarea>
+        <button class="btn-submit" id="submitBtn" disabled onclick="submitReview()">
+            <i class="fas fa-paper-plane"></i> Submit Review
+        </button>
+    </div>
+    {% else %}
+    <div class="review-form-card" style="text-align: center;">
+        <i class="fas fa-lock" style="font-size: 2rem; color: var(--text-tertiary); margin-bottom: 0.5rem; display: block;"></i>
+        <p style="color: var(--text-tertiary);">
+            <a href="/login?next=/package/{{ package.name }}/reviews" style="color: var(--accent-blue);">Login</a> to write a review
+        </p>
+    </div>
+    {% endif %}
 </section>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Render summary stars
-    const avg = {{ reviews.average or 0 }};
-    const starsContainer = document.getElementById('summaryStars');
-    if (starsContainer) {
-        let html = '';
-        for (let i = 0; i < 5; i++) {
-            if (i < Math.floor(avg)) {
-                html += '<i class="fas fa-star"></i>';
-            } else if (i < avg) {
-                html += '<i class="fas fa-star-half-alt"></i>';
-            } else {
-                html += '<i class="fas fa-star" style="opacity: 0.3;"></i>';
-            }
-        }
-        starsContainer.innerHTML = html;
+    let currentRating = 0;
+
+    function setRating(rating) {
+        currentRating = rating;
+        const buttons = document.querySelectorAll('#starSelector button');
+        buttons.forEach((btn, i) => {
+            const icon = btn.querySelector('i');
+            icon.className = i < rating ? 'fas fa-star' : 'far fa-star';
+            if (i < rating) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        document.getElementById('submitBtn').disabled = false;
     }
+
+    function submitReview() {
+        if (currentRating < 1) return;
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+        fetch('/api/v1/package/{{ package.name }}/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rating: currentRating,
+                comment: document.getElementById('reviewComment').value.trim()
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.error || 'Failed to submit review');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review';
+            }
+        })
+        .catch(() => {
+            alert('Network error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Review';
+        });
+    }
+
+    // Render stars in summary
+    document.addEventListener('DOMContentLoaded', () => {
+        const avgRating = parseFloat(document.getElementById('avgRating')?.textContent) || 0;
+        const starsContainer = document.getElementById('avgStars');
+        if (starsContainer) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                html += i <= Math.round(avgRating)
+                    ? '<i class="fas fa-star"></i>'
+                    : '<i class="far fa-star" style="opacity: 0.35;"></i>';
+            }
+            starsContainer.innerHTML = html;
+        }
+
+        // Render bar chart
+        const reviews = {{ reviews.reviews | tojson | safe }};
+        const barChart = document.getElementById('barChart');
+        if (barChart && reviews.length > 0) {
+            const distribution = [0, 0, 0, 0, 0];
+            reviews.forEach(r => { if (r.rating >= 1 && r.rating <= 5) distribution[5 - r.rating]++; });
+            const max = Math.max(...distribution, 1);
+            let html = '';
+            for (let i = 0; i < 5; i++) {
+                html += `
+                <div class="review-bar-row">
+                    <span class="review-bar-label">${5 - i}★</span>
+                    <div class="review-bar"><div class="review-bar-fill" style="width: ${Math.round(distribution[i]/max*100)}%;"></div></div>
+                    <span class="review-bar-count">${distribution[i]}</span>
+                </div>`;
+            }
+            barChart.innerHTML = html;
+        }
+    });
 </script>
 {% endblock %}
