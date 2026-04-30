@@ -2281,6 +2281,712 @@ def serve_badge_svg(badge_name, format='svg'):
         return Response(error_svg, mimetype='image/svg+xml'), 500
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# FORUM
+
+# ============================================================================
+# FORUM - ROUTES PRINCIPALES
+# ============================================================================
+
+@app.route('/forum')
+def forum_page():
+    """Page principale du forum avec catégories et topics"""
+    try:
+        # Charger les topics depuis GitHub
+        forum_db = GitHubManager.read_from_github('forum/topics.json', {
+            'topics': [],
+            'categories': [
+                {'name': 'general', 'label': 'General Discussion', 'icon': 'comments', 'count': 0},
+                {'name': 'help', 'label': 'Help & Support', 'icon': 'question-circle', 'count': 0},
+                {'name': 'packages', 'label': 'Package Development', 'icon': 'code', 'count': 0},
+                {'name': 'goscript', 'label': 'Goscript Language', 'icon': 'microchip', 'count': 0},
+                {'name': 'gpm', 'label': 'GPM Package Manager', 'icon': 'box', 'count': 0},
+                {'name': 'showcase', 'label': 'Project Showcase', 'icon': 'star', 'count': 0},
+                {'name': 'tutorials', 'label': 'Tutorials & Guides', 'icon': 'graduation-cap', 'count': 0},
+                {'name': 'feedback', 'label': 'Feedback & Suggestions', 'icon': 'lightbulb', 'count': 0}
+            ]
+        })
+
+        # Récupérer les paramètres
+        page = request.args.get('page', 1, type=int)
+        category = request.args.get('category', 'all')
+        tag = request.args.get('tag', '')
+        sort = request.args.get('sort', 'latest')  # latest, popular, solved
+        per_page = 20
+
+        topics = forum_db.get('topics', [])
+        categories = forum_db.get('categories', [])
+
+        # Filtrer par catégorie
+        if category != 'all':
+            topics = [t for t in topics if t.get('category') == category]
+
+        # Filtrer par tag
+        if tag:
+            topics = [t for t in topics if tag in t.get('tags', [])]
+
+        # Trier
+        if sort == 'popular':
+            topics.sort(key=lambda x: x.get('views', 0), reverse=True)
+        elif sort == 'solved':
+            topics.sort(key=lambda x: (not x.get('solved', False), -x.get('views', 0)))
+        else:  # latest
+            topics.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+        # Marquer les topics épinglés en premier
+        pinned = [t for t in topics if t.get('pinned')]
+        unpinned = [t for t in topics if not t.get('pinned')]
+        topics = pinned + unpinned
+
+        # Pagination
+        total_topics = len(topics)
+        total_pages = max(1, (total_topics + per_page - 1) // per_page)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_topics = topics[start:end]
+
+        # Mettre à jour les compteurs de catégories
+        for cat in categories:
+            cat['count'] = len([t for t in forum_db.get('topics', []) 
+                               if t.get('category') == cat['name']])
+
+        # Statistiques globales
+        total_replies = sum(t.get('reply_count', 0) for t in forum_db.get('topics', []))
+        total_users = len(set(t.get('author', '') for t in forum_db.get('topics', [])))
+        solved_count = len([t for t in forum_db.get('topics', []) if t.get('solved')])
+
+        return render_template('forum.html',
+                             topics=paginated_topics,
+                             categories=categories,
+                             total_topics=total_topics,
+                             total_replies=total_replies,
+                             total_users=total_users,
+                             solved_count=solved_count,
+                             current_category=category,
+                             current_tag=tag,
+                             current_sort=sort,
+                             page=page,
+                             total_pages=total_pages,
+                             now=datetime.now(),
+                             user=session.get('user'))
+
+    except Exception as e:
+        app.logger.error(f"Forum error: {e}")
+        return render_template('forum.html',
+                             topics=[],
+                             categories=[],
+                             total_topics=0,
+                             total_replies=0,
+                             total_users=0,
+                             solved_count=0,
+                             current_category='all',
+                             current_tag='',
+                             current_sort='latest',
+                             page=1,
+                             total_pages=1,
+                             now=datetime.now(),
+                             user=session.get('user'))
+
+
+@app.route('/forum/topic/<slug>')
+def forum_topic(slug):
+    """Page de détail d'un topic avec ses replies"""
+    try:
+        forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+        topics = forum_db.get('topics', [])
+        
+        # Trouver le topic
+        topic = next((t for t in topics if t.get('slug') == slug), None)
+        
+        if not topic:
+            abort(404, description="Topic not found")
+        
+        # Incrémenter les vues
+        topic['views'] = topic.get('views', 0) + 1
+        GitHubManager.save_to_github('forum/topics.json', forum_db, f"View topic: {slug}")
+        
+        # Charger les replies
+        replies_db = GitHubManager.read_from_github(f'forum/replies/{slug}.json', {'replies': []})
+        replies = replies_db.get('replies', [])
+        
+        # Pagination des replies
+        page = request.args.get('page', 1, type=int)
+        per_page = 15
+        total_replies = len(replies)
+        total_pages = max(1, (total_replies + per_page - 1) // per_page)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_replies = replies[start:end]
+        
+        return render_template('forum_topic.html',
+                             topic=topic,
+                             replies=paginated_replies,
+                             current_page=page,
+                             total_pages=total_pages,
+                             total_replies=total_replies,
+                             now=datetime.now(),
+                             user=session.get('user'))
+    
+    except Exception as e:
+        app.logger.error(f"Forum topic error: {e}")
+        abort(500)
+
+
+@app.route('/forum/new', methods=['GET', 'POST'])
+def forum_new():
+    """Création d'un nouveau topic"""
+    if not session.get('user'):
+        flash('Please login to create a topic', 'info')
+        return redirect('/login?next=/forum/new')
+    
+    if request.method == 'POST':
+        try:
+            title = request.form.get('title', '').strip()
+            category = request.form.get('category', '').strip()
+            content = request.form.get('content', '').strip()
+            tags_raw = request.form.get('tags', '').strip()
+            
+            # Validation
+            if not title or len(title) < 10:
+                flash('Title must be at least 10 characters', 'error')
+                return render_template('forum_new.html', user=session.get('user'))
+            
+            if not category:
+                flash('Please select a category', 'error')
+                return render_template('forum_new.html', user=session.get('user'))
+            
+            if not content or len(content) < 20:
+                flash('Content must be at least 20 characters', 'error')
+                return render_template('forum_new.html', user=session.get('user'))
+            
+            # Parser les tags
+            tags = [t.strip().lower().replace(' ', '-')[:30] 
+                   for t in tags_raw.split(',') if t.strip()][:5]
+            
+            # Créer le slug
+            slug = re.sub(r'[^a-z0-9-]', '', title.lower().replace(' ', '-'))[:80]
+            slug = slug.strip('-')
+            
+            # Vérifier l'unicité du slug
+            forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+            existing_slugs = [t.get('slug') for t in forum_db.get('topics', [])]
+            
+            if slug in existing_slugs:
+                slug = f"{slug}-{uuid.uuid4().hex[:6]}"
+            
+            # Créer le topic
+            new_topic = {
+                'id': str(uuid.uuid4()),
+                'slug': slug,
+                'title': SecurityUtils.escape_text(title),
+                'author': session['user']['username'],
+                'category': category,
+                'content': content,  # Stocké en Markdown
+                'tags': tags,
+                'views': 0,
+                'reply_count': 0,
+                'pinned': False,
+                'solved': False,
+                'locked': False,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'last_reply_at': None,
+                'last_reply_by': None
+            }
+            
+            forum_db['topics'].append(new_topic)
+            
+            if GitHubManager.save_to_github('forum/topics.json', forum_db, 
+                                           f"New topic: {title}"):
+                flash('Topic created successfully! 🎉', 'success')
+                return redirect(f'/forum/topic/{slug}')
+            else:
+                flash('Failed to create topic. Please try again.', 'error')
+                
+        except Exception as e:
+            app.logger.error(f"Forum new topic error: {e}")
+            flash('An error occurred. Please try again.', 'error')
+    
+    return render_template('forum_new.html', user=session.get('user'))
+
+
+@app.route('/forum/topic/<slug>/reply', methods=['POST'])
+def forum_reply(slug):
+    """Ajouter une réponse à un topic"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    try:
+        content = request.form.get('content', '').strip()
+        
+        if not content or len(content) < 10:
+            flash('Reply must be at least 10 characters', 'error')
+            return redirect(f'/forum/topic/{slug}')
+        
+        # Vérifier que le topic existe
+        forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+        topic = next((t for t in forum_db.get('topics', []) if t.get('slug') == slug), None)
+        
+        if not topic:
+            abort(404)
+        
+        if topic.get('locked'):
+            flash('This topic is locked.', 'error')
+            return redirect(f'/forum/topic/{slug}')
+        
+        # Créer la reply
+        new_reply = {
+            'id': str(uuid.uuid4()),
+            'topic_slug': slug,
+            'author': session['user']['username'],
+            'content': content,
+            'likes': 0,
+            'liked_by': [],
+            'is_solution': False,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Sauvegarder la reply
+        replies_db = GitHubManager.read_from_github(f'forum/replies/{slug}.json', {'replies': []})
+        replies_db['replies'].append(new_reply)
+        GitHubManager.save_to_github(f'forum/replies/{slug}.json', replies_db, 
+                                    f"New reply in: {slug}")
+        
+        # Mettre à jour le topic
+        topic['reply_count'] = len(replies_db['replies'])
+        topic['last_reply_at'] = datetime.now().isoformat()
+        topic['last_reply_by'] = session['user']['username']
+        topic['updated_at'] = datetime.now().isoformat()
+        GitHubManager.save_to_github('forum/topics.json', forum_db, f"Update topic: {slug}")
+        
+        flash('Reply posted successfully!', 'success')
+        
+    except Exception as e:
+        app.logger.error(f"Forum reply error: {e}")
+        flash('Failed to post reply.', 'error')
+    
+    return redirect(f'/forum/topic/{slug}')
+
+
+@app.route('/forum/topic/<slug>/solution', methods=['POST'])
+def forum_mark_solution(slug):
+    """Marquer une reply comme solution"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    try:
+        data = request.get_json()
+        reply_id = data.get('reply_id')
+        
+        if not reply_id:
+            return jsonify({'error': 'reply_id required'}), 400
+        
+        # Vérifier que le topic existe et que l'utilisateur est l'auteur
+        forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+        topic = next((t for t in forum_db.get('topics', []) if t.get('slug') == slug), None)
+        
+        if not topic:
+            return jsonify({'error': 'Topic not found'}), 404
+        
+        if topic['author'] != session['user']['username']:
+            return jsonify({'error': 'Only the topic author can mark a solution'}), 403
+        
+        # Mettre à jour les replies
+        replies_db = GitHubManager.read_from_github(f'forum/replies/{slug}.json', {'replies': []})
+        
+        for reply in replies_db.get('replies', []):
+            if reply['id'] == reply_id:
+                reply['is_solution'] = True
+            else:
+                reply['is_solution'] = False
+        
+        GitHubManager.save_to_github(f'forum/replies/{slug}.json', replies_db, 
+                                    f"Mark solution in: {slug}")
+        
+        # Marquer le topic comme résolu
+        topic['solved'] = True
+        GitHubManager.save_to_github('forum/topics.json', forum_db, f"Solved: {slug}")
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        app.logger.error(f"Mark solution error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/forum/topic/<slug>/like/<reply_id>', methods=['POST'])
+def forum_like_reply(slug, reply_id):
+    """Liker/Unliker une reply"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    try:
+        username = session['user']['username']
+        
+        replies_db = GitHubManager.read_from_github(f'forum/replies/{slug}.json', {'replies': []})
+        
+        for reply in replies_db.get('replies', []):
+            if reply['id'] == reply_id:
+                liked_by = reply.get('liked_by', [])
+                
+                if username in liked_by:
+                    # Unlike
+                    liked_by.remove(username)
+                    reply['likes'] = max(0, reply.get('likes', 1) - 1)
+                    action = 'unliked'
+                else:
+                    # Like
+                    liked_by.append(username)
+                    reply['likes'] = reply.get('likes', 0) + 1
+                    action = 'liked'
+                
+                reply['liked_by'] = liked_by
+                break
+        
+        GitHubManager.save_to_github(f'forum/replies/{slug}.json', replies_db, 
+                                    f"Like reply in: {slug}")
+        
+        return jsonify({'success': True, 'action': action})
+        
+    except Exception as e:
+        app.logger.error(f"Like reply error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/forum/topic/<slug>/edit', methods=['GET', 'POST'])
+def forum_edit_topic(slug):
+    """Éditer un topic (auteur seulement)"""
+    if not session.get('user'):
+        flash('Please login to edit', 'info')
+        return redirect('/login')
+    
+    forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+    topic = next((t for t in forum_db.get('topics', []) if t.get('slug') == slug), None)
+    
+    if not topic:
+        abort(404)
+    
+    if topic['author'] != session['user']['username']:
+        flash('You can only edit your own topics', 'error')
+        return redirect(f'/forum/topic/{slug}')
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        category = request.form.get('category', '').strip()
+        content = request.form.get('content', '').strip()
+        tags_raw = request.form.get('tags', '').strip()
+        
+        if title and len(title) >= 10:
+            topic['title'] = SecurityUtils.escape_text(title)
+        if category:
+            topic['category'] = category
+        if content and len(content) >= 20:
+            topic['content'] = content
+        if tags_raw:
+            topic['tags'] = [t.strip().lower().replace(' ', '-')[:30] 
+                           for t in tags_raw.split(',') if t.strip()][:5]
+        
+        topic['updated_at'] = datetime.now().isoformat()
+        GitHubManager.save_to_github('forum/topics.json', forum_db, f"Edit topic: {slug}")
+        
+        flash('Topic updated!', 'success')
+        return redirect(f'/forum/topic/{slug}')
+    
+    return render_template('forum_edit.html', topic=topic, user=session.get('user'))
+
+
+@app.route('/forum/topic/<slug>/delete', methods=['POST'])
+def forum_delete_topic(slug):
+    """Supprimer un topic (auteur ou admin)"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+    topic = next((t for t in forum_db.get('topics', []) if t.get('slug') == slug), None)
+    
+    if not topic:
+        return jsonify({'error': 'Topic not found'}), 404
+    
+    # Vérifier les permissions
+    is_author = topic['author'] == session['user']['username']
+    is_admin = session['user'].get('role') == 'admin'
+    
+    if not is_author and not is_admin:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    # Supprimer le topic
+    forum_db['topics'] = [t for t in forum_db['topics'] if t.get('slug') != slug]
+    GitHubManager.save_to_github('forum/topics.json', forum_db, f"Delete topic: {slug}")
+    
+    # Supprimer les replies
+    GitHubManager.save_to_github(f'forum/replies/{slug}.json', {'replies': []}, 
+                                f"Delete replies for: {slug}")
+    
+    flash('Topic deleted', 'success')
+    return redirect('/forum')
+
+
+@app.route('/forum/reply/<slug>/<reply_id>/edit', methods=['POST'])
+def forum_edit_reply(slug, reply_id):
+    """Éditer une reply"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    try:
+        content = request.form.get('content', '').strip()
+        
+        if not content or len(content) < 10:
+            return jsonify({'error': 'Reply must be at least 10 characters'}), 400
+        
+        replies_db = GitHubManager.read_from_github(f'forum/replies/{slug}.json', {'replies': []})
+        
+        for reply in replies_db.get('replies', []):
+            if reply['id'] == reply_id:
+                if reply['author'] != session['user']['username']:
+                    return jsonify({'error': 'Permission denied'}), 403
+                
+                reply['content'] = content
+                reply['updated_at'] = datetime.now().isoformat()
+                break
+        
+        GitHubManager.save_to_github(f'forum/replies/{slug}.json', replies_db, 
+                                    f"Edit reply in: {slug}")
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/forum/search')
+def forum_search():
+    """Recherche dans le forum"""
+    query = request.args.get('q', '').strip().lower()
+    
+    if not query or len(query) < 2:
+        return redirect('/forum')
+    
+    forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+    topics = forum_db.get('topics', [])
+    
+    results = []
+    for topic in topics:
+        score = 0
+        title = topic.get('title', '').lower()
+        content = topic.get('content', '').lower()
+        tags = ' '.join(topic.get('tags', [])).lower()
+        author = topic.get('author', '').lower()
+        
+        if query in title:
+            score += 10
+        if query in content:
+            score += 5
+        if query in tags:
+            score += 3
+        if query in author:
+            score += 2
+        
+        if score > 0:
+            topic['_score'] = score
+            results.append(topic)
+    
+    results.sort(key=lambda x: x.get('_score', 0), reverse=True)
+    
+    return render_template('forum_search.html',
+                         query=query,
+                         results=results,
+                         total_results=len(results),
+                         user=session.get('user'))
+
+
+@app.route('/forum/topic/<slug>/pin', methods=['POST'])
+def forum_pin_topic(slug):
+    """Épingler/Désépingler un topic (admin/modérateur)"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    if session['user'].get('role') not in ['admin', 'moderator']:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+    topic = next((t for t in forum_db.get('topics', []) if t.get('slug') == slug), None)
+    
+    if not topic:
+        return jsonify({'error': 'Topic not found'}), 404
+    
+    topic['pinned'] = not topic.get('pinned', False)
+    GitHubManager.save_to_github('forum/topics.json', forum_db, 
+                                f"{'Pin' if topic['pinned'] else 'Unpin'}: {slug}")
+    
+    return jsonify({'success': True, 'pinned': topic['pinned']})
+
+
+@app.route('/forum/topic/<slug>/lock', methods=['POST'])
+def forum_lock_topic(slug):
+    """Verrouiller/Déverrouiller un topic (admin/modérateur)"""
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+    
+    if session['user'].get('role') not in ['admin', 'moderator']:
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+    topic = next((t for t in forum_db.get('topics', []) if t.get('slug') == slug), None)
+    
+    if not topic:
+        return jsonify({'error': 'Topic not found'}), 404
+    
+    topic['locked'] = not topic.get('locked', False)
+    GitHubManager.save_to_github('forum/topics.json', forum_db, 
+                                f"{'Lock' if topic['locked'] else 'Unlock'}: {slug}")
+    
+    return jsonify({'success': True, 'locked': topic['locked']})
+
+
+# ============================================================================
+# FORUM - INITIALISATION
+# ============================================================================
+
+def init_forum():
+    """Initialise la structure du forum si elle n'existe pas"""
+    forum_db = GitHubManager.read_from_github('forum/topics.json', None)
+    
+    if forum_db is None:
+        # Créer la structure initiale
+        initial_data = {
+            'topics': [
+                {
+                    'id': str(uuid.uuid4()),
+                    'slug': 'welcome-to-zarch-hub-forum',
+                    'title': 'Welcome to Zarch Hub Forum!',
+                    'author': 'zarch-team',
+                    'category': 'general',
+                    'content': """# Welcome to the Zarch Hub Forum! 🎉
+
+This is the official community forum for **Goscript** and **GPM**.
+
+## What you can do here:
+- 💬 Discuss Goscript language features
+- 📦 Share your packages and get feedback
+- 🆘 Ask for help with GPM
+- 🎯 Showcase your projects
+- 💡 Suggest improvements
+
+## Rules:
+1. Be respectful and kind
+2. Stay on topic
+3. No spam or advertising
+4. Use appropriate categories
+5. Mark solutions when your question is answered
+
+Happy coding! 🚀""",
+                    'tags': ['welcome', 'community', 'rules'],
+                    'views': 42,
+                    'reply_count': 1,
+                    'pinned': True,
+                    'solved': False,
+                    'locked': False,
+                    'created_at': datetime.now().isoformat(),
+                    'updated_at': datetime.now().isoformat(),
+                    'last_reply_at': None,
+                    'last_reply_by': None
+                },
+                {
+                    'id': str(uuid.uuid4()),
+                    'slug': 'goscript-v2-released-whats-new',
+                    'title': 'Goscript v2.0 Released - What\'s New',
+                    'author': 'gopu-inc',
+                    'category': 'goscript',
+                    'content': """# Goscript v2.0 is here! 🚀
+
+We're excited to announce the release of Goscript v2.0!
+
+## New Features:
+- **Async/Await** - Native async support
+- **Struct Inheritance** - `extends` keyword
+- **Pattern Matching** - Powerful `match` expressions
+- **FFI Improvements** - Better C interop
+- **Package Manager** - GPM v1.0
+
+[Read the full changelog](/docs)""",
+                    'tags': ['goscript', 'release', 'v2'],
+                    'views': 156,
+                    'reply_count': 3,
+                    'pinned': True,
+                    'solved': False,
+                    'locked': False,
+                    'created_at': (datetime.now() - timedelta(days=2)).isoformat(),
+                    'updated_at': (datetime.now() - timedelta(hours=5)).isoformat(),
+                    'last_reply_at': (datetime.now() - timedelta(hours=1)).isoformat(),
+                    'last_reply_by': 'core_dev'
+                }
+            ],
+            'categories': [
+                {'name': 'general', 'label': 'General Discussion', 'icon': 'comments', 'count': 1},
+                {'name': 'help', 'label': 'Help & Support', 'icon': 'question-circle', 'count': 0},
+                {'name': 'packages', 'label': 'Package Development', 'icon': 'code', 'count': 0},
+                {'name': 'goscript', 'label': 'Goscript Language', 'icon': 'microchip', 'count': 1},
+                {'name': 'gpm', 'label': 'GPM Package Manager', 'icon': 'box', 'count': 0},
+                {'name': 'showcase', 'label': 'Project Showcase', 'icon': 'star', 'count': 0},
+                {'name': 'tutorials', 'label': 'Tutorials & Guides', 'icon': 'graduation-cap', 'count': 0},
+                {'name': 'feedback', 'label': 'Feedback & Suggestions', 'icon': 'lightbulb', 'count': 0}
+            ]
+        }
+        
+        GitHubManager.save_to_github('forum/topics.json', initial_data, 'Init forum')
+        
+        # Créer la première reply pour le topic de bienvenue
+        welcome_replies = {
+            'replies': [
+                {
+                    'id': str(uuid.uuid4()),
+                    'topic_slug': 'welcome-to-zarch-hub-forum',
+                    'author': 'gopu-inc',
+                    'content': 'Welcome everyone! Feel free to introduce yourself in this topic. We\'re excited to have you here! 🎉',
+                    'likes': 5,
+                    'liked_by': ['zarch-team'],
+                    'is_solution': False,
+                    'created_at': datetime.now().isoformat(),
+                    'updated_at': datetime.now().isoformat()
+                }
+            ]
+        }
+        GitHubManager.save_to_github('forum/replies/welcome-to-zarch-hub-forum.json', 
+                                    welcome_replies, 'Init welcome replies')
+        
+        # Mettre à jour le reply_count
+        initial_data['topics'][0]['reply_count'] = 1
+        GitHubManager.save_to_github('forum/topics.json', initial_data, 'Update reply count')
+
+
+
+
+
+
+
+
+
+
 # ============================================================================
 # ROUTE POUR LES BADGES PERSONNALISÉS DES UTILISATEURS
 # ============================================================================
@@ -2662,7 +3368,7 @@ def init_storage():
 
 if __name__ == '__main__':
     init_storage()
-    
+    init_forum()
     print("🚀 Zarch Server v5.2 Started")
     print("=" * 50)
     print(f"📦 GitHub Repo: {SecurityConfig.GITHUB_REPO}")
