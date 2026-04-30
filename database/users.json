@@ -76,7 +76,7 @@
       "discord_token": "MTQ2NzU0MjkyMjEzOTUzNzQ2OQ.X2QrJ68rIU92wlcZhJZYaE9uxzQFFx",
       "discord_refresh_token": "pTWrVpBYy75zEN9EPB8ojkEmX3BiQf",
       "discord_token_expires": "2026-05-03T15:10:06.192285",
-      "role": "user",
+      "role": "admin @ zarch (✔️)",
       "created_at": "2026-04-26T15:10:06.192294",
       "last_login": "2026-04-26T15:10:06.192296",
       "provider": "discord",
@@ -100,7 +100,7 @@
       "username": "gopu",
       "email": "gopus.inc@gmail.com",
       "password": "$2b$12$.B4I142UolJly4iszZXf.ORLSu3x5WjTmjjezTbS8PVMtTG4gwCiS",
-      "role": "user",
+      "role": "admin (Creator gopu inc)",
       "created_at": "2026-04-30T00:41:57.248303"
     }
   ]
