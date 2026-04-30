@@ -52,6 +52,19 @@
       "created_at": "2026-04-25T13:01:47.113749",
       "updated_at": "2026-04-25T13:01:47.113756",
       "downloads": 46
+    },
+    {
+      "name": "openv",
+      "scope": "public",
+      "version": "1.0.0",
+      "release": "r0",
+      "arch": "x86_64",
+      "author": "gopu",
+      "sha256": "5d35a4c85107fb54bbf8597377c5bd7a7db282a08956162840bd02cf559f3ba8",
+      "size": 3513,
+      "created_at": "2026-04-30T08:51:00.092982",
+      "updated_at": "2026-04-30T08:51:00.092989",
+      "downloads": 0
     }
   ],
   "badges": [],
