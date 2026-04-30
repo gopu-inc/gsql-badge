@@ -1,162 +1,620 @@
-
 {% extends "base.html" %}
 
-{% block title %}Dashboard - {{ user.username }}{% endblock %}
+{% block head_extra %}
+<meta property="og:title" content="Dashboard - Zarch Hub">
+<meta property="og:description" content="Manage your packages, track downloads, and view your Zarch Hub statistics.">
+<meta property="og:url" content="https://gsql-badge.onrender.com/dashboard">
+<meta name="description" content="Your Zarch Hub dashboard - Manage packages, view stats, and access your account.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://gsql-badge.onrender.com/dashboard">
+{% endblock %}
+
+{% block title %}Dashboard - Zarch Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ============================================================
+    DASHBOARD LAYOUT
+    ============================================================ */
+    .dashboard-page {
+        padding: 2rem 0 4rem;
+        min-height: calc(100vh - var(--navbar-height) - 300px);
+    }
+
+    .dashboard-header {
+        background: var(--gradient-hero);
+        border-bottom: 1px solid var(--border-color);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-header-content {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .user-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: var(--radius-full);
+        background: var(--gradient-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 800;
+        color: #fff;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-md);
+        text-transform: uppercase;
+    }
+
+    .user-info h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+        letter-spacing: -0.02em;
+    }
+
+    .user-info .user-role {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(88, 166, 255, 0.1);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+        color: var(--accent-blue);
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-full);
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .user-info .member-since {
+        font-size: 0.85rem;
+        color: var(--text-tertiary);
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    /* ============================================================
+    STATS CARDS
+    ============================================================ */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(88, 166, 255, 0.03) 0%, transparent 70%);
+        opacity: 0;
+        transition: var(--transition);
+    }
+
+    .stat-card:hover::before {
+        opacity: 1;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-value {
+        font-family: var(--font-mono);
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.4rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ============================================================
+    SECTION HEADER
+    ============================================================ */
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-header h2 i {
+        color: var(--accent-blue);
+    }
+
+    /* ============================================================
+    PACKAGES TABLE
+    ============================================================ */
+    .packages-table-wrapper {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .packages-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .packages-table thead {
+        background: var(--bg-tertiary);
+    }
+
+    .packages-table th {
+        padding: 0.9rem 1.25rem;
+        text-align: left;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .packages-table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .packages-table tbody tr {
+        transition: var(--transition);
+    }
+
+    .packages-table tbody tr:hover {
+        background: var(--bg-tertiary);
+    }
+
+    .packages-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .pkg-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .pkg-name:hover {
+        color: var(--accent-blue);
+    }
+
+    .pkg-name .pkg-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--gradient-blue);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.65rem;
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-public {
+        background: rgba(63, 185, 80, 0.1);
+        color: var(--accent-green);
+        border: 1px solid rgba(63, 185, 80, 0.2);
+    }
+
+    .badge-private {
+        background: rgba(248, 81, 73, 0.1);
+        color: var(--accent-red);
+        border: 1px solid rgba(248, 81, 73, 0.2);
+    }
+
+    .badge-version {
+        background: rgba(88, 166, 255, 0.1);
+        color: var(--accent-blue);
+        border: 1px solid rgba(88, 166, 255, 0.2);
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+    }
+
+    .btn-table {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.75rem;
+        border-radius: var(--radius-xs);
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .btn-table:hover {
+        border-color: var(--accent-blue);
+        color: var(--accent-blue);
+        background: rgba(88, 166, 255, 0.05);
+    }
+
+    .btn-table.danger:hover {
+        border-color: var(--accent-red);
+        color: var(--accent-red);
+        background: rgba(248, 81, 73, 0.05);
+    }
+
+    /* ============================================================
+    EMPTY STATE
+    ============================================================ */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-tertiary);
+        margin-bottom: 1rem;
+        display: block;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--text-tertiary);
+        margin-bottom: 1.5rem;
+    }
+
+    /* ============================================================
+    QUICK ACTIONS
+    ============================================================ */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .quick-action {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .quick-action:hover {
+        transform: translateY(-4px);
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow-glow-blue);
+    }
+
+    .quick-action i {
+        font-size: 2rem;
+        color: var(--accent-blue);
+    }
+
+    .quick-action span {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    /* ============================================================
+    RESPONSIVE TABLE
+    ============================================================ */
+    @media (max-width: 768px) {
+        .dashboard-header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .user-avatar {
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+        }
+
+        .user-info h1 {
+            font-size: 1.4rem;
+        }
+
+        .packages-table thead {
+            display: none;
+        }
+
+        .packages-table tbody tr {
+            display: block;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .packages-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: none;
+        }
+
+        .packages-table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-8" data-aos="fade-up">
-    <h1 class="text-4xl font-bold text-white mb-2">Welcome back, <span class="text-sky-400">{{ user.username }}</span>!</h1>
-    <p class="text-slate-400">Manage your packages and account settings</p>
-</div>
-
-<!-- Stats Cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all" data-aos="fade-up" data-aos-delay="100">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-slate-400 mb-1">Your Packages</p>
-                <p class="text-4xl font-bold text-white">{{ stats.packages }}</p>
+<!-- ================================================================
+DASHBOARD HEADER
+================================================================ -->
+<section class="dashboard-header">
+    <div class="container">
+        <div class="dashboard-header-content">
+            <div class="user-avatar">
+                {% if user.get('discord_avatar') %}
+                <img src="{{ user.discord_avatar }}" alt="{{ user.username }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">
+                {% else %}
+                {{ user.username[:1] }}
+                {% endif %}
             </div>
-            <div class="w-14 h-14 bg-gradient-to-br from-sky-500/20 to-sky-400/20 rounded-xl flex items-center justify-center border border-sky-500/30">
-                <i class="fas fa-cube text-2xl text-sky-400"></i>
-            </div>
-        </div>
-    </div>
-    
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all" data-aos="fade-up" data-aos-delay="150">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-slate-400 mb-1">Total Downloads</p>
-                <p class="text-4xl font-bold text-white">{{ stats.downloads }}</p>
-            </div>
-            <div class="w-14 h-14 bg-gradient-to-br from-green-500/20 to-green-400/20 rounded-xl flex items-center justify-center border border-green-500/30">
-                <i class="fas fa-download text-2xl text-green-400"></i>
-            </div>
-        </div>
-    </div>
-    
-    <div class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all" data-aos="fade-up" data-aos-delay="200">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-slate-400 mb-1">Member Since</p>
-                <p class="text-4xl font-bold text-white">{{ stats.member_since }}</p>
-            </div>
-            <div class="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-purple-400/20 rounded-xl flex items-center justify-center border border-purple-500/30">
-                <i class="fas fa-calendar text-2xl text-purple-400"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <a href="/upload" class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="250">
-        <div class="flex items-center space-x-4">
-            <div class="w-14 h-14 bg-gradient-to-br from-sky-500 to-sky-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
-                <i class="fas fa-upload text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-xl font-semibold text-white mb-1">Upload New Package</h3>
-                <p class="text-slate-400 text-sm">Share your software with the community</p>
-            </div>
-            <i class="fas fa-arrow-right ml-auto text-slate-500 group-hover:text-sky-400 group-hover:translate-x-1 transition-all"></i>
-        </div>
-    </a>
-    
-    <a href="/settings" class="glass-card rounded-2xl p-6 border border-slate-700/50 hover:border-sky-500/30 transition-all group" data-aos="fade-up" data-aos-delay="300">
-        <div class="flex items-center space-x-4">
-            <div class="w-14 h-14 bg-gradient-to-br from-sky-500 to-sky-400 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-sky-500/20">
-                <i class="fas fa-cog text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-xl font-semibold text-white mb-1">Account Settings</h3>
-                <p class="text-slate-400 text-sm">Manage your profile and preferences</p>
-            </div>
-            <i class="fas fa-arrow-right ml-auto text-slate-500 group-hover:text-sky-400 group-hover:translate-x-1 transition-all"></i>
-        </div>
-    </a>
-</div>
-
-<!-- Your Packages -->
-<div class="glass-card rounded-2xl p-8 border border-slate-700/50" data-aos="fade-up" data-aos-delay="350">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-white">Your Packages</h2>
-        <a href="/upload" class="px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl text-sm font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-            <i class="fas fa-plus mr-2"></i>New Package
-        </a>
-    </div>
-    
-    {% if user_packages %}
-    <div class="space-y-4">
-        {% for package in user_packages %}
-        <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700 hover:border-sky-500/30 transition-all">
-            <div>
-                <div class="flex items-center space-x-3">
-                    <h3 class="text-lg font-semibold">
-                        <a href="/package/{{ package.name }}" class="text-white hover:text-sky-400">
-                            {{ package.name }}
-                        </a>
-                    </h3>
-                    <span class="px-2 py-1 bg-sky-500/10 text-sky-400 rounded-full text-xs border border-sky-500/30">
-                        v{{ package.version }}
-                    </span>
-                    <span class="px-2 py-1 bg-slate-700 text-slate-300 rounded-full text-xs">
-                        {{ package.scope }}
-                    </span>
-                </div>
-                <div class="flex items-center space-x-4 mt-2 text-sm text-slate-400">
-                    <span><i class="fas fa-download mr-1 text-sky-400"></i>{{ package.downloads }} downloads</span>
-                    <span><i class="far fa-clock mr-1 text-sky-400"></i>{{ package.created_at[:10] }}</span>
+            <div class="user-info">
+                <h1>{{ user.username }}</h1>
+                <span class="user-role">
+                    <i class="fas fa-shield-alt"></i>
+                    {{ user.get('role', 'user') }}
+                </span>
+                <div class="member-since">
+                    <i class="fas fa-calendar-alt"></i>
+                    Member since {{ stats.member_since if stats.member_since else '2026' }}
                 </div>
             </div>
-            
-            <div class="flex space-x-2">
-                <a href="/package/{{ package.name }}" 
-                   class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:bg-sky-500 hover:text-white transition-all">
-                    <i class="fas fa-eye"></i>
-                </a>
-                <a href="/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}"
-                   class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-slate-300 hover:bg-sky-500 hover:text-white transition-all">
-                    <i class="fas fa-download"></i>
-                </a>
-            </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="text-center py-12">
-        <div class="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-box-open text-4xl text-slate-600"></i>
-        </div>
-        <p class="text-xl text-white mb-2">No packages yet</p>
-        <p class="text-slate-400 mb-6">Share your software with the community</p>
-        <a href="/upload" 
-           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-sky-500 to-sky-400 text-white rounded-xl font-semibold hover:from-sky-600 hover:to-sky-500 transition-all glow-button">
-            <i class="fas fa-upload mr-2"></i>Upload Your First Package
-        </a>
-    </div>
-    {% endif %}
-</div>
+</section>
 
-<!-- Discord Connection Status -->
-{% if user.discord_id %}
-<div class="mt-8 glass-card rounded-2xl p-6 border border-slate-700/50" data-aos="fade-up" data-aos-delay="400">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-            <div class="w-12 h-12 bg-[#5865F2]/20 rounded-xl flex items-center justify-center border border-[#5865F2]/30">
-                <i class="fab fa-discord text-2xl text-[#5865F2]"></i>
+<!-- ================================================================
+DASHBOARD CONTENT
+================================================================ -->
+<section class="dashboard-page">
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-value">{{ stats.packages }}</div>
+                <div class="stat-label">Your Packages</div>
             </div>
-            <div>
-                <h3 class="text-lg font-semibold text-white">Discord Connected</h3>
-                <p class="text-slate-400">Connected as {{ user.discord_username }}</p>
+            <div class="stat-card">
+                <div class="stat-icon">⬇️</div>
+                <div class="stat-value">{{ stats.downloads }}</div>
+                <div class="stat-label">Total Downloads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" id="avg-rating">--</div>
+                <div class="stat-label">Avg Rating</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔐</div>
+                <div class="stat-value">{{ user.get('discord_id', '') and '✓' or '—' }}</div>
+                <div class="stat-label">Discord Linked</div>
             </div>
         </div>
-        <div class="flex space-x-2">
-            <span class="px-3 py-1 bg-green-500/10 text-green-400 rounded-full text-sm border border-green-500/30">
-                <i class="fas fa-check-circle mr-1"></i>Connected
-            </span>
+
+        <!-- Packages Section -->
+        <div class="section-header">
+            <h2><i class="fas fa-box"></i> Your Packages</h2>
+            <a href="/upload" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> New Package
+            </a>
+        </div>
+
+        {% if user_packages %}
+        <div class="packages-table-wrapper">
+            <table class="packages-table">
+                <thead>
+                    <tr>
+                        <th>Package</th>
+                        <th>Version</th>
+                        <th>Scope</th>
+                        <th>Downloads</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pkg in user_packages %}
+                    <tr>
+                        <td data-label="Package">
+                            <a href="/package/{{ pkg.name }}" class="pkg-name">
+                                <div class="pkg-icon"><i class="fas fa-cube"></i></div>
+                                {{ pkg.name }}
+                            </a>
+                        </td>
+                        <td data-label="Version">
+                            <span class="badge badge-version">v{{ pkg.version }}</span>
+                        </td>
+                        <td data-label="Scope">
+                            <span class="badge badge-{{ 'public' if pkg.scope == 'public' else 'private' }}">
+                                <i class="fas fa-{{ 'globe' if pkg.scope == 'public' else 'lock' }}"></i>
+                                {{ pkg.scope }}
+                            </span>
+                        </td>
+                        <td data-label="Downloads">
+                            <i class="fas fa-download" style="color: var(--text-tertiary); margin-right: 0.3rem;"></i>
+                            {{ pkg.downloads }}
+                        </td>
+                        <td data-label="Actions">
+                            <a href="/package/{{ pkg.name }}" class="btn-table">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <a href="/package/download/{{ pkg.scope }}/{{ pkg.name }}/{{ pkg.version }}/r0/x86_64" class="btn-table">
+                                <i class="fas fa-download"></i> DL
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-box-open"></i>
+            <h3>No packages yet</h3>
+            <p>Start publishing your first package and share it with the community!</p>
+            <a href="/upload" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Publish Your First Package
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="/upload" class="quick-action">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Upload Package</span>
+            </a>
+            <a href="/settings/profile" class="quick-action">
+                <i class="fas fa-user-edit"></i>
+                <span>Edit Profile</span>
+            </a>
+            <a href="/settings/badges" class="quick-action">
+                <i class="fas fa-id-badge"></i>
+                <span>My Badges</span>
+            </a>
+            <a href="/settings/security" class="quick-action">
+                <i class="fas fa-shield-alt"></i>
+                <span>Security</span>
+            </a>
+            <a href="/docs" class="quick-action">
+                <i class="fas fa-book"></i>
+                <span>Documentation</span>
+            </a>
+            <a href="/@{{ user.username }}" class="quick-action">
+                <i class="fas fa-user-circle"></i>
+                <span>Public Profile</span>
+            </a>
         </div>
     </div>
-</div>
-{% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load average rating for user's packages
+    document.addEventListener('DOMContentLoaded', async () => {
+        const packages = {{ user_packages | tojson | safe }};
+        const ratingEl = document.getElementById('avg-rating');
+        
+        if (!packages || packages.length === 0) {
+            ratingEl.textContent = 'N/A';
+            return;
+        }
+
+        try {
+            const ratings = await Promise.all(
+                packages.map(pkg => 
+                    fetch(`/api/v1/package/${pkg.name}/rating`)
+                        .then(r => r.json())
+                        .catch(() => ({ average: 0, count: 0 }))
+                )
+            );
+
+            const validRatings = ratings.filter(r => r.count > 0);
+            if (validRatings.length > 0) {
+                const avg = validRatings.reduce((sum, r) => sum + r.average, 0) / validRatings.length;
+                ratingEl.textContent = avg.toFixed(1);
+            } else {
+                ratingEl.textContent = '--';
+            }
+        } catch (e) {
+            ratingEl.textContent = '--';
+        }
+    });
+</script>
 {% endblock %}
