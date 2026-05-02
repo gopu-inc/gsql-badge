@@ -1,0 +1,13 @@
+{
+  "reviews": [
+    {
+      "id": "2fffbe85-0aa4-47c9-a5fa-d29a517fb4e3",
+      "username": "gopu",
+      "rating": 5,
+      "comment": "Passables !",
+      "created_at": "2026-05-02T17:27:09.506255",
+      "updated_at": "2026-05-02T17:27:09.506263"
+    }
+  ],
+  "average": 5.0
+}
