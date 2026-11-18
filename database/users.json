@@ -118,6 +118,14 @@
       "twitter": "@gopu",
       "github": "gopu-inc",
       "updated_at": "2026-04-30T06:35:47.396446"
+    },
+    {
+      "id": "7fb49371-5e11-42c0-b520-89d54e0ad319",
+      "username": "codex",
+      "email": "no-reply@openai.com",
+      "password": "$2b$12$VO3nGRHWbuimXOLZjcPC/ewUpDju.JKsoSbH8EDn5aAxFP0YF2gWu",
+      "role": "user",
+      "created_at": "2026-11-18T20:55:32.099619"
     }
   ]
 }
