@@ -26,7 +26,7 @@ from functools import wraps
 from urllib.parse import urlparse, urlencode, quote
 
 # Flask et extensions
-from flask import Flask, request, jsonify, g, render_template, render_template_string, make_response, session, redirect, flash, abort, Response
+from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort, Response
 from flask_cors import CORS
 
 # Sécurité avancée
@@ -597,8 +597,20 @@ class SecurityUtils:
         return bleach.clean(
             content,
             tags=['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-                  'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'img'],
-            attributes={'a': ['href', 'title'], 'img': ['src', 'alt']},
+                  'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'img', 'hr',
+                  'del', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+                  'div', 'span', 'input', 'sup', 'sub'],
+            attributes={
+                'a': ['href', 'title', 'id', 'class'],
+                'img': ['src', 'alt', 'title', 'width', 'height'],
+                'h1': ['id'], 'h2': ['id'], 'h3': ['id'],
+                'h4': ['id'], 'h5': ['id'], 'h6': ['id'],
+                'code': ['class'], 'pre': ['class'],
+                'div': ['class'], 'span': ['class'],
+                'th': ['align'], 'td': ['align'],
+                'input': ['type', 'disabled', 'checked']
+            },
+            protocols=['http', 'https', 'mailto'],
             strip=True
         )
     
@@ -616,7 +628,7 @@ class MarkdownRenderer:
     def render(text):
         """Convertit le markdown en HTML sécurisé"""
         if not text:
-            return "<p>No documentation available.</p>"
+            return ""
         
         # Extensions markdown
         extensions = [
@@ -629,17 +641,19 @@ class MarkdownRenderer:
         ]
         
         # Conversion
-        html = markdown.markdown(text, extensions=extensions)
+        html = markdown.markdown(
+            text,
+            extensions=extensions,
+            extension_configs={
+                'codehilite': {'guess_lang': False, 'use_pygments': True},
+                'toc': {'permalink': True}
+            }
+        )
         
         # Nettoyage sécurité
         html = SecurityUtils.sanitize_html(html)
         
-        # Ajout du style GitHub
-        return f'''
-        <div class="markdown-body">
-            {html}
-        </div>
-        '''
+        return html
     
     @staticmethod
     def extract_from_tar(tar_path):
@@ -1824,128 +1838,6 @@ def get_rating(name):
     })
 
 
-PACKAGES_PAGE_TEMPLATE = """<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Paquets · Zarch Hub</title>
-  <style>
-    :root{color-scheme:dark;--bg:#0d111b;--panel:#171d29;--line:#2a3444;--text:#edf2fa;--muted:#9ba8ba;--blue:#77b7ff;--green:#68d391}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-    a{color:inherit;text-decoration:none}a:hover{color:var(--blue)}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-    .wrap{max-width:980px;margin:auto;padding:36px 22px 64px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
-    .brand{font-weight:750;font-size:19px;letter-spacing:-.03em}.top a:last-child{color:var(--blue);font-size:14px}
-    h1{font-size:clamp(28px,5vw,40px);line-height:1.1;letter-spacing:-.04em;margin:0 0 8px}.intro{color:var(--muted);margin:0 0 25px}
-    .stats{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 24px;color:var(--muted);font-size:13px}.stats strong{color:var(--text);font-size:15px;margin-right:5px}
-    form{display:grid;grid-template-columns:minmax(0,1fr) 150px 150px auto;gap:9px;margin-bottom:24px}
-    input,select,button{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text);font:inherit;padding:0 12px}
-    button{background:#2368bf;border-color:#2368bf;font-weight:650;cursor:pointer;padding:0 18px}button:hover{background:#2b79d8}
-    .results{color:var(--muted);font-size:13px;margin:0 0 9px}.list{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
-    .item{padding:18px 4px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;align-items:center}
-    .name-line{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.name{font-size:18px;font-weight:700;letter-spacing:-.02em}
-    .version{font:13px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--blue)}
-    .description{margin:4px 0 0;color:var(--muted);font-size:14px}
-    .meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px;white-space:nowrap}.meta .warning{color:#f4c46a}
-    .empty{padding:38px 8px;text-align:center;color:var(--muted);border-bottom:1px solid var(--line)}
-    .pages{display:flex;justify-content:space-between;align-items:center;margin-top:18px;color:var(--muted);font-size:13px}.pages a{color:var(--blue)}
-    @media(max-width:700px){.wrap{padding:24px 16px 48px}form{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}button{grid-column:1/-1}.item{align-items:flex-start;flex-direction:column;gap:9px}.meta{white-space:normal}}
-    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
-  </style>
-</head>
-<body>
-  <main class="wrap">
-    <header class="top"><a class="brand" href="/">Zarch Hub</a><a href="/api/docs">API</a></header>
-    <h1>Paquets</h1>
-    <p class="intro">Explorez les paquets Goscript et leurs versions publiées.</p>
-    <div class="stats" aria-label="Statistiques du registre">
-      <span><strong>{{ total_packages }}</strong> paquets</span>
-      <span><strong>{{ total_downloads }}</strong> téléchargements</span>
-      <span><strong>{{ total_authors }}</strong> auteurs</span>
-    </div>
-    <form method="get" action="{{ url_for('packages_page') }}">
-      <input class="search" type="search" name="q" value="{{ query }}" placeholder="Rechercher un paquet…" aria-label="Rechercher un paquet">
-      <select name="scope" aria-label="Portée">
-        <option value="all" {% if scope == 'all' %}selected{% endif %}>Toutes les portées</option>
-        {% for item_scope in scopes %}<option value="{{ item_scope }}" {% if scope == item_scope %}selected{% endif %}>{{ item_scope }}</option>{% endfor %}
-      </select>
-      <select name="sort" aria-label="Trier par">
-        <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Récemment mis à jour</option>
-        <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>Téléchargements</option>
-        <option value="name" {% if sort == 'name' %}selected{% endif %}>Nom A–Z</option>
-        <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Nom Z–A</option>
-      </select>
-      <button type="submit">Rechercher</button>
-    </form>
-    <p class="results">{{ total_results }} résultat{% if total_results != 1 %}s{% endif %}</p>
-    {% if packages %}
-      <ul class="list">
-      {% for package in packages %}
-        <li class="item">
-          <div>
-            <div class="name-line">
-              <a class="name" href="{{ url_for('package_detail_page', name=package.name, scope=package.scope) }}">{{ package.name }}</a>
-              <span class="version">v{{ package.version }}</span>
-              {% if package.version_count > 1 %}<a class="version" href="{{ url_for('package_detail_page', name=package.name, scope=package.scope) }}">+ {{ package.version_count - 1 }} versions</a>{% endif %}
-            </div>
-            {% if package.description %}<p class="description">{{ package.description }}</p>{% endif %}
-          </div>
-          <div class="meta">
-            <span>par {{ package.author }}</span><span>{{ package.downloads }} téléchargements</span>
-            {% if package.publisher_conflict %}<span class="warning">historique de publication à vérifier</span>{% endif %}
-          </div>
-        </li>
-      {% endfor %}
-      </ul>
-    {% else %}
-      <div class="empty">Aucun paquet ne correspond à cette recherche.</div>
-    {% endif %}
-    <nav class="pages" aria-label="Pagination">
-      <span>Page {{ page }}{% if total_pages %} sur {{ total_pages }}{% endif %}</span>
-      <span>{% if page > 1 %}<a href="{{ url_for('packages_page', q=query, sort=sort, scope=scope, page=page - 1) }}">← Précédent</a>{% endif %}
-      {% if page < total_pages %}<a href="{{ url_for('packages_page', q=query, sort=sort, scope=scope, page=page + 1) }}">Suivant →</a>{% endif %}</span>
-    </nav>
-  </main>
-</body>
-</html>"""
-
-
-PACKAGE_DETAIL_TEMPLATE = """<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ package.name }} · Zarch Hub</title>
-  <style>
-    :root{color-scheme:dark;--bg:#0d111b;--panel:#171d29;--line:#2a3444;--text:#edf2fa;--muted:#9ba8ba;--blue:#77b7ff}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
-    a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}a:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-    main{max-width:900px;margin:auto;padding:32px 22px 64px}.back{font-size:14px}.title{margin:30px 0 4px;font-size:clamp(30px,6vw,46px);letter-spacing:-.04em;line-height:1.1}
-    .version{font:15px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--blue)}.meta{color:var(--muted);font-size:14px;margin:13px 0 28px}
-    .versions{padding:17px 19px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 30px}
-    .versions h2{font-size:16px;margin:0 0 12px}.version-list{display:flex;gap:8px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
-    .version-list a{display:inline-block;padding:5px 9px;border:1px solid var(--line);border-radius:6px;font:13px ui-monospace,SFMono-Regular,Consolas,monospace}
-    .readme{border-top:1px solid var(--line);padding-top:22px;overflow-wrap:anywhere}.readme img{max-width:100%;height:auto}
-    @media(max-width:600px){main{padding:22px 16px 48px}}
-  </style>
-</head>
-<body><main>
-  <a class="back" href="{{ url_for('packages_page') }}">← Tous les paquets</a>
-  <h1 class="title">{{ package.name }}</h1><span class="version">v{{ selected.version }}</span>
-  <p class="meta">Publié par {{ package.author }} · {{ package.downloads }} téléchargements · {{ package.scope }}</p>
-  <section class="versions" aria-labelledby="versions-title">
-    <h2 id="versions-title">Versions publiées</h2>
-    <ul class="version-list">
-    {% for version in package.versions %}
-      <li><a href="{{ url_for('package_detail_page', name=package.name, scope=package.scope, version=version) }}" {% if version == selected.version %}aria-current="page"{% endif %}>{{ version }}</a></li>
-    {% endfor %}
-    </ul>
-  </section>
-  {% if readme_html %}<article class="readme">{{ readme_html|safe }}</article>{% endif %}
-</main></body>
-</html>"""
-
-
 @app.route('/packages')
 def packages_page():
     """Render a compact, single-entry-per-package registry."""
@@ -1992,7 +1884,7 @@ def packages_page():
         start = (page - 1) * per_page
         paginated_packages = packages[start:start + per_page]
 
-        return render_template_string(PACKAGES_PAGE_TEMPLATE,
+        return render_template('packages.html',
             packages=paginated_packages,
             total_packages=total_packages,
             total_downloads=total_downloads,
@@ -2053,28 +1945,31 @@ def package_detail_page(name):
     if not package_group or not selected:
         abort(404, description="Package not found")
 
-    readme_html = None
+    readme_html = ''
     filename = f"{name}-{selected['version']}-{selected.get('release', 'r0')}-{selected.get('arch', 'x86_64')}.tar.bool"
     pkg_path = f"packages/{selected['scope']}/{name}/{filename}"
 
     content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
     if content:
-        temp_dir = tempfile.mkdtemp()
-        temp_path = os.path.join(temp_dir, filename)
-        with open(temp_path, 'wb') as f:
-            f.write(content)
-        
-        readme_text = MarkdownRenderer.extract_from_tar(temp_path)
-        if readme_text:
-            readme_html = MarkdownRenderer.render(readme_text)
-        
-        shutil.rmtree(temp_dir)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = os.path.join(temp_dir, filename)
+            with open(temp_path, 'wb') as f:
+                f.write(content)
 
-    return render_template_string(
-        PACKAGE_DETAIL_TEMPLATE,
+            readme_text = MarkdownRenderer.extract_from_tar(temp_path)
+            if readme_text:
+                readme_html = MarkdownRenderer.render(readme_text)
+
+    return render_template(
+        'package_detail.html',
         package=package_group,
         selected=selected,
-        readme_html=readme_html
+        readme_html=readme_html,
+        versions=sorted(
+            package_group.get('_version_records', []),
+            key=_package_version_key,
+            reverse=True
+        )
     )
 
 @app.route('/docs')

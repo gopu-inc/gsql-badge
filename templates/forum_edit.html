@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Edit topic · Zarch Hub Forum{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{{ url_for('static', filename='pages.css') }}">{% endblock %}
+
+{% block content %}
+<main class="hub-page">
+    <header class="hub-page-header">
+        <p class="hub-kicker">Community forum</p>
+        <h1>Edit topic</h1>
+        <p>Update the title, category, tags, or post content.</p>
+    </header>
+
+    <form class="hub-form" method="post" action="{{ url_for('forum_edit_topic', slug=topic.slug) }}">
+        <label for="topic-title">Title
+            <input id="topic-title" name="title" type="text" value="{{ topic.title }}" minlength="10" maxlength="100" required>
+        </label>
+
+        <label for="topic-category">Category
+            <input id="topic-category" name="category" type="text" value="{{ topic.category }}" required>
+        </label>
+
+        <label for="topic-tags">Tags
+            <input id="topic-tags" name="tags" type="text" value="{{ topic.tags|join(', ') }}" placeholder="help, goscript">
+        </label>
+
+        <label for="topic-content">Content
+            <textarea id="topic-content" name="content" minlength="20" required>{{ topic.content }}</textarea>
+        </label>
+
+        <div class="hub-actions">
+            <button class="hub-submit" type="submit">Save changes</button>
+            <a href="{{ url_for('forum_topic', slug=topic.slug) }}">Cancel</a>
+        </div>
+    </form>
+</main>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}API documentation · Zarch Hub{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{{ url_for('static', filename='pages.css') }}">{% endblock %}
+
+{% block content %}
+<main class="hub-page">
+    <header class="hub-page-header">
+        <p class="hub-kicker">For developers</p>
+        <h1>Registry API</h1>
+        <p>Read package metadata and search the published registry over HTTP.</p>
+    </header>
+
+    <section class="hub-grid" aria-label="Available API endpoints">
+        <article class="hub-card">
+            <h2>Search packages</h2>
+            <code class="hub-endpoint">GET /v5.2/package/search?q=&lt;term&gt;</code>
+            <p>Returns matching package records with the latest version, available versions, publisher, download count, and scope.</p>
+        </article>
+        <article class="hub-card">
+            <h2>Read package dependencies</h2>
+            <code class="hub-endpoint">GET /api/v1/package/&lt;name&gt;/dependencies?scope=&lt;scope&gt;</code>
+            <p>Returns the package's <code>dependencies</code> and <code>dev_dependencies</code> lists. The scope parameter disambiguates packages with the same name.</p>
+        </article>
+    </section>
+
+    <section class="hub-card hub-spaced" aria-labelledby="example-title">
+        <h2 id="example-title">Search response</h2>
+        <pre class="hub-endpoint"><code>{
+  "results": [
+    {
+      "name": "example",
+      "version": "1.2.0",
+      "versions": ["1.2.0", "1.1.0"],
+      "author": "publisher",
+      "downloads": 24,
+      "scope": "public"
+    }
+  ]
+}</code></pre>
+        <p>The search endpoint accepts the <code>q</code> query parameter and returns an empty result list when there are no matches.</p>
+    </section>
+</main>
+{% endblock %}

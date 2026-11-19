@@ -12,6 +12,18 @@
 
 {% block extra_css %}
 <style>
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
     /* ============================================================
     PAGE HEADER
     ============================================================ */
@@ -247,6 +259,16 @@
         margin-top: 0.2rem;
     }
 
+    .card-description {
+        display: -webkit-box;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: 0.88rem;
+        line-height: 1.55;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
     .card-meta {
         display: flex;
         flex-wrap: wrap;
@@ -269,6 +291,11 @@
 
     .card-meta .author-link:hover {
         color: var(--accent-purple);
+    }
+
+    .card-conflict {
+        color: var(--accent-orange);
+        font-size: 0.78rem;
     }
 
     .card-badge {
@@ -422,10 +449,12 @@ SEARCH & FILTERS
         <div class="search-section">
             <div class="search-wrapper">
                 <i class="fas fa-search"></i>
+                <label class="sr-only" for="searchInput">Search packages</label>
                 <input type="text" 
                        id="searchInput" 
                        class="search-input" 
                        placeholder="Search packages by name, description, or author..."
+                       aria-label="Search packages by name, description, or author"
                        value="{{ query }}"
                        autocomplete="off">
                 <button class="search-clear {{ 'visible' if query else '' }}" id="searchClear" aria-label="Clear search">
@@ -475,7 +504,7 @@ SEARCH & FILTERS
         {% if packages %}
         <div class="packages-grid">
             {% for pkg in packages %}
-            <a href="/package/{{ pkg.name }}" class="package-card">
+            <a href="{{ url_for('package_detail_page', name=pkg.name, scope=pkg.scope) }}" class="package-card">
                 <div class="card-top">
                     <div class="card-icon">
                         <i class="fas fa-cube"></i>
@@ -485,6 +514,9 @@ SEARCH & FILTERS
                         <div class="card-version">v{{ pkg.version }}</div>
                     </div>
                 </div>
+                {% if pkg.description %}
+                <p class="card-description">{{ pkg.description }}</p>
+                {% endif %}
                 <div class="card-meta">
                     <span>
                         <i class="fas fa-user-astronaut"></i>
@@ -495,9 +527,16 @@ SEARCH & FILTERS
                         {{ pkg.downloads }}
                     </span>
                     <span>
+                        <i class="fas fa-code-branch"></i>
+                        {{ pkg.version_count }} version{{ 's' if pkg.version_count != 1 else '' }}
+                    </span>
+                    <span>
                         <span class="card-badge {{ pkg.scope }}">{{ pkg.scope }}</span>
                     </span>
                 </div>
+                {% if pkg.publisher_conflict %}
+                <span class="card-conflict" role="note">Publisher metadata needs review</span>
+                {% endif %}
             </a>
             {% endfor %}
         </div>

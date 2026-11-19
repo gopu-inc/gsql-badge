@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Registry statistics · Zarch Hub{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{{ url_for('static', filename='pages.css') }}">{% endblock %}
+
+{% block content %}
+<main class="hub-page">
+    <header class="hub-page-header">
+        <p class="hub-kicker">Registry</p>
+        <h1>Package statistics</h1>
+        <p>A snapshot of the package records currently indexed by Zarch Hub.</p>
+    </header>
+    <section class="hub-grid" aria-label="Registry totals">
+        <article class="hub-card"><span class="hub-stat">{{ stats.total_packages }}</span><h2>Package records</h2></article>
+        <article class="hub-card"><span class="hub-stat">{{ stats.total_downloads }}</span><h2>Downloads</h2></article>
+        <article class="hub-card"><span class="hub-stat">{{ stats.public_packages }}</span><h2>Public records</h2></article>
+        <article class="hub-card"><span class="hub-stat">{{ stats.private_packages }}</span><h2>Private records</h2></article>
+        <article class="hub-card"><span class="hub-stat">{{ stats.total_authors }}</span><h2>Publishers</h2></article>
+    </section>
+    <p class="hub-note hub-spaced">Totals are calculated from package records, so separate versions may count as separate records.</p>
+</main>
+{% endblock %}
