@@ -145,26 +145,31 @@
                 <!-- Avatar -->
                 <div class="avatar-section">
                     <div class="avatar-preview">
-                        {% if user.get('discord_avatar') %}
-                        <img src="{{ user.discord_avatar }}" alt="{{ user.username }}">
+                        {% if user.get('avatar_url') or user.get('discord_avatar') %}
+                        <img class="avatar-image" src="{{ user.get('avatar_url') or user.get('discord_avatar') }}" alt="Current profile photo">
                         {% else %}
-                        {{ user.username[:1] }}
+                        <span>{{ user.username[:1] }}</span>
                         {% endif %}
                     </div>
                     <div>
                         <h3 style="font-size: 1.1rem; font-weight: 700;">{{ user.username }}</h3>
                         <p style="color: var(--text-tertiary); font-size: 0.85rem;">
-                            {% if user.get('discord_id') %}
-                            Avatar from Discord
-                            {% else %}
-                            Avatar based on username
-                            {% endif %}
+                            Choose a profile photo to replace your current avatar.
                         </p>
                     </div>
                 </div>
 
                 <!-- Form -->
-                <form method="POST" action="/settings/profile">
+                <form method="POST" action="/settings/profile" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="profileAvatar">Profile photo</label>
+                        <input type="file" id="profileAvatar" name="avatar" class="form-input"
+                               accept="image/png,image/jpeg,image/webp"
+                               aria-describedby="avatarHint avatarStatus">
+                        <div class="form-hint" id="avatarHint">PNG, JPEG, or WebP. Maximum file size: 4 MB.</div>
+                        <div class="form-hint" id="avatarStatus" role="status" aria-live="polite"></div>
+                    </div>
+
                     <div class="form-group">
                         <label for="display_name">Display Name</label>
                         <input type="text" id="display_name" name="display_name" class="form-input" 
@@ -209,4 +214,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='profile.js') }}" defer></script>
 {% endblock %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/verified_badge.html" import verified_badge %}
 
 {% block head_extra %}
 <meta property="og:title" content="{{ topic.title }} - Zarch Hub Forum">
@@ -546,7 +547,7 @@
                 <div class="topic-header-meta">
                     <span>
                         <i class="fas fa-user"></i>
-                        <a href="/@{{ topic.author }}">{{ topic.author }}</a>
+                        <a href="/@{{ topic.author }}">{{ topic.author }}</a>{{ verified_badge(topic.author) }}
                     </span>
                     <span><i class="fas fa-clock"></i> {{ topic.created_at }}</span>
                     <span><i class="fas fa-eye"></i> {{ topic.views }} views</span>
@@ -559,8 +560,8 @@
                 </div>
             </div>
         </div>
-        <div class="topic-content">
-            {{ topic.content | safe }}
+        <div class="topic-content markdown-body">
+            {{ topic_html | safe }}
         </div>
     </div>
 
@@ -579,7 +580,7 @@
                     </div>
                     <div>
                         <span class="reply-author">
-                            <a href="/@{{ reply.author }}">{{ reply.author }}</a>
+                            <a href="/@{{ reply.author }}">{{ reply.author }}</a>{{ verified_badge(reply.author) }}
                         </span>
                         {% if reply.author == topic.author %}
                         <span class="reply-badge op">OP</span>
@@ -591,7 +592,7 @@
                     <span class="reply-date">{{ reply.created_at }}</span>
                 </div>
                 <div class="reply-body">
-                    {{ reply.content | safe }}
+                    {{ reply.content_html | safe }}
                 </div>
                 <div class="reply-actions">
                     <button class="reply-action-btn like" onclick="handleLike(this, '{{ reply.id }}')">

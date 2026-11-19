@@ -405,6 +405,7 @@ Describe what you've already attempted.
                 <!-- Preview -->
                 <div class="preview-box" id="previewBox">
                     <h3>📄 Preview</h3>
+                    <p id="previewStatus" role="status" aria-live="polite"></p>
                     <div id="previewContent"></div>
                 </div>
             </div>
@@ -507,29 +508,29 @@ Describe what you've already attempted.
     }
 
     // Toggle preview
-    function togglePreview() {
+    async function togglePreview() {
         const previewBox = document.getElementById('previewBox');
         const previewContent = document.getElementById('previewContent');
+        const previewStatus = document.getElementById('previewStatus');
         
         if (previewBox.classList.contains('visible')) {
             previewBox.classList.remove('visible');
         } else {
-            // Simple Markdown-like rendering
-            let text = document.getElementById('content').value;
-            text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            text = text.replace(/`(.+?)`/g, '<code>$1</code>');
-            text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-            text = text.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-            text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-            text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-            text = text.replace(/\n\n/g, '</p><p>');
-            text = '<p>' + text + '</p>';
-            
-            previewContent.innerHTML = text;
             previewBox.classList.add('visible');
+            previewStatus.textContent = 'Rendering preview…';
+            try {
+                const response = await fetch('/api/v1/markdown/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ markdown: document.getElementById('content').value })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || `Preview failed (${response.status})`);
+                previewContent.innerHTML = result.html;
+                previewStatus.textContent = '';
+            } catch (error) {
+                previewStatus.textContent = error.message || 'Could not render the preview.';
+            }
         }
     }
 

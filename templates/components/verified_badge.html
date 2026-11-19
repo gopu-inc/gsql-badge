@@ -1,0 +1,10 @@
+{% macro verified_badge(username) -%}
+{% set identity = username|string|lower|replace(' ', '_') -%}
+{% if identity in ('gopu', 'gopu_admin', 'gopuadmin', 'mauricio') -%}
+<span class="verified-badge" role="img" aria-label="Verified account">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="m5 12 4.2 4.2L19 6.8"></path>
+    </svg>
+</span>
+{%- endif %}
+{%- endmacro %}

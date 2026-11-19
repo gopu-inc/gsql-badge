@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/verified_badge.html" import verified_badge %}
 
 {% block title %}{{ package.name }} · Zarch Hub{% endblock %}
 {% block og_title %}{{ package.name }} · Zarch Hub{% endblock %}
@@ -23,7 +24,7 @@
             {% if package.description %}
             <p class="registry-description">{{ package.description }}</p>
             {% endif %}
-            <p class="registry-publisher">Published by <strong>{{ package.author or 'Unknown publisher' }}</strong></p>
+            <p class="registry-publisher">Published by <strong>{{ package.author or 'Unknown publisher' }}{{ verified_badge(package.author) }}</strong></p>
             {% if package.get('publisher_conflict') %}
             <p class="registry-warning" role="note">Conflicting publisher records exist for this package. The registry-selected publisher is shown above.</p>
             {% endif %}
@@ -74,6 +75,24 @@
         </section>
 
         <aside class="registry-sidebar">
+            <section class="registry-panel registry-dependencies"
+                     data-dependencies-url="{{ url_for('api_package_dependencies', name=package.name, scope=package.scope, version=selected.version, release=selected.get('release', 'r0'), arch=selected.get('arch', 'x86_64')) }}"
+                     aria-labelledby="dependencies-title">
+                <h2 id="dependencies-title">Dependencies</h2>
+                <p class="registry-muted" data-dependencies-status role="status" aria-live="polite">Loading manifest…</p>
+                <div data-dependencies-content hidden>
+                    <section data-dependency-section="dependencies" hidden>
+                        <h3>Runtime</h3>
+                        <ul data-dependency-list="dependencies"></ul>
+                    </section>
+                    <section data-dependency-section="dev_dependencies" hidden>
+                        <h3>Development</h3>
+                        <ul data-dependency-list="dev_dependencies"></ul>
+                    </section>
+                </div>
+                <noscript><p class="registry-muted">Enable JavaScript to load dependencies for this version.</p></noscript>
+            </section>
+
             <section class="registry-panel" id="versions" aria-labelledby="versions-title">
                 <h2 id="versions-title">Versions</h2>
                 {% if versions %}

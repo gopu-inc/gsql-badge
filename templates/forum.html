@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/verified_badge.html" import verified_badge %}
 
 {% block head_extra %}
 <meta property="og:title" content="Forum - Zarch Hub Community">
@@ -598,7 +599,7 @@ FORUM CONTENT
                         <div class="topic-meta">
                             <span>
                                 <i class="fas fa-user-circle"></i>
-                                <span class="meta-author">{{ topic.author }}</span>
+                                <span class="meta-author">{{ topic.author }}{{ verified_badge(topic.author) }}</span>
                             </span>
                             <span>
                                 <i class="far fa-clock"></i>
@@ -622,7 +623,7 @@ FORUM CONTENT
                     <div class="topic-last-col">
                         {% if topic.last_reply_by %}
                         <div class="topic-last-author">
-                            <a href="/@{{ topic.last_reply_by }}">{{ topic.last_reply_by }}</a>
+                            <a href="/@{{ topic.last_reply_by }}">{{ topic.last_reply_by }}</a>{{ verified_badge(topic.last_reply_by) }}
                         </div>
                         <div class="topic-last-time">{{ topic.last_reply_at[:10] if topic.last_reply_at else '' }}</div>
                         {% else %}

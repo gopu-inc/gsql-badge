@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/verified_badge.html" import verified_badge %}
 
 {% block head_extra %}
 <meta property="og:title" content="@{{ profile_user.username }} - Zarch Hub">
@@ -245,14 +246,14 @@
     <div class="container">
         <div class="profile-header-content">
             <div class="profile-avatar">
-                {% if profile_user.get('discord_avatar') %}
-                <img src="{{ profile_user.discord_avatar }}" alt="{{ profile_user.username }}">
+                {% if profile_user.get('avatar_url') or profile_user.get('discord_avatar') %}
+                <img class="avatar-image" src="{{ profile_user.get('avatar_url') or profile_user.get('discord_avatar') }}" alt="{{ profile_user.username }}">
                 {% else %}
                 {{ profile_user.username[:1] }}
                 {% endif %}
             </div>
             <div class="profile-info">
-                <h1>{{ profile_user.get('display_name', profile_user.username) }}</h1>
+                <h1>{{ profile_user.get('display_name', profile_user.username) }}{{ verified_badge(profile_user.username) }}</h1>
                 <div class="username">@{{ profile_user.username }}</div>
                 {% if profile_user.get('bio') %}
                 <div class="bio">{{ profile_user.bio }}</div>

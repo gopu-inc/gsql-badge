@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/verified_badge.html" import verified_badge %}
 
 {% block title %}Search Forum - Zarch Hub{% endblock %}
 
@@ -117,7 +118,7 @@
                             in <a href="/forum/category/{{ result.category_id }}" class="text-sky-400 hover:text-sky-300">{{ result.category }}</a>
                         </span>
                         <span class="text-slate-500">
-                            by <a href="/@{{ result.author }}" class="text-sky-400 hover:text-sky-300">{{ result.author }}</a>
+                            by <a href="/@{{ result.author }}" class="text-sky-400 hover:text-sky-300">{{ result.author }}</a>{{ verified_badge(result.author) }}
                         </span>
                         <span class="text-slate-500">
                             <i class="far fa-clock mr-1"></i>{{ result.created_at|timeago }}

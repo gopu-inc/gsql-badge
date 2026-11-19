@@ -24,6 +24,7 @@ import logging.handlers
 from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse, urlencode, quote
+from utils.profile_image import MAX_PROFILE_IMAGE_BYTES, normalize_profile_image
 
 # Flask et extensions
 from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort, Response
@@ -599,16 +600,24 @@ class SecurityUtils:
             tags=['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                   'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'img', 'hr',
                   'del', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
-                  'div', 'span', 'input', 'sup', 'sub'],
+                  'div', 'span', 'input', 'sup', 'sub', 'dl', 'dt', 'dd',
+                  'figure', 'figcaption', 'caption', 'details', 'summary', 'kbd',
+                  'abbr', 'mark'],
             attributes={
                 'a': ['href', 'title', 'id', 'class'],
                 'img': ['src', 'alt', 'title', 'width', 'height'],
                 'h1': ['id'], 'h2': ['id'], 'h3': ['id'],
                 'h4': ['id'], 'h5': ['id'], 'h6': ['id'],
+                'p': ['class', 'id'],
+                'ul': ['class', 'id'], 'ol': ['class', 'id'],
+                'li': ['class', 'id'],
+                'sup': ['id'],
+                'table': ['class'], 'thead': ['class'], 'tbody': ['class'],
                 'code': ['class'], 'pre': ['class'],
                 'div': ['class'], 'span': ['class'],
                 'th': ['align'], 'td': ['align'],
-                'input': ['type', 'disabled', 'checked']
+                'input': ['type', 'disabled', 'checked'],
+                'abbr': ['title']
             },
             protocols=['http', 'https', 'mailto'],
             strip=True
@@ -637,7 +646,10 @@ class MarkdownRenderer:
             'toc',
             'tables',
             'fenced_code',
-            'sane_lists'
+            'sane_lists',
+            'admonition',
+            'nl2br',
+            'smarty'
         ]
         
         # Conversion
@@ -1578,7 +1590,12 @@ def api_package_dependencies(name):
             name,
             request.args.get('scope')
         )
-        package = _select_package_version(package_group) if package_group else None
+        package = _select_package_version(
+            package_group,
+            request.args.get('version'),
+            request.args.get('release'),
+            request.args.get('arch')
+        ) if package_group else None
         
         if not package:
             app.logger.warning(f"⚠️ Package '{name}' not found in zenv_hub.json")
@@ -1928,6 +1945,24 @@ def api_packages_search():
                 break
 
     return jsonify({'results': results})
+
+
+@app.route('/api/v1/markdown/preview', methods=['POST'])
+def api_markdown_preview():
+    if not session.get('user'):
+        return jsonify({'error': 'Login required'}), 401
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get('markdown'), str):
+        return jsonify({'error': 'A markdown string is required'}), 400
+
+    source = payload['markdown']
+    if len(source) > 20_000:
+        return jsonify({'error': 'Markdown preview is limited to 20,000 characters'}), 413
+
+    return jsonify({'html': MarkdownRenderer.render(source)})
+
+
 @app.route('/package/<name>')
 def package_detail_page(name):
     """Render the package page and its published version history."""
@@ -2850,10 +2885,19 @@ def forum_topic(slug):
         start = (page - 1) * per_page
         end = start + per_page
         paginated_replies = replies[start:end]
+        topic_html = MarkdownRenderer.render(str(topic.get('content') or ''))
+        formatted_replies = []
+        for reply in paginated_replies:
+            formatted_reply = dict(reply)
+            formatted_reply['content_html'] = MarkdownRenderer.render(
+                str(reply.get('content') or '')
+            )
+            formatted_replies.append(formatted_reply)
         
         return render_template('forum_topic.html',
                              topic=topic,
-                             replies=paginated_replies,
+                             topic_html=topic_html,
+                             replies=formatted_replies,
                              current_page=page,
                              total_pages=total_pages,
                              total_replies=total_replies,
@@ -3522,22 +3566,71 @@ def settings_dashboard():
 @token_required
 def settings_profile():
     """Paramètres du profil"""
-    user = g.user
-    
+    username = g.user['username']
+    db = GitHubManager.read_from_github('database/users.json', {'users': []})
+    if not isinstance(db, dict) or not isinstance(db.get('users'), list):
+        app.logger.error("Profile settings could not load the user database")
+        abort(503)
+
+    user = next((
+        entry for entry in db['users']
+        if isinstance(entry, dict) and entry.get('username') == username
+    ), None)
+    if not user:
+        abort(404)
+
     if request.method == 'POST':
-        # Mettre à jour le profil
-        db = GitHubManager.read_from_github('database/users.json', {'users': []})
-        for u in db['users']:
-            if u['username'] == user['username']:
-                u['display_name'] = request.form.get('display_name', u['username'])
-                u['bio'] = request.form.get('bio', '')
-                u['website'] = request.form.get('website', '')
-                u['twitter'] = request.form.get('twitter', '')
-                u['github'] = request.form.get('github', '')
-                u['updated_at'] = datetime.now().isoformat()
-                break
-        
-        GitHubManager.save_to_github('database/users.json', db, f"Profile update: {user['username']}")
+        user['display_name'] = request.form.get('display_name', username).strip()[:80] or username
+        user['bio'] = request.form.get('bio', '').strip()[:500]
+        website = request.form.get('website', '').strip()[:2048]
+        if website:
+            parsed_website = urlparse(website)
+            if parsed_website.scheme.lower() not in ('http', 'https') or not parsed_website.netloc:
+                flash('Website links must use http:// or https://.', 'error')
+                return render_template('settings/profile.html', user=user)
+        user['website'] = website
+        user['twitter'] = request.form.get('twitter', '').strip()[:100]
+        user['github'] = request.form.get('github', '').strip()[:100]
+
+        avatar = request.files.get('avatar')
+        if avatar and avatar.filename:
+            image_data = avatar.stream.read(MAX_PROFILE_IMAGE_BYTES + 1)
+            if len(image_data) > MAX_PROFILE_IMAGE_BYTES:
+                flash('Profile photos must be 4 MB or smaller.', 'error')
+                return render_template('settings/profile.html', user=user)
+
+            normalized_image = normalize_profile_image(image_data)
+            if not normalized_image:
+                flash('Choose a valid PNG, JPEG, or WebP image.', 'error')
+                return render_template('settings/profile.html', user=user)
+            extension, image_data = normalized_image
+
+            user_key = hashlib.sha256(username.casefold().encode('utf-8')).hexdigest()[:24]
+            avatar_path = f"avatars/{user_key}/{secrets.token_hex(16)}.{extension}"
+            if not GitHubManager.save_to_github(
+                avatar_path,
+                image_data,
+                f"Update profile photo for {username}"
+            ):
+                flash('The profile photo could not be uploaded. Please try again.', 'error')
+                return render_template('settings/profile.html', user=user)
+
+            raw_branch = quote(SecurityConfig.GITHUB_BRANCH, safe='')
+            raw_path = quote(avatar_path, safe='/')
+            user['avatar_url'] = (
+                f"https://raw.githubusercontent.com/{SecurityConfig.GITHUB_REPO}/"
+                f"{raw_branch}/{raw_path}"
+            )
+
+        user['updated_at'] = datetime.now().isoformat()
+        if not GitHubManager.save_to_github(
+            'database/users.json',
+            db,
+            f"Profile update: {username}"
+        ):
+            flash('Your profile could not be saved. Please try again.', 'error')
+            return render_template('settings/profile.html', user=user)
+
         flash('Profile updated successfully!', 'success')
         return redirect('/settings/profile')
     

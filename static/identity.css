@@ -1,0 +1,34 @@
+.verified-badge {
+    display: inline-grid;
+    width: 1.15em;
+    height: 1.15em;
+    place-items: center;
+    flex: 0 0 auto;
+    margin-left: 0.3em;
+    border-radius: 50%;
+    background: #38bdf8;
+    color: #fff;
+    vertical-align: 0.08em;
+}
+
+.verified-badge svg {
+    display: block;
+    width: 0.72em;
+    height: 0.72em;
+}
+
+.verified-badge path {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+}
+
+.avatar-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
