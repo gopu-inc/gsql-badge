@@ -8,20 +8,43 @@ steps.
 
 ## Get Goscript and Golem
 
-Clone the official source repository and build/install the local compiler and
-Golem launcher:
+The official source, build workflow, installer, and releases are all maintained
+in [`gopu-inc/goscript`](https://github.com/gopu-inc/goscript). Clone that repo
+and build/install the local compiler and Golem launcher:
 
 ```sh
 git clone https://github.com/gopu-inc/goscript.git
 cd goscript
 make
-sudo make install
+./build/bin/gd --version
+sudo make install PREFIX=/usr/local
+golem help
 ```
 
-`make install` installs `gd` and `golem`. To build the standard libraries too,
-run `make standard-packages` from the repository. The release installer is an
-alternative when a source checkout is not needed; it verifies the downloaded
-binary checksum.
+For a user-local install without `sudo`, use
+`make install PREFIX="$HOME/.local"` and add `$HOME/.local/bin` to `PATH`.
+Alternatively, download and inspect `install.sh` from the official repository;
+it installs a matching GitHub Release archive with a SHA-256 check, or clones
+the same repository and builds from source on platforms without a published
+binary:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/gopu-inc/goscript/main/install.sh
+less install.sh
+sudo sh install.sh
+```
+
+Releases are built by
+[`goscript-buil.yml`](https://github.com/gopu-inc/goscript/blob/main/.github/workflows/goscript-buil.yml)
+in that repository. It compiles the supported platforms, stages `make install`,
+packages `bin/` and `share/`, and uploads checksummed release archives for
+`install.sh`. Source builds work independently of a published release. The
+full Golem build/install and package workflow is documented in
+[`docs/golem.md`](https://github.com/gopu-inc/goscript/blob/main/docs/golem.md).
+
+To build the standard libraries too, run `make standard-packages` from the
+repository. To publish them after `golem login`, use
+`make publish-standard-packages`.
 
 ## Create and build a library
 

@@ -2587,11 +2587,7 @@ def _mcp_authorize_tool(name, principal):
         raise MCPToolError(f'This bot is missing the required {required_scope or "tool"} permission.')
 
 
-def _mcp_register_bot(arguments, principal):
-    if principal.get('type') != 'admin':
-        raise MCPToolError('Only the administrator credential can register bots.')
-    label = arguments.get('label')
-    scopes = arguments.get('scopes')
+def _mcp_create_bot(label, scopes, owner=None):
     if (
         not isinstance(label, str)
         or not 2 <= len(label.strip()) <= 48
@@ -2606,6 +2602,12 @@ def _mcp_register_bot(arguments, principal):
         or len(set(scopes)) != len(scopes)
     ):
         raise MCPToolError('Choose unique permissions from the published scope list.')
+    if owner is not None and (
+        not isinstance(owner, str)
+        or not 1 <= len(owner) <= 128
+        or any(ord(char) < 32 for char in owner)
+    ):
+        raise MCPToolError('Bot owner is invalid.')
 
     label = label.strip()
     bot_id = f'idbot_{secrets.token_hex(12)}'
@@ -2621,6 +2623,8 @@ def _mcp_register_bot(arguments, principal):
         'enabled': True,
         'created_at': datetime.now().isoformat(),
     }
+    if owner is not None:
+        bot['owner'] = owner
     bots_db['bots'].append(bot)
     if not GitHubManager.save_to_github(
         MCP_BOTS_PATH, bots_db, f'Register bot {label[:32]}'
@@ -2635,6 +2639,12 @@ def _mcp_register_bot(arguments, principal):
         'token': bot_token,
         'warning': 'Save this token now; it is returned only once.',
     }
+
+
+def _mcp_register_bot(arguments, principal):
+    if principal.get('type') != 'admin':
+        raise MCPToolError('Only the administrator credential can register bots.')
+    return _mcp_create_bot(arguments.get('label'), arguments.get('scopes'))
 
 
 def _mcp_list_bots(principal):
@@ -4731,6 +4741,96 @@ def settings_dashboard():
     """Dashboard des paramètres"""
     user = g.user
     return render_template('settings/index.html', user=user)
+
+
+@app.route('/settings/bots', methods=['GET', 'POST'])
+@token_required
+def settings_bots():
+    user = g.user
+    username = user.get('username') if isinstance(user, dict) else None
+    if (
+        not isinstance(username, str)
+        or not 1 <= len(username) <= 128
+        or any(ord(char) < 32 for char in username)
+    ):
+        abort(403)
+
+    csrf_token = session.get('bot_panel_csrf')
+    if not isinstance(csrf_token, str):
+        csrf_token = secrets.token_urlsafe(32)
+        session['bot_panel_csrf'] = csrf_token
+
+    issued_token = None
+    issued_bot = None
+    if request.method == 'POST':
+        submitted_csrf = request.form.get('csrf_token', '')
+        if not hmac.compare_digest(csrf_token, submitted_csrf):
+            abort(400, description='Invalid CSRF token.')
+        session['bot_panel_csrf'] = secrets.token_urlsafe(32)
+        csrf_token = session['bot_panel_csrf']
+
+        action = request.form.get('action')
+        try:
+            bots_db = _mcp_bots_db()
+            if action == 'create':
+                if len(MCP_API_TOKEN) < 32:
+                    raise MCPToolError('Bot API keys are unavailable because MCP is not configured.')
+                created = _mcp_create_bot(
+                    request.form.get('label'),
+                    request.form.getlist('scopes'),
+                    owner=username,
+                )
+                issued_token = created.pop('token')
+                issued_bot = created
+                flash('Bot key created. Copy the secret now; it cannot be shown again.', 'success')
+            elif action == 'revoke':
+                bot_id = request.form.get('bot_id', '')
+                bot = next((
+                    entry for entry in bots_db['bots']
+                    if isinstance(entry, dict)
+                    and entry.get('bot_id') == bot_id
+                    and str(entry.get('owner', '')).casefold() == username.casefold()
+                ), None)
+                if not bot:
+                    raise MCPToolError('Bot key not found for this account.')
+                if bot.get('enabled', True):
+                    bot['enabled'] = False
+                    bot['revoked_at'] = datetime.now().isoformat()
+                    if not GitHubManager.save_to_github(
+                        MCP_BOTS_PATH, bots_db, f'Revoke user bot {bot_id}'
+                    ):
+                        raise MCPToolError('The bot key could not be revoked.')
+                flash('Bot key revoked.', 'success')
+            else:
+                raise MCPToolError('Choose a valid bot key action.')
+        except MCPToolError as error:
+            flash(str(error), 'error')
+        except Exception:
+            app.logger.exception('Could not update bot keys for account %s', username)
+            abort(503, description='Bot key storage is temporarily unavailable.')
+
+    try:
+        bots_db = _mcp_bots_db()
+    except MCPToolError:
+        app.logger.exception('Could not load bot keys for account %s', username)
+        abort(503, description='Bot key storage is temporarily unavailable.')
+    bots = [
+        bot for bot in bots_db['bots']
+        if isinstance(bot, dict)
+        and str(bot.get('owner', '')).casefold() == username.casefold()
+    ]
+    response = make_response(render_template(
+        'settings/bots.html',
+        user=user,
+        bots=sorted(bots, key=lambda bot: str(bot.get('created_at', '')), reverse=True),
+        csrf_token=csrf_token,
+        issued_token=issued_token,
+        issued_bot=issued_bot,
+        mcp_enabled=len(MCP_API_TOKEN) >= 32,
+    ))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
 
 @app.route('/settings/profile', methods=['GET', 'POST'])
 @token_required

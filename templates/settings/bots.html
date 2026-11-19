@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Bot API keys · Zarch Hub{% endblock %}
+
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bot-panel { padding: 2rem 0 4rem; }
+    .bot-panel__header {
+        padding: clamp(1.25rem, 4vw, 2.25rem);
+        margin-bottom: 1.25rem;
+        background: var(--gradient-hero);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+    }
+    .bot-panel__eyebrow {
+        margin: 0 0 .45rem;
+        color: var(--accent-blue);
+        font: 700 .75rem/1.2 var(--font-mono);
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+    .bot-panel__header h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 5vw, 2.7rem);
+        letter-spacing: -.04em;
+    }
+    .bot-panel__header p:last-child {
+        max-width: 46rem;
+        margin: .65rem 0 0;
+        color: var(--text-secondary);
+        line-height: 1.65;
+    }
+    .bot-panel__grid {
+        display: grid;
+        grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+        align-items: start;
+        gap: 1.25rem;
+    }
+    .bot-card {
+        min-width: 0;
+        padding: clamp(1.1rem, 3vw, 1.6rem);
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+    }
+    .bot-card h2 { margin: 0 0 .45rem; font-size: 1.2rem; }
+    .bot-card__intro {
+        margin: 0 0 1.25rem;
+        color: var(--text-secondary);
+        font-size: .92rem;
+        line-height: 1.6;
+    }
+    .bot-form label, .bot-form legend {
+        color: var(--text-primary);
+        font-size: .9rem;
+        font-weight: 650;
+    }
+    .bot-form__label { display: block; margin-bottom: .45rem; }
+    .bot-form input[type="text"] {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 46px;
+        padding: .7rem .85rem;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font: inherit;
+    }
+    .bot-form input[type="text"]:focus-visible,
+    .bot-form input[type="checkbox"]:focus-visible,
+    .bot-button:focus-visible,
+    .bot-copy:focus-visible {
+        outline: 3px solid rgba(88, 166, 255, .45);
+        outline-offset: 2px;
+    }
+    .bot-form fieldset {
+        display: grid;
+        gap: .55rem;
+        margin: 1.2rem 0;
+        padding: .9rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+    }
+    .bot-form legend { padding: 0 .3rem; }
+    .bot-scope {
+        display: flex;
+        align-items: flex-start;
+        gap: .65rem;
+        padding: .35rem 0;
+        color: var(--text-secondary);
+        font-size: .85rem;
+        line-height: 1.45;
+    }
+    .bot-scope input { margin-top: .18rem; accent-color: var(--accent-blue); }
+    .bot-scope code { color: var(--text-primary); }
+    .bot-button, .bot-copy {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        padding: .65rem 1rem;
+        color: #fff;
+        background: var(--accent-blue);
+        border: 0;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font: 700 .9rem/1 var(--font-sans);
+        text-decoration: none;
+    }
+    .bot-button:hover, .bot-copy:hover { filter: brightness(1.08); }
+    .bot-button--danger {
+        color: var(--accent-red);
+        background: rgba(248, 81, 73, .1);
+        border: 1px solid rgba(248, 81, 73, .35);
+    }
+    .bot-key-once {
+        margin-bottom: 1.25rem;
+        border-color: rgba(88, 166, 255, .55);
+        box-shadow: 0 0 0 1px rgba(88, 166, 255, .12);
+    }
+    .bot-key-once__warning {
+        margin: .45rem 0 1rem;
+        color: var(--text-secondary);
+        line-height: 1.55;
+    }
+    .bot-key-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: .6rem;
+    }
+    .bot-key-row input {
+        min-width: 0;
+        padding: .75rem;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font: .85rem/1.4 var(--font-mono);
+    }
+    .bot-key-meta, .bot-record__meta {
+        color: var(--text-tertiary);
+        font-size: .82rem;
+        overflow-wrap: anywhere;
+    }
+    .bot-list { display: grid; gap: .75rem; }
+    .bot-record {
+        min-width: 0;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-primary);
+    }
+    .bot-record__top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .bot-record h3 { margin: 0 0 .25rem; font-size: 1rem; overflow-wrap: anywhere; }
+    .bot-record__status {
+        flex: 0 0 auto;
+        padding: .25rem .55rem;
+        color: var(--accent-green);
+        background: rgba(63, 185, 80, .1);
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+    .bot-record__status--revoked {
+        color: var(--text-tertiary);
+        background: var(--bg-tertiary);
+    }
+    .bot-record__scopes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+        margin: .75rem 0;
+    }
+    .bot-record__scopes code {
+        padding: .25rem .45rem;
+        color: var(--text-secondary);
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-xs);
+        font-size: .75rem;
+    }
+    .bot-record form { margin-top: .8rem; }
+    .bot-empty {
+        padding: 1.2rem;
+        color: var(--text-secondary);
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius-md);
+        line-height: 1.55;
+    }
+    .bot-panel__notice {
+        margin-bottom: 1rem;
+        padding: .9rem 1rem;
+        color: var(--text-secondary);
+        background: rgba(210, 153, 34, .1);
+        border: 1px solid rgba(210, 153, 34, .35);
+        border-radius: var(--radius-md);
+        line-height: 1.5;
+    }
+    @media (max-width: 800px) {
+        .bot-panel { padding: 1rem 0 2.5rem; }
+        .bot-panel__grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+        .bot-key-row { grid-template-columns: 1fr; }
+        .bot-key-row .bot-copy { width: 100%; }
+        .bot-record__top { flex-direction: column; gap: .5rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="bot-panel">
+    <div class="container">
+        <header class="bot-panel__header">
+            <p class="bot-panel__eyebrow">MCP · Account security</p>
+            <h1>Bot API keys</h1>
+            <p>Create separate credentials for your assistants. Each key gets its own bot identity and only the permissions you select.</p>
+        </header>
+
+        {% if not mcp_enabled %}
+        <div class="bot-panel__notice" role="status">
+            MCP is not configured on this server yet. Bot keys cannot be used until an administrator sets a secure <code>MCP_API_TOKEN</code>.
+        </div>
+        {% endif %}
+
+        {% if issued_token and issued_bot %}
+        <section class="bot-card bot-key-once" aria-labelledby="issued-key-title" role="status">
+            <h2 id="issued-key-title">Copy your new key now</h2>
+            <p class="bot-key-once__warning">This secret is shown only once. Store it in your MCP client's secret settings; it cannot be recovered later.</p>
+            <div class="bot-key-row">
+                <input id="issuedBotToken" type="text" value="{{ issued_token }}" readonly aria-label="New bot API key" autocomplete="off" spellcheck="false">
+                <button class="bot-copy" type="button" id="copyBotToken">Copy key</button>
+            </div>
+            <p class="bot-key-meta">Bot ID: <code>{{ issued_bot.bot_id }}</code> · Username: <code>{{ issued_bot.username }}</code></p>
+            <p id="copyBotStatus" class="bot-key-meta" aria-live="polite"></p>
+        </section>
+        {% endif %}
+
+        <div class="bot-panel__grid">
+            <section class="bot-card" aria-labelledby="create-bot-title">
+                <h2 id="create-bot-title">Create a bot key</h2>
+                <p class="bot-card__intro">Choose a recognizable label and grant only the scopes the bot needs. The raw key is never stored by the server.</p>
+                <form class="bot-form" method="post" action="{{ url_for('settings_bots') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="action" value="create">
+                    <label class="bot-form__label" for="bot-label">Bot label</label>
+                    <input id="bot-label" type="text" name="label" minlength="2" maxlength="48" required autocomplete="off" placeholder="e.g. Goscript assistant">
+
+                    <fieldset>
+                        <legend>Permissions</legend>
+                        <label class="bot-scope"><input type="checkbox" name="scopes" value="docs:read" checked><span><code>docs:read</code> — read Goscript and Golem docs</span></label>
+                        <label class="bot-scope"><input type="checkbox" name="scopes" value="forum:read"><span><code>forum:read</code> — search and read forum topics</span></label>
+                        <label class="bot-scope"><input type="checkbox" name="scopes" value="forum:write"><span><code>forum:write</code> — create topics and replies</span></label>
+                        <label class="bot-scope"><input type="checkbox" name="scopes" value="contact:send"><span><code>contact:send</code> — send a message to site contact</span></label>
+                        <label class="bot-scope"><input type="checkbox" name="scopes" value="packages:create"><span><code>packages:create</code> — generate a package scaffold</span></label>
+                        <label class="bot-scope"><input type="checkbox" name="scopes" value="packages:publish"><span><code>packages:publish</code> — publish validated packages</span></label>
+                    </fieldset>
+                    <button class="bot-button" type="submit"><i class="fas fa-key" aria-hidden="true"></i> Create key</button>
+                </form>
+            </section>
+
+            <section class="bot-card" aria-labelledby="bot-list-title">
+                <h2 id="bot-list-title">Your bots</h2>
+                <p class="bot-card__intro">Existing keys are listed by identity and permissions. For security, their secret values are not recoverable.</p>
+                {% if bots %}
+                <div class="bot-list">
+                    {% for bot in bots %}
+                    <article class="bot-record">
+                        <div class="bot-record__top">
+                            <div>
+                                <h3>~{{ bot.label }} <span class="bot-key-meta">[bot]</span></h3>
+                                <div class="bot-record__meta"><code>{{ bot.username }}</code> · <code>{{ bot.bot_id }}</code></div>
+                            </div>
+                            <span class="bot-record__status {{ 'bot-record__status--revoked' if not bot.get('enabled', true) }}">
+                                {{ 'Active' if bot.get('enabled', true) else 'Revoked' }}
+                            </span>
+                        </div>
+                        <div class="bot-record__scopes">
+                            {% for scope in bot.get('scopes', []) %}<code>{{ scope }}</code>{% endfor %}
+                        </div>
+                        <p class="bot-record__meta">Created {{ bot.get('created_at', 'date unavailable') }}</p>
+                        {% if bot.get('enabled', true) %}
+                        <form method="post" action="{{ url_for('settings_bots') }}" data-confirm-revoke>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="action" value="revoke">
+                            <input type="hidden" name="bot_id" value="{{ bot.bot_id }}">
+                            <button class="bot-button bot-button--danger" type="submit"><i class="fas fa-ban" aria-hidden="true"></i> Revoke key</button>
+                        </form>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="bot-empty">No bots yet. Create a key to give your assistant its own identity and MCP permissions.</div>
+                {% endif %}
+            </section>
+        </div>
+        <p class="bot-card__intro" style="margin-top: 1rem;">Need help connecting Claude? See the <a href="/docs/mcp">MCP setup guide</a>.</p>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const copyBotToken = document.getElementById('copyBotToken');
+    const issuedBotToken = document.getElementById('issuedBotToken');
+    const copyBotStatus = document.getElementById('copyBotStatus');
+    if (copyBotToken && issuedBotToken && copyBotStatus) {
+        copyBotToken.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(issuedBotToken.value);
+                copyBotStatus.textContent = 'Key copied to clipboard.';
+            } catch {
+                issuedBotToken.focus();
+                issuedBotToken.select();
+                copyBotStatus.textContent = 'Select and copy the highlighted key.';
+            }
+        });
+    }
+    document.querySelectorAll('[data-confirm-revoke]').forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!window.confirm('Revoke this bot key? Connected clients will lose access immediately.')) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

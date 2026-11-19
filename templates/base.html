@@ -737,6 +737,7 @@
                 {% if session.get('user') %}
                 <li><a href="/dashboard" class="{{ 'active' if current_path == '/dashboard' }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="/upload"><i class="fas fa-upload"></i> Upload</a></li>
+                <li><a href="/settings/bots" class="{{ 'active' if current_path.startswith('/settings/bots') }}"><i class="fas fa-robot"></i> Bot API</a></li>
                 <li><a href="/settings"><i class="fas fa-cog"></i></a></li>
                 <li><a href="/logout" class="btn btn-sm btn-outline" style="margin-left: 0.5rem;"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 {% else %}
