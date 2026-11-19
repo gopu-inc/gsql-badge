@@ -26,7 +26,7 @@ from functools import wraps
 from urllib.parse import urlparse, urlencode, quote
 
 # Flask et extensions
-from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort, Response 
+from flask import Flask, request, jsonify, g, render_template, render_template_string, make_response, session, redirect, flash, abort, Response
 from flask_cors import CORS
 
 # Sécurité avancée
@@ -210,15 +210,135 @@ class PackageUpload(BaseModel):
     
     @validator('name')
     def validate_name(cls, v):
-        if not v or len(v) < 1:
-            raise ValueError('Package name is required')
+        if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,213}', v or ''):
+            raise ValueError('Package name must be lowercase and contain only letters, numbers, ".", "_" or "-"')
         return v
     
     @validator('version')
     def validate_version(cls, v):
-        if not v:
-            raise ValueError('Version is required')
+        if not v or not _SEMVER_PATTERN.fullmatch(v):
+            raise ValueError('Version must follow semantic versioning, for example 1.2.3')
         return v
+
+    @validator('scope')
+    def validate_scope(cls, v):
+        if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}', v or ''):
+            raise ValueError('Invalid package scope')
+        return v
+
+    @validator('release', 'arch')
+    def validate_build_identifier(cls, v):
+        if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}', v or ''):
+            raise ValueError('Invalid release or architecture')
+        return v
+
+
+_SEMVER_PATTERN = re.compile(
+    r'^(?:v)?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)'
+    r'(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$'
+)
+
+
+def _package_version_key(package):
+    version = str(package.get('version', ''))
+    match = _SEMVER_PATTERN.fullmatch(version)
+    created_at = str(package.get('created_at', ''))
+    if not match:
+        return (0, 0, 0, 0, 0, (), created_at, version)
+
+    major, minor, patch, prerelease = match.groups()
+    prerelease_key = tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in (prerelease or '').split('.')
+    )
+    return (
+        1, int(major), int(minor), int(patch),
+        1 if prerelease is None else 0,
+        prerelease_key, created_at, version
+    )
+
+
+def _package_identity(package):
+    return (
+        str(package.get('scope', 'public')).casefold(),
+        str(package.get('name', '')).casefold()
+    )
+
+
+def _canonical_package_records(records):
+    if not records:
+        return [], None, False
+
+    ordered = sorted(records, key=lambda package: str(package.get('created_at', '')))
+    owner = str(ordered[0].get('author', '')).casefold()
+    if not owner:
+        return [], None, True
+
+    canonical = [
+        package for package in records
+        if str(package.get('author', '')).casefold() == owner
+    ]
+    return canonical, ordered[0].get('author'), len(canonical) != len(records)
+
+
+def _group_packages(packages):
+    grouped = {}
+    for package in packages:
+        if not isinstance(package, dict) or not package.get('name'):
+            continue
+        grouped.setdefault(_package_identity(package), []).append(package)
+
+    results = []
+    for records in grouped.values():
+        visible_records, owner, has_conflicts = _canonical_package_records(records)
+        if not visible_records:
+            continue
+        versions = sorted(
+            {str(package.get('version', '')) for package in visible_records},
+            key=lambda version: _package_version_key({'version': version}),
+            reverse=True
+        )
+        latest = max(visible_records, key=_package_version_key)
+        entry = dict(latest)
+        entry['author'] = owner
+        entry['versions'] = versions
+        entry['version_count'] = len(versions)
+        entry['downloads'] = sum(int(package.get('downloads', 0) or 0) for package in visible_records)
+        entry['created_at'] = min(
+            (str(package.get('created_at', '')) for package in visible_records),
+            default=''
+        )
+        entry['updated_at'] = max(
+            (str(package.get('updated_at', package.get('created_at', ''))) for package in visible_records),
+            default=''
+        )
+        entry['publisher_conflict'] = has_conflicts
+        entry['_version_records'] = visible_records
+        results.append(entry)
+    return results
+
+
+def _find_package_group(packages, name, scope=None):
+    groups = [
+        package for package in _group_packages(packages)
+        if str(package.get('name', '')).casefold() == name.casefold()
+    ]
+    if scope:
+        groups = [package for package in groups if str(package.get('scope', '')).casefold() == scope.casefold()]
+    elif any(str(package.get('scope', '')).casefold() == 'public' for package in groups):
+        groups = [package for package in groups if str(package.get('scope', '')).casefold() == 'public']
+    return max(groups, key=_package_version_key) if groups else None
+
+
+def _select_package_version(package_group, version=None, release=None, arch=None):
+    records = package_group.get('_version_records', [])
+    matches = [
+        package for package in records
+        if (version is None or str(package.get('version')) == version)
+        and (release is None or str(package.get('release', 'r0')) == release)
+        and (arch is None or str(package.get('arch', 'x86_64')) == arch)
+    ]
+    return max(matches, key=_package_version_key) if matches else None
 
 class CookieManager:
     @staticmethod
@@ -1138,7 +1258,7 @@ def check_discord_tokens():
 @token_required
 @rate_limit()
 def api_v52_upload_package(scope, name):
-    """Upload de package avec validation"""
+    """Publish a new immutable version of an existing package."""
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file'}), 400
@@ -1161,7 +1281,7 @@ def api_v52_upload_package(scope, name):
             return jsonify({'error': 'Invalid file type, must be .tar.bool'}), 400
         
         temp_dir = tempfile.mkdtemp()
-        tar_path = os.path.join(temp_dir, file.filename)
+        tar_path = os.path.join(temp_dir, 'upload.tar.bool')
         file.save(tar_path)
         
         try:
@@ -1169,17 +1289,35 @@ def api_v52_upload_package(scope, name):
                 file_content = f.read()
             
             sha256 = hashlib.sha256(file_content).hexdigest()
-            
-            filename = f"{name}-{version}-{release}-{arch}.tar.bool"
-            pkg_path = f"packages/{scope}/{name}/{filename}"
-            
-            if not GitHubManager.save_to_github(pkg_path, file_content, f"Pkg {name} v{version}"):
-                raise Exception("Binary upload failed")
-            
             db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-            
-            db['packages'] = [p for p in db.get('packages', []) 
-                             if not (p['name'] == name and p['version'] == version)]
+            if not isinstance(db, dict) or not isinstance(db.get('packages'), list):
+                app.logger.error("Package index is unavailable or malformed")
+                return jsonify({'error': 'Package registry is temporarily unavailable'}), 503
+
+            records = [
+                package for package in db['packages']
+                if isinstance(package, dict) and _package_identity(package) == (scope.casefold(), name.casefold())
+            ]
+            canonical_records, owner, _ = _canonical_package_records(records)
+            publisher = str(g.user['username'])
+            if records and (not owner or owner.casefold() != publisher.casefold()):
+                return jsonify({
+                    'error': 'Package name is already owned by another publisher',
+                    'owner': owner
+                }), 409
+
+            existing = next((
+                package for package in canonical_records
+                if str(package.get('version')) == version
+                and str(package.get('release', 'r0')) == release
+                and str(package.get('arch', 'x86_64')) == arch
+            ), None)
+            if existing:
+                if existing.get('sha256') == sha256:
+                    return jsonify({'success': True, 'package': existing, 'unchanged': True})
+                return jsonify({
+                    'error': 'This version already exists; publish a new version instead'
+                }), 409
             
             entry = {
                 'name': name,
@@ -1187,15 +1325,23 @@ def api_v52_upload_package(scope, name):
                 'version': version,
                 'release': release,
                 'arch': arch,
-                'author': g.user['username'],
+                'author': publisher,
                 'sha256': sha256,
                 'size': len(file_content),
                 'created_at': datetime.now().isoformat(),
                 'updated_at': datetime.now().isoformat(),
                 'downloads': 0
             }
+
+            filename = f"{name}-{version}-{release}-{arch}.tar.bool"
+            pkg_path = f"packages/{scope}/{name}/{filename}"
+            if not GitHubManager.save_to_github(pkg_path, file_content, f"Pkg {name} v{version}"):
+                return jsonify({'error': 'Package archive upload failed'}), 502
+
             db['packages'].append(entry)
-            GitHubManager.save_to_github('database/zenv_hub.json', db, f"Index {name}")
+            if not GitHubManager.save_to_github('database/zenv_hub.json', db, f"Index {name}"):
+                app.logger.error("Package archive uploaded but registry index update failed for %s", name)
+                return jsonify({'error': 'Package uploaded but registry index update failed'}), 502
             
             return jsonify({'success': True, 'package': entry})
             
@@ -1211,56 +1357,44 @@ def api_v52_upload_package(scope, name):
 @app.route('/v5.2/package/search', methods=['GET'])
 @rate_limit()
 def api_v52_search():
-    """Recherche de packages"""
+    """Search one catalog entry per package, with its published versions."""
     q = request.args.get('q', '').lower()
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    
+
     results = []
-    if isinstance(db, dict) and 'packages' in db:
-        for p in db['packages']:
-            if q in p['name'].lower() or q in p.get('description', '').lower():
-                # Sanitize pour éviter les XSS
-                safe_p = {
-                    'name': SecurityUtils.escape_text(p['name']),
-                    'version': SecurityUtils.escape_text(p['version']),
-                    'author': SecurityUtils.escape_text(p['author']),
-                    'downloads': p['downloads'],
-                    'scope': p['scope']
-                }
-                results.append(safe_p)
-    
+    if isinstance(db, dict) and isinstance(db.get('packages'), list):
+        for package in _group_packages(db['packages']):
+            if q in package['name'].lower() or q in package.get('description', '').lower():
+                results.append({
+                    'name': SecurityUtils.escape_text(package['name']),
+                    'version': SecurityUtils.escape_text(package['version']),
+                    'versions': [SecurityUtils.escape_text(v) for v in package['versions']],
+                    'author': SecurityUtils.escape_text(package['author']),
+                    'downloads': package['downloads'],
+                    'scope': package['scope']
+                })
+
     return jsonify({'results': results})
 
 @app.route('/v5.2/package/<name>')
 @rate_limit()
 def api_v52_package_detail(name):
-    """Détail d'un package avec README"""
+    """Return one package, its latest build, and the complete version list."""
     version = request.args.get('version')
-    
+    scope = request.args.get('scope')
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
-    packages = db.get('packages', [])
-    package = None
-    
-    for p in packages:
-        if p['name'] == name:
-            if version is None or p['version'] == version:
-                package = p
-                break
-    
-    if not package:
+    packages = db.get('packages', []) if isinstance(db, dict) else []
+    package_group = _find_package_group(packages, name, scope)
+    package = _select_package_version(package_group, version) if package_group else None
+    if not package or not package_group:
         return jsonify({'error': 'Package not found'}), 404
-    
-    # Chercher le README
+
     readme = None
     filename = f"{name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
     pkg_path = f"packages/{package['scope']}/{name}/{filename}"
     
     content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
     if content:
-        # Sauvegarder temporairement pour extraction
         temp_dir = tempfile.mkdtemp()
         temp_path = os.path.join(temp_dir, filename)
         with open(temp_path, 'wb') as f:
@@ -1272,18 +1406,18 @@ def api_v52_package_detail(name):
         
         shutil.rmtree(temp_dir)
     
-    # Package sécurisé
     safe_package = {
         'name': SecurityUtils.escape_text(package['name']),
         'version': SecurityUtils.escape_text(package['version']),
+        'versions': [SecurityUtils.escape_text(v) for v in package_group['versions']],
         'release': SecurityUtils.escape_text(package.get('release', 'r0')),
         'arch': SecurityUtils.escape_text(package.get('arch', 'x86_64')),
         'scope': package['scope'],
-        'author': SecurityUtils.escape_text(package['author']),
+        'author': SecurityUtils.escape_text(package_group['author']),
         'sha256': package['sha256'],
         'size': package['size'],
-        'downloads': package['downloads'],
-        'created_at': package['created_at']
+        'downloads': package_group['downloads'],
+        'created_at': package_group['created_at']
     }
     
     return jsonify({
@@ -1303,14 +1437,14 @@ def index():
     if not isinstance(db, dict):
         db = {'packages': []}
     
-    pkgs = db.get('packages', [])
-    
+    pkgs = _group_packages(db.get('packages', []))
+
     total_packages = len(pkgs)
     total_downloads = sum(p.get('downloads', 0) for p in pkgs)
     total_authors = len(set(p.get('author') for p in pkgs if p.get('author')))
-    
+
     public_packages = [p for p in pkgs if p.get('scope') == 'public']
-    public_packages.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    public_packages.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
     recent_packages = public_packages[:6]
     
     return render_template('index.html',
@@ -1425,7 +1559,12 @@ def api_package_dependencies(name):
             app.logger.warning(f"⚠️ DB is not a dict, type: {type(db)}")
             db = {'packages': []}
         
-        package = next((p for p in db.get('packages', []) if p.get('name') == name), None)
+        package_group = _find_package_group(
+            db.get('packages', []),
+            name,
+            request.args.get('scope')
+        )
+        package = _select_package_version(package_group) if package_group else None
         
         if not package:
             app.logger.warning(f"⚠️ Package '{name}' not found in zenv_hub.json")
@@ -1683,115 +1822,193 @@ def get_rating(name):
         'average': reviews_db['average'],
         'count': len(reviews_db['reviews'])
     })
+
+
+PACKAGES_PAGE_TEMPLATE = """<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paquets · Zarch Hub</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0d111b;--panel:#171d29;--line:#2a3444;--text:#edf2fa;--muted:#9ba8ba;--blue:#77b7ff;--green:#68d391}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:inherit;text-decoration:none}a:hover{color:var(--blue)}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+    .wrap{max-width:980px;margin:auto;padding:36px 22px 64px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px}
+    .brand{font-weight:750;font-size:19px;letter-spacing:-.03em}.top a:last-child{color:var(--blue);font-size:14px}
+    h1{font-size:clamp(28px,5vw,40px);line-height:1.1;letter-spacing:-.04em;margin:0 0 8px}.intro{color:var(--muted);margin:0 0 25px}
+    .stats{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 24px;color:var(--muted);font-size:13px}.stats strong{color:var(--text);font-size:15px;margin-right:5px}
+    form{display:grid;grid-template-columns:minmax(0,1fr) 150px 150px auto;gap:9px;margin-bottom:24px}
+    input,select,button{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text);font:inherit;padding:0 12px}
+    button{background:#2368bf;border-color:#2368bf;font-weight:650;cursor:pointer;padding:0 18px}button:hover{background:#2b79d8}
+    .results{color:var(--muted);font-size:13px;margin:0 0 9px}.list{list-style:none;padding:0;margin:0;border-top:1px solid var(--line)}
+    .item{padding:18px 4px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;align-items:center}
+    .name-line{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.name{font-size:18px;font-weight:700;letter-spacing:-.02em}
+    .version{font:13px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--blue)}
+    .description{margin:4px 0 0;color:var(--muted);font-size:14px}
+    .meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px;white-space:nowrap}.meta .warning{color:#f4c46a}
+    .empty{padding:38px 8px;text-align:center;color:var(--muted);border-bottom:1px solid var(--line)}
+    .pages{display:flex;justify-content:space-between;align-items:center;margin-top:18px;color:var(--muted);font-size:13px}.pages a{color:var(--blue)}
+    @media(max-width:700px){.wrap{padding:24px 16px 48px}form{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}button{grid-column:1/-1}.item{align-items:flex-start;flex-direction:column;gap:9px}.meta{white-space:normal}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top"><a class="brand" href="/">Zarch Hub</a><a href="/api/docs">API</a></header>
+    <h1>Paquets</h1>
+    <p class="intro">Explorez les paquets Goscript et leurs versions publiées.</p>
+    <div class="stats" aria-label="Statistiques du registre">
+      <span><strong>{{ total_packages }}</strong> paquets</span>
+      <span><strong>{{ total_downloads }}</strong> téléchargements</span>
+      <span><strong>{{ total_authors }}</strong> auteurs</span>
+    </div>
+    <form method="get" action="{{ url_for('packages_page') }}">
+      <input class="search" type="search" name="q" value="{{ query }}" placeholder="Rechercher un paquet…" aria-label="Rechercher un paquet">
+      <select name="scope" aria-label="Portée">
+        <option value="all" {% if scope == 'all' %}selected{% endif %}>Toutes les portées</option>
+        {% for item_scope in scopes %}<option value="{{ item_scope }}" {% if scope == item_scope %}selected{% endif %}>{{ item_scope }}</option>{% endfor %}
+      </select>
+      <select name="sort" aria-label="Trier par">
+        <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Récemment mis à jour</option>
+        <option value="downloads" {% if sort == 'downloads' %}selected{% endif %}>Téléchargements</option>
+        <option value="name" {% if sort == 'name' %}selected{% endif %}>Nom A–Z</option>
+        <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Nom Z–A</option>
+      </select>
+      <button type="submit">Rechercher</button>
+    </form>
+    <p class="results">{{ total_results }} résultat{% if total_results != 1 %}s{% endif %}</p>
+    {% if packages %}
+      <ul class="list">
+      {% for package in packages %}
+        <li class="item">
+          <div>
+            <div class="name-line">
+              <a class="name" href="{{ url_for('package_detail_page', name=package.name, scope=package.scope) }}">{{ package.name }}</a>
+              <span class="version">v{{ package.version }}</span>
+              {% if package.version_count > 1 %}<a class="version" href="{{ url_for('package_detail_page', name=package.name, scope=package.scope) }}">+ {{ package.version_count - 1 }} versions</a>{% endif %}
+            </div>
+            {% if package.description %}<p class="description">{{ package.description }}</p>{% endif %}
+          </div>
+          <div class="meta">
+            <span>par {{ package.author }}</span><span>{{ package.downloads }} téléchargements</span>
+            {% if package.publisher_conflict %}<span class="warning">historique de publication à vérifier</span>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty">Aucun paquet ne correspond à cette recherche.</div>
+    {% endif %}
+    <nav class="pages" aria-label="Pagination">
+      <span>Page {{ page }}{% if total_pages %} sur {{ total_pages }}{% endif %}</span>
+      <span>{% if page > 1 %}<a href="{{ url_for('packages_page', q=query, sort=sort, scope=scope, page=page - 1) }}">← Précédent</a>{% endif %}
+      {% if page < total_pages %}<a href="{{ url_for('packages_page', q=query, sort=sort, scope=scope, page=page + 1) }}">Suivant →</a>{% endif %}</span>
+    </nav>
+  </main>
+</body>
+</html>"""
+
+
+PACKAGE_DETAIL_TEMPLATE = """<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ package.name }} · Zarch Hub</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0d111b;--panel:#171d29;--line:#2a3444;--text:#edf2fa;--muted:#9ba8ba;--blue:#77b7ff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+    a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}a:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+    main{max-width:900px;margin:auto;padding:32px 22px 64px}.back{font-size:14px}.title{margin:30px 0 4px;font-size:clamp(30px,6vw,46px);letter-spacing:-.04em;line-height:1.1}
+    .version{font:15px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--blue)}.meta{color:var(--muted);font-size:14px;margin:13px 0 28px}
+    .versions{padding:17px 19px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:0 0 30px}
+    .versions h2{font-size:16px;margin:0 0 12px}.version-list{display:flex;gap:8px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+    .version-list a{display:inline-block;padding:5px 9px;border:1px solid var(--line);border-radius:6px;font:13px ui-monospace,SFMono-Regular,Consolas,monospace}
+    .readme{border-top:1px solid var(--line);padding-top:22px;overflow-wrap:anywhere}.readme img{max-width:100%;height:auto}
+    @media(max-width:600px){main{padding:22px 16px 48px}}
+  </style>
+</head>
+<body><main>
+  <a class="back" href="{{ url_for('packages_page') }}">← Tous les paquets</a>
+  <h1 class="title">{{ package.name }}</h1><span class="version">v{{ selected.version }}</span>
+  <p class="meta">Publié par {{ package.author }} · {{ package.downloads }} téléchargements · {{ package.scope }}</p>
+  <section class="versions" aria-labelledby="versions-title">
+    <h2 id="versions-title">Versions publiées</h2>
+    <ul class="version-list">
+    {% for version in package.versions %}
+      <li><a href="{{ url_for('package_detail_page', name=package.name, scope=package.scope, version=version) }}" {% if version == selected.version %}aria-current="page"{% endif %}>{{ version }}</a></li>
+    {% endfor %}
+    </ul>
+  </section>
+  {% if readme_html %}<article class="readme">{{ readme_html|safe }}</article>{% endif %}
+</main></body>
+</html>"""
+
+
 @app.route('/packages')
 def packages_page():
-    """Page de liste des packages avec recherche et filtres"""
+    """Render a compact, single-entry-per-package registry."""
     page = request.args.get('page', 1, type=int)
     per_page = 12
     query = request.args.get('q', '').strip().lower()
     sort = request.args.get('sort', 'recent')
     scope_filter = request.args.get('scope', 'all')
-    
+
     try:
-        # Récupérer la base de données
         db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-        
-        if not isinstance(db, dict):
-            db = {'packages': []}
-        
-        packages = db.get('packages', [])
-        
-        # Statistiques globales
+        if not isinstance(db, dict) or not isinstance(db.get('packages'), list):
+            raise ValueError('Package index is unavailable or malformed')
+
+        packages = _group_packages(db['packages'])
         total_packages = len(packages)
-        total_downloads = sum(p.get('downloads', 0) for p in packages)
-        total_authors = len(set(p.get('author') for p in packages if p.get('author')))
-        
-        # Filtrer par scope
+        total_downloads = sum(package.get('downloads', 0) for package in packages)
+        total_authors = len({str(package.get('author', '')).casefold() for package in packages if package.get('author')})
+        scopes = sorted({package.get('scope', 'public') for package in packages})
+
         if scope_filter != 'all':
-            packages = [p for p in packages if p.get('scope') == scope_filter]
-        
-        # RECHERCHE PAR TEXTE (la partie importante !)
+            packages = [package for package in packages if package.get('scope') == scope_filter]
+
         if query:
-            search_terms = query.split()
-            filtered_packages = []
-            
-            for pkg in packages:
-                name = pkg.get('name', '').lower()
-                description = pkg.get('description', '').lower()
-                author = pkg.get('author', '').lower()
-                
-                # Score de pertinence
-                score = 0
-                
-                for term in search_terms:
-                    if term in name:
-                        score += 10  # Nom = très pertinent
-                    if term in description:
-                        score += 3   # Description = pertinent
-                    if term in author:
-                        score += 5   # Auteur = pertinent
-                    if name.startswith(term):
-                        score += 5   # Commence par = pertinent
-                
-                if score > 0:
-                    pkg['_score'] = score
-                    filtered_packages.append(pkg)
-            
-            # Trier par score
-            packages = sorted(filtered_packages, key=lambda x: x.get('_score', 0), reverse=True)
-            
-            # Nettoyer le score
-            for pkg in packages:
-                if '_score' in pkg:
-                    del pkg['_score']
-        
-        # Appliquer le tri
+            packages = [
+                package for package in packages
+                if query in package.get('name', '').lower()
+                or query in package.get('description', '').lower()
+                or query in str(package.get('author', '')).lower()
+            ]
+
         if sort == 'downloads':
-            packages.sort(key=lambda x: x.get('downloads', 0), reverse=True)
+            packages.sort(key=lambda package: package.get('downloads', 0), reverse=True)
         elif sort == 'name':
-            packages.sort(key=lambda x: x.get('name', '').lower())
+            packages.sort(key=lambda package: package.get('name', '').lower())
         elif sort == 'name_desc':
-            packages.sort(key=lambda x: x.get('name', '').lower(), reverse=True)
-        else:  # recent par défaut
-            packages.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-        
-        # Pagination
+            packages.sort(key=lambda package: package.get('name', '').lower(), reverse=True)
+        else:
+            packages.sort(key=lambda package: package.get('updated_at', ''), reverse=True)
+
         total_results = len(packages)
         total_pages = (total_results + per_page - 1) // per_page
+        page = max(1, min(page, max(total_pages, 1)))
         start = (page - 1) * per_page
-        end = start + per_page
-        paginated_packages = packages[start:end]
-        
-        return render_template('packages.html',
-                             packages=paginated_packages,
-                             total_packages=total_packages,
-                             total_downloads=total_downloads,
-                             total_authors=total_authors,
-                             total_results=total_results,
-                             total_pages=total_pages,
-                             page=page,
-                             per_page=per_page,
-                             query=query,
-                             sort=sort,
-                             scope=scope_filter,
-                             now=datetime.now())
-    
+        paginated_packages = packages[start:start + per_page]
+
+        return render_template_string(PACKAGES_PAGE_TEMPLATE,
+            packages=paginated_packages,
+            total_packages=total_packages,
+            total_downloads=total_downloads,
+            total_authors=total_authors,
+            total_results=total_results,
+            total_pages=total_pages,
+            page=page,
+            query=query,
+            sort=sort,
+            scope=scope_filter,
+            scopes=scopes
+        )
+
     except Exception as e:
         app.logger.error(f"Packages page error: {e}")
-        flash('Error loading packages', 'error')
-        return render_template('packages.html',
-                             packages=[],
-                             total_packages=0,
-                             total_downloads=0,
-                             total_authors=0,
-                             total_results=0,
-                             total_pages=1,
-                             page=1,
-                             per_page=12,
-                             query=query,
-                             sort=sort,
-                             scope=scope_filter,
-                             now=datetime.now())
+        return 'Le registre de paquets est temporairement indisponible.', 503
 
 @app.route('/api/v1/packages/search')
 def api_packages_search():
@@ -1802,53 +2019,44 @@ def api_packages_search():
         return jsonify({'results': []})
     
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    packages = db.get('packages', [])
-    
+    raw_packages = db.get('packages', []) if isinstance(db, dict) else []
     results = []
-    for pkg in packages:
-        name = pkg.get('name', '').lower()
-        description = pkg.get('description', '').lower()
-        
-        if query in name or query in description:
+    for package in _group_packages(raw_packages):
+        if query in package.get('name', '').lower() or query in package.get('description', '').lower():
             results.append({
-                'name': pkg.get('name'),
-                'version': pkg.get('version'),
-                'author': pkg.get('author'),
-                'downloads': pkg.get('downloads', 0),
-                'scope': pkg.get('scope', 'public'),
-                'url': f"/package/{pkg.get('name')}"
+                'name': package.get('name'),
+                'version': package.get('version'),
+                'versions': package.get('versions', []),
+                'author': package.get('author'),
+                'downloads': package.get('downloads', 0),
+                'scope': package.get('scope', 'public'),
+                'url': url_for('package_detail_page', name=package.get('name'), scope=package.get('scope', 'public'))
             })
-            
-            if len(results) >= 10:  # Limiter à 10 résultats
+            if len(results) >= 10:
                 break
-    
+
     return jsonify({'results': results})
 @app.route('/package/<name>')
 def package_detail_page(name):
-    """Page de détail d'un package avec README"""
+    """Render the package page and its published version history."""
     version = request.args.get('version')
-    
+    scope = request.args.get('scope')
     db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
-    if not isinstance(db, dict):
-        db = {'packages': []}
-    
-    packages = db.get('packages', [])
-    package = None
-    
-    for p in packages:
-        if p['name'] == name:
-            if version is None or p['version'] == version:
-                package = p
-                break
-    
-    if not package:
+    packages = db.get('packages', []) if isinstance(db, dict) else []
+    package_group = _find_package_group(packages, name, scope)
+    selected = _select_package_version(
+        package_group,
+        version,
+        request.args.get('release'),
+        request.args.get('arch')
+    ) if package_group else None
+    if not package_group or not selected:
         abort(404, description="Package not found")
-    
-    # Chercher le README
+
     readme_html = None
-    filename = f"{name}-{package['version']}-{package.get('release', 'r0')}-{package.get('arch', 'x86_64')}.tar.bool"
-    pkg_path = f"packages/{package['scope']}/{name}/{filename}"
-    
+    filename = f"{name}-{selected['version']}-{selected.get('release', 'r0')}-{selected.get('arch', 'x86_64')}.tar.bool"
+    pkg_path = f"packages/{selected['scope']}/{name}/{filename}"
+
     content = GitHubManager.read_from_github(pkg_path, default=None, binary=True)
     if content:
         temp_dir = tempfile.mkdtemp()
@@ -1861,10 +2069,13 @@ def package_detail_page(name):
             readme_html = MarkdownRenderer.render(readme_text)
         
         shutil.rmtree(temp_dir)
-    
-    return render_template('package.html',
-                         package=package,
-                         readme_html=readme_html)
+
+    return render_template_string(
+        PACKAGE_DETAIL_TEMPLATE,
+        package=package_group,
+        selected=selected,
+        readme_html=readme_html
+    )
 
 @app.route('/docs')
 def docs_page():
@@ -2254,93 +2465,57 @@ def download_package(scope, name, version, release, arch):
 
 @app.route('/install.sh')
 def install_script():
-    """Script d'installation automatique pour APKM/APSM/BOOL"""
-    script = """#!/bin/sh
-# Zarch Hub Auto-Installer
-set -e
-
-echo "🚀 Zarch Hub Installer"
-echo "======================"
-
-# Couleurs
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-BLUE='\\033[0;34m'
-NC='\\033[0m'
-
-# Vérification des permissions
-if [ "$EUID" -ne 0 ]; then 
-    echo "${RED}❌ Please run as root${NC}"
-    exit 1
-fi
-
-echo "${BLUE}📦 Installing APKM Tools...${NC}"
-
-# Détection de l'architecture
-ARCH=$(uname -m)
-case $ARCH in
-    x86_64)  ARCH="x86_64" ;;
-    aarch64) ARCH="arm64" ;;
-    armv7l)  ARCH="armv7" ;;
-    *)       echo "${RED}❌ Unsupported architecture: $ARCH${NC}"; exit 1 ;;
-esac
-
-echo "${YELLOW}🔧 Architecture detected: $ARCH${NC}"
-
-# URLs des binaires
-BASE_URL="https://gsql-badge.onrender.com/package/download/public"
-VERSION="2.0.0"
-RELEASE="r1"
-
-# Installation d'APKM
-echo "${BLUE}📥 Downloading APKM...${NC}"
-curl -L -o /tmp/apkm.tar.bool "$BASE_URL/apkm/$VERSION/$RELEASE/$ARCH"
-tar -xzf /tmp/apkm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apkm.tar.bool -C /usr/local/bin/
-chmod +x /usr/local/bin/apkm
-rm -f /tmp/apkm.tar.bool
-
-# Installation d'APSM
-echo "${BLUE}📥 Downloading APSM...${NC}"
-curl -L -o /tmp/apsm.tar.bool "$BASE_URL/apsm/$VERSION/$RELEASE/$ARCH"
-tar -xzf /tmp/apsm.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/apsm.tar.bool -C /usr/local/bin/
-chmod +x /usr/local/bin/apsm
-rm -f /tmp/apsm.tar.bool
-
-# Installation de BOOL
-echo "${BLUE}📥 Downloading BOOL...${NC}"
-curl -L -o /tmp/bool.tar.bool "$BASE_URL/bool/$VERSION/$RELEASE/$ARCH"
-tar -xzf /tmp/bool.tar.bool -C /usr/local/bin/ 2>/dev/null || tar -xf /tmp/bool.tar.bool -C /usr/local/bin/
-chmod +x /usr/local/bin/bool
-rm -f /tmp/bool.tar.bool
-
-# Création des répertoires
-mkdir -p /usr/local/share/apkm/{database,cache,PROTOCOLE/security/tokens}
-
-# Configuration initiale
-echo "${BLUE}⚙️  Configuring APKM...${NC}"
-cat > /etc/apkm/repositories.conf << EOF
-# APKM Repositories
-zarch-hub https://gsql-badge.onrender.com 5
-EOF
-
-# Vérification
-echo "${GREEN}✅ Installation complete!${NC}"
-echo ""
-echo "📋 Commands installed:"
-echo "   $(which apkm) - Package manager"
-echo "   $(which apsm) - Publisher"
-echo "   $(which bool) - Builder"
-echo ""
-echo "🚀 Try: apkm --help"
-echo "🔐 Login: apsm login"
-echo "🏗️ build: bool --verify"
-echo "${YELLOW}📊 Statistics:${NC}"
-apkm --version
-"""
-    
+    """Serve the standalone Goscript/Golem GitHub release installer."""
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install.sh')
+    try:
+        with open(script_path, 'r', encoding='utf-8') as script_file:
+            script = script_file.read()
+    except OSError:
+        return Response('Installer script is unavailable.\n', status=503, mimetype='text/plain')
     return Response(script, mimetype='text/plain', headers={
         'Content-Disposition': 'attachment; filename="install.sh"',
+        'Cache-Control': 'no-cache'
+    })
+
+@app.route('/update.sh')
+def update_script():
+    """Serve the update script that installs the latest GitHub release."""
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'update.sh')
+    try:
+        with open(script_path, 'r', encoding='utf-8') as script_file:
+            script = script_file.read()
+    except OSError:
+        return Response('Update script is unavailable.\n', status=503, mimetype='text/plain')
+    return Response(script, mimetype='text/plain', headers={
+        'Content-Disposition': 'attachment; filename="update.sh"',
+        'Cache-Control': 'no-cache'
+    })
+
+@app.route('/install.ps1')
+def install_powershell_script():
+    """Serve the Windows GitHub release installer."""
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install.ps1')
+    try:
+        with open(script_path, 'r', encoding='utf-8') as script_file:
+            script = script_file.read()
+    except OSError:
+        return Response('Windows installer is unavailable.\n', status=503, mimetype='text/plain')
+    return Response(script, mimetype='text/plain', headers={
+        'Content-Disposition': 'attachment; filename="install.ps1"',
+        'Cache-Control': 'no-cache'
+    })
+
+@app.route('/update.ps1')
+def update_powershell_script():
+    """Serve the Windows update script."""
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'update.ps1')
+    try:
+        with open(script_path, 'r', encoding='utf-8') as script_file:
+            script = script_file.read()
+    except OSError:
+        return Response('Windows update script is unavailable.\n', status=503, mimetype='text/plain')
+    return Response(script, mimetype='text/plain', headers={
+        'Content-Disposition': 'attachment; filename="update.ps1"',
         'Cache-Control': 'no-cache'
     })
 
