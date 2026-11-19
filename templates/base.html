@@ -311,6 +311,8 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                min-width: 44px;
+                min-height: 44px;
             }
 
             .navbar-links {
@@ -330,6 +332,7 @@
                 transition: var(--transition);
                 z-index: 999;
                 overflow-y: auto;
+                overscroll-behavior: contain;
             }
 
             .navbar-links.open {
@@ -690,6 +693,7 @@
     </style>
     
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='mobile.css') }}">
 </head>
 <body>
     <!-- ================================================================
@@ -707,7 +711,7 @@
                 <span>Zarch Hub</span>
             </a>
             
-            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-controls="navbarLinks" aria-expanded="false">
                 <i class="fas fa-bars"></i>
             </button>
             
@@ -718,6 +722,7 @@
                 <li><a href="/docs"><i class="fas fa-book"></i> Docs</a></li>
                 <li><a href="/community" class="{{ 'active' if current_path.startswith('/community') }}"><i class="fas fa-users"></i> Community</a></li>
                 <li><a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a></li>
+                <li><a href="/contact" class="{{ 'active' if current_path == '/contact' }}"><i class="fas fa-envelope"></i> Contact</a></li>
                 {% if session.get('user') %}
                 <li><a href="/dashboard" class="{{ 'active' if current_path == '/dashboard' }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="/upload"><i class="fas fa-upload"></i> Upload</a></li>
@@ -795,12 +800,13 @@
                 <ul>
                     <li><a href="/privacy">Privacy Policy</a></li>
                     <li><a href="/terms">Terms of Service</a></li>
-                    <li><a href="mailto:support@gsql-badge.onrender.com">Contact</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="/docs/mcp">MCP Integration</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>Powered by GOPU &bull;GOSCRIPT &bull; GPM &bull; Made with ❤️ for the Zarch community</p>
+            <p>Powered by GOPU &bull; GOSCRIPT &bull; Golem &bull; Made with care for the Zarch community &bull; Mauricio Mangituka</p>
         </div>
     </footer>
     
@@ -815,13 +821,24 @@
         const navbarLinks = document.getElementById('navbarLinks');
         
         if (menuToggle && navbarLinks) {
+            const mobileNavQuery = window.matchMedia('(max-width: 768px)');
+            navbarLinks.inert = mobileNavQuery.matches;
+            mobileNavQuery.addEventListener('change', event => {
+                navbarLinks.classList.remove('open');
+                navbarLinks.inert = event.matches;
+                menuToggle.setAttribute('aria-expanded', 'false');
+                menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                document.body.style.overflow = '';
+            });
             menuToggle.addEventListener('click', function() {
                 const isOpen = navbarLinks.classList.toggle('open');
                 menuToggle.setAttribute('aria-expanded', isOpen);
                 menuToggle.innerHTML = isOpen ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
-                
-                // Empêcher le scroll quand le menu est ouvert
+                navbarLinks.inert = !isOpen;
                 document.body.style.overflow = isOpen ? 'hidden' : '';
+                if (isOpen) {
+                    navbarLinks.querySelector('a')?.focus();
+                }
             });
             
             // Fermer le menu quand on clique sur un lien
@@ -830,8 +847,20 @@
                     navbarLinks.classList.remove('open');
                     menuToggle.setAttribute('aria-expanded', 'false');
                     menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                    navbarLinks.inert = mobileNavQuery.matches;
                     document.body.style.overflow = '';
                 });
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && navbarLinks.classList.contains('open')) {
+                    navbarLinks.classList.remove('open');
+                    menuToggle.setAttribute('aria-expanded', 'false');
+                    menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                    navbarLinks.inert = mobileNavQuery.matches;
+                    document.body.style.overflow = '';
+                    menuToggle.focus();
+                }
             });
         }
         

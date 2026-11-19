@@ -18,7 +18,7 @@
 <meta name="twitter:image" content="https://zenv-hub.onrender.com/badge/{{ package.name|urlencode }}-v{{ package.version|urlencode }}-blue?style=for-the-badge">
 
 <meta name="description" content="{{ package.name }} v{{ package.version }} by {{ package.author }} - {{ package.downloads }} downloads on Zarch Hub. {{ package.description or '' }}">
-<meta name="keywords" content="zarch, gpm, goscript, package, {{ package.name }}, {{ package.scope }}, {{ package.author }}">
+<meta name="keywords" content="zarch, golem, goscript, package, {{ package.name }}, {{ package.scope }}, {{ package.author }}">
 <link rel="canonical" href="https://zenv-hub.onrender.com/package/{{ package.name }}">
 
 <script type="application/ld+json">
@@ -583,10 +583,10 @@ HERO
                     </div>
                     
                     <div class="install-commands">
-                        <div class="cmd-label">GPM Install</div>
-                        <div class="install-cmd" onclick="copyCommand(this, 'gpm install {{ package.name }}@{{ package.version }}')" title="Click to copy">
+                        <div class="cmd-label">Golem Install</div>
+                        <div class="install-cmd" onclick="copyCommand(this, 'golem install {{ package.name }}@{{ package.version }}')" title="Click to copy">
                             <i class="fas fa-terminal"></i>
-                            <code>gpm install {{ package.name }}@{{ package.version }}</code>
+                            <code>golem install {{ package.name }}@{{ package.version }}</code>
                         </div>
                         <div class="cmd-label" style="margin-top: 0.5rem;">Direct Download</div>
                         <div class="install-cmd" onclick="copyCommand(this, 'curl -O https://zenv-hub.onrender.com/package/download/{{ package.scope }}/{{ package.name }}/{{ package.version }}/{{ package.release }}/{{ package.arch }}')" title="Click to copy">

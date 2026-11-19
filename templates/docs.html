@@ -2,9 +2,9 @@
 
 {% block head_extra %}
 <meta property="og:title" content="Documentation - Zarch Hub">
-<meta property="og:description" content="Complete guides and API reference for GPM, Goscript, and the Zarch ecosystem.">
+<meta property="og:description" content="Complete guides and API reference for Golem, Goscript, and the Zarch ecosystem.">
 <meta property="og:url" content="https://zenv-hub.onrender.com/docs">
-<meta name="description" content="Zarch Hub Documentation - Guides, API reference, and tutorials for GPM and Goscript.">
+<meta name="description" content="Zarch Hub Documentation - Guides, API reference, and tutorials for Golem and Goscript.">
 <link rel="canonical" href="https://zenv-hub.onrender.com/docs">
 {% endblock %}
 
@@ -133,7 +133,7 @@
 <section class="page-header">
     <div class="container">
         <h1><i class="fas fa-book" style="color: var(--accent-blue);"></i> Documentation</h1>
-        <p>Everything you need to master GPM, Goscript, and the Zarch ecosystem</p>
+        <p>Everything you need to master Golem, Goscript, and the Zarch ecosystem</p>
     </div>
 </section>
 
@@ -146,9 +146,9 @@
                 <h3>Goscript Language</h3>
                 <p>Complete language reference: syntax, features, FFI, async/await</p>
             </a>
-            <a href="#gpm-basics" class="doc-card">
+            <a href="#golem-basics" class="doc-card">
                 <div class="doc-card-icon">📦</div>
-                <h3>GPM Basics</h3>
+                <h3>Golem Basics</h3>
                 <p>Package manager commands: install, publish, build, and more</p>
             </a>
             <a href="#manifest" class="doc-card">
@@ -161,6 +161,11 @@
                 <h3>API Reference</h3>
                 <p>Zarch Hub REST API endpoints for packages and authentication</p>
             </a>
+            <a href="/docs/mcp" class="doc-card">
+                <div class="doc-card-icon">🤖</div>
+                <h3>MCP for AI assistants</h3>
+                <p>Connect an authenticated assistant to the forum and contact service</p>
+            </a>
         </div>
 
         <div class="docs-layout">
@@ -169,7 +174,7 @@
                 <h3>Contents</h3>
                 <ul class="docs-nav">
                     <li><a href="#getting-started" class="active"><i class="fas fa-rocket"></i> Getting Started</a></li>
-                    <li><a href="#gpm-basics"><i class="fas fa-box"></i> GPM Basics</a></li>
+                    <li><a href="#golem-basics"><i class="fas fa-box"></i> Golem Basics</a></li>
                     <li><a href="#manifest"><i class="fas fa-file-alt"></i> Manifest.toml</a></li>
                     <li><a href="#goscript-lang"><i class="fas fa-code"></i> Goscript</a></li>
                     <li class="sub-nav">
@@ -181,6 +186,7 @@
                     <li><a href="#publishing"><i class="fas fa-cloud-upload-alt"></i> Publishing</a></li>
                     <li><a href="#dependencies-mgmt"><i class="fas fa-sitemap"></i> Dependencies</a></li>
                     <li><a href="#api-reference"><i class="fas fa-plug"></i> API Reference</a></li>
+                    <li><a href="/docs/mcp"><i class="fas fa-robot"></i> MCP Integration</a></li>
                     <li><a href="#registry"><i class="fas fa-database"></i> Registry</a></li>
                     <li><a href="/goscript/doc"><i class="fas fa-external-link-alt"></i> Full Goscript Docs</a></li>
                 </ul>
@@ -192,45 +198,45 @@
                 <!-- Getting Started -->
                 <div class="docs-section" id="getting-started">
                     <h2><i class="fas fa-rocket"></i> Getting Started</h2>
-                    <p>Welcome to the <strong>Zarch ecosystem</strong>! Install GPM and start using Goscript packages in minutes.</p>
+                    <p>Welcome to the <strong>Zarch ecosystem</strong>! Install Golem and start using Goscript packages in minutes.</p>
                     
                     <h3>Installation</h3>
                     <div class="code-block">
                         <span class="lang-tag">shell</span>
                         <code>curl -sL https://zenv-hub.onrender.com/install.sh | sh</code>
                     </div>
-                    <p>This installs <strong>GPM</strong> (Goscript Package Manager) and all necessary tools.</p>
+                    <p>This installs the <strong>Golem CLI</strong> and the tools needed to use Goscript packages.</p>
 
                     <div class="code-block">
                         <span class="lang-tag">shell</span>
-                        <code>gpm --version<br>gpm doctor</code>
+                        <code>golem --version<br>golem doctor</code>
                     </div>
 
                     <div class="note-box">
-                        <strong>💡 Tip:</strong> GPM stores config in <code>~/.gpmrc</code>. Packages go to <code>/usr/local/lib/goscript/</code>.
+                        <strong>💡 Tip:</strong> Golem stores config in <code>~/.golemrc</code>. Packages go to <code>/usr/local/lib/goscript/</code>.
                     </div>
                 </div>
 
-                <!-- GPM Basics -->
-                <div class="docs-section" id="gpm-basics">
-                    <h2><i class="fas fa-box"></i> GPM Basics</h2>
+                <!-- Golem Basics -->
+                <div class="docs-section" id="golem-basics">
+                    <h2><i class="fas fa-box"></i> Golem Basics</h2>
                     
                     <h3>Initialize a Project</h3>
-                    <div class="code-block"><span class="lang-tag">shell</span><code>gpm init my-project</code></div>
+                    <div class="code-block"><span class="lang-tag">shell</span><code>golem init my-project</code></div>
                     
                     <h3>Install Packages</h3>
-                    <div class="code-block"><span class="lang-tag">shell</span><code>gpm install http           # Latest version<br>gpm install http@1.2.0     # Specific version<br>gpm install                # All from Manifest.toml</code></div>
+                    <div class="code-block"><span class="lang-tag">shell</span><code>golem install http           # Latest version<br>golem install http@1.2.0     # Specific version<br>golem install                # All from Manifest.toml</code></div>
                     
                     <h3>Commands</h3>
                     <ul>
-                        <li><code>gpm install &lt;pkg&gt;</code> - Install a package</li>
-                        <li><code>gpm uninstall &lt;pkg&gt;</code> - Remove a package</li>
-                        <li><code>gpm update &lt;pkg&gt;</code> - Update to latest</li>
-                        <li><code>gpm search &lt;query&gt;</code> - Search registry</li>
-                        <li><code>gpm publish</code> - Publish your package</li>
-                        <li><code>gpm build</code> - Build .tar.bool archive</li>
-                        <li><code>gpm login &lt;user&gt; &lt;pass&gt;</code> - Authenticate</li>
-                        <li><code>gpm run &lt;script&gt;</code> - Execute a script</li>
+                        <li><code>golem install &lt;pkg&gt;</code> - Install a package</li>
+                        <li><code>golem uninstall &lt;pkg&gt;</code> - Remove a package</li>
+                        <li><code>golem update &lt;pkg&gt;</code> - Update to latest</li>
+                        <li><code>golem search &lt;query&gt;</code> - Search registry</li>
+                        <li><code>golem publish</code> - Publish your package</li>
+                        <li><code>golem build</code> - Build .tar.bool archive</li>
+                        <li><code>golem login &lt;user&gt; &lt;pass&gt;</code> - Authenticate</li>
+                        <li><code>golem run &lt;script&gt;</code> - Execute a script</li>
                     </ul>
                 </div>
 
@@ -239,7 +245,7 @@
                     <h2><i class="fas fa-file-alt"></i> Manifest.toml</h2>
                     <div class="code-block">
                         <span class="lang-tag">toml</span>
-                        <code>[metadata]<br>name = "my-package"<br>version = "1.0.0"<br>release = "r0"<br>arch = "x86_64"<br>description = "My awesome package"<br>author = "username"<br>license = "MIT"<br>main = "main.gjs"<br><br>[dependencies]<br>http = "^1.2.0"<br>fs = "*"<br><br>[dev-dependencies]<br>testlib = "~0.5"<br><br>[scripts]<br>build = "gpm build"<br>test = "gpm run test.gjs"</code>
+                        <code>[metadata]<br>name = "my-package"<br>version = "1.0.0"<br>release = "r0"<br>arch = "x86_64"<br>description = "My awesome package"<br>author = "username"<br>license = "MIT"<br>main = "main.gjs"<br><br>[dependencies]<br>http = "^1.2.0"<br>fs = "*"<br><br>[dev-dependencies]<br>testlib = "~0.5"<br><br>[scripts]<br>build = "golem build"<br>test = "golem run test.gjs"</code>
                     </div>
                 </div>
 
@@ -271,14 +277,14 @@
                 <div class="docs-section" id="publishing">
                     <h2><i class="fas fa-cloud-upload-alt"></i> Publishing Packages</h2>
                     <div class="warning-box"><strong>⚠️ Important:</strong> Ensure your <code>Manifest.toml</code> has valid <code>name</code>, <code>version</code>, and <code>arch</code>.</div>
-                    <div class="code-block"><span class="lang-tag">shell</span><code>gpm login username password<br>gpm build<br>gpm publish</code></div>
+                    <div class="code-block"><span class="lang-tag">shell</span><code>golem login username password<br>golem build<br>golem publish</code></div>
                 </div>
 
                 <!-- Dependencies Management -->
                 <div class="docs-section" id="dependencies-mgmt">
                     <h2><i class="fas fa-sitemap"></i> Dependencies Management</h2>
                     <p>Dependencies are declared in <code>Manifest.toml</code> under <code>[dependencies]</code> and <code>[dev-dependencies]</code>.</p>
-                    <p>GPM resolves the full dependency tree, hoists common packages, and generates a <code>gpm.lock</code> file.</p>
+                    <p>Golem resolves the full dependency tree, hoists common packages, and generates a <code>golem.lock</code> file.</p>
                     <div class="code-block"><span class="lang-tag">toml</span><code>[dependencies]<br>http = "^1.0"         # Compatible with >=1.0.0 <2.0.0<br>fs = "~2.5"           # Compatible with >=2.5.0 <2.6.0<br>json = "*"            # Any version</code></div>
                 </div>
 
@@ -292,7 +298,7 @@
                 <div class="docs-section" id="registry">
                     <h2><i class="fas fa-database"></i> Registry (Zarch Hub)</h2>
                     <p>Registry URL: <code>https://zenv-hub.onrender.com</code></p>
-                    <div class="code-block"><span class="lang-tag">shell</span><code># ~/.gpmrc<br>registry = "https://zenv-hub.onrender.com"<br>scope = "public"<br>arch = "x86_64"</code></div>
+                    <div class="code-block"><span class="lang-tag">shell</span><code># ~/.golemrc<br>registry = "https://zenv-hub.onrender.com"<br>scope = "public"<br>arch = "x86_64"</code></div>
                 </div>
 
             </div>

@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse, urlencode, quote
 from utils.profile_image import MAX_PROFILE_IMAGE_BYTES, normalize_profile_image
+from utils.contact_mail import ContactDeliveryError, send_contact_email
 
 # Flask et extensions
 from flask import Flask, request, jsonify, g, render_template, make_response, session, redirect, flash, abort, Response
@@ -94,6 +95,20 @@ DISCORD_CLIENT_SECRET = os.environ.get('DISCORD_CLIENT_SECRET')
 DISCORD_REDIRECT_URI = os.environ.get('DISCORD_REDIRECT_URI', 'https://gsql-badge.onrender.com/auth/discord/callback')
 DISCORD_API_ENDPOINT = os.environ.get('DISCORD_API_ENDPOINT', 'https://discord.com/api/v10')
 DISCORD_SCOPE = 'identify email guilds'
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'info@iddet.space').strip() or 'info@iddet.space'
+MCP_API_TOKEN = os.environ.get('MCP_API_TOKEN', '')
+MCP_ALLOWED_ORIGINS = {
+    origin.strip().rstrip('/')
+    for origin in os.environ.get('MCP_ALLOWED_ORIGINS', '').split(',')
+    if origin.strip()
+}
+MCP_PROTOCOL_VERSIONS = {
+    '2025-11-25',
+    '2025-06-18',
+    '2025-03-26',
+    '2024-11-05',
+}
+MCP_LATEST_PROTOCOL_VERSION = '2025-11-25'
 # ============================================================================
 # INITIALISATION FLASK
 # ============================================================================
@@ -115,10 +130,24 @@ app.config.update(
 )
 
 # CORS configuration
-CORS(app, resources={
+CORS_RESOURCES = {
     r"/api/*": {"origins": "*"},
-    r"/v5.2/*": {"origins": "*"}
-})
+    r"/v5.2/*": {"origins": "*"},
+}
+if MCP_ALLOWED_ORIGINS:
+    CORS_RESOURCES[r"/mcp"] = {
+        "origins": sorted(MCP_ALLOWED_ORIGINS),
+        "allow_headers": [
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "MCP-Protocol-Version",
+            "MCP-Session-Id",
+        ],
+        "methods": ["POST", "GET", "DELETE", "OPTIONS"],
+        "max_age": 600,
+    }
+CORS(app, resources=CORS_RESOURCES)
 
 # Initialisation du chiffreur Fernet
 fernet = Fernet(SecurityConfig.FERNET_KEY.encode())
@@ -2155,10 +2184,508 @@ def terms_page():
     """Page des conditions"""
     return render_template('terms.html')
 
+@app.route('/contact', methods=['GET', 'POST'])
+def contact_page():
+    if request.method == 'GET':
+        return render_template('contact.html', contact_email=CONTACT_EMAIL, form_data={})
+
+    form_data = {
+        'name': request.form.get('name', ''),
+        'email': request.form.get('email', ''),
+        'subject': request.form.get('subject', ''),
+        'message': request.form.get('message', ''),
+    }
+    if request.form.get('website', '').strip():
+        return render_template(
+            'contact.html', contact_email=CONTACT_EMAIL, form_data={}, error='Invalid submission.'
+        ), 400
+
+    now = datetime.now().timestamp()
+    last_sent = session.get('contact_last_sent', 0)
+    if isinstance(last_sent, (int, float)) and now - last_sent < 30:
+        return render_template(
+            'contact.html', contact_email=CONTACT_EMAIL, form_data=form_data,
+            error='Please wait 30 seconds before sending another message.',
+        ), 429
+
+    try:
+        send_contact_email(
+            form_data['name'],
+            form_data['email'],
+            form_data['subject'],
+            form_data['message'],
+            CONTACT_EMAIL,
+        )
+    except ValueError as error:
+        return render_template(
+            'contact.html', contact_email=CONTACT_EMAIL, form_data=form_data, error=str(error)
+        ), 400
+    except ContactDeliveryError:
+        app.logger.exception('Contact message delivery failed.')
+        return render_template(
+            'contact.html',
+            contact_email=CONTACT_EMAIL,
+            form_data=form_data,
+            error=f'Email delivery is unavailable. Please write to {CONTACT_EMAIL} directly.',
+        ), 503
+
+    session['contact_last_sent'] = now
+    flash('Your message was sent successfully.', 'success')
+    return redirect('/contact')
+
 @app.route('/api/docs')
 def api_docs_page():
     """Documentation API"""
     return render_template('api_docs.html')
+
+@app.route('/docs/mcp')
+def mcp_docs_page():
+    return render_template('mcp_docs.html', contact_email=CONTACT_EMAIL)
+
+class MCPToolError(Exception):
+    pass
+
+
+MCP_TOOLS = [
+    {
+        'name': 'forum.search_topics',
+        'title': 'Search forum topics',
+        'description': 'Search public Zarch Hub forum topics by title or content.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'query': {'type': 'string', 'maxLength': 200},
+                'limit': {'type': 'integer', 'minimum': 1, 'maximum': 20},
+            },
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': True},
+    },
+    {
+        'name': 'forum.get_topic',
+        'title': 'Read a forum topic',
+        'description': 'Read a public forum topic and its latest replies by slug.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {'slug': {'type': 'string', 'minLength': 1, 'maxLength': 100}},
+            'required': ['slug'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': True},
+    },
+    {
+        'name': 'forum.create_topic',
+        'title': 'Create a forum topic',
+        'description': 'Publish a Markdown topic as the configured Golem assistant account.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'title': {'type': 'string', 'minLength': 10, 'maxLength': 200},
+                'category': {'type': 'string', 'minLength': 1, 'maxLength': 40},
+                'content': {'type': 'string', 'minLength': 20, 'maxLength': 20000},
+                'tags': {
+                    'type': 'array',
+                    'items': {'type': 'string', 'maxLength': 30},
+                    'maxItems': 5,
+                },
+            },
+            'required': ['title', 'category', 'content'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': False, 'destructiveHint': False},
+    },
+    {
+        'name': 'forum.reply',
+        'title': 'Reply to a forum topic',
+        'description': 'Publish a Markdown reply as the configured Golem assistant account.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'slug': {'type': 'string', 'minLength': 1, 'maxLength': 100},
+                'content': {'type': 'string', 'minLength': 10, 'maxLength': 20000},
+            },
+            'required': ['slug', 'content'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': False, 'destructiveHint': False},
+    },
+    {
+        'name': 'contact.send_message',
+        'title': 'Send a contact message',
+        'description': f'Send a message to {CONTACT_EMAIL}. The sender email is used as Reply-To.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string', 'minLength': 1, 'maxLength': 100},
+                'email': {'type': 'string', 'format': 'email', 'maxLength': 254},
+                'subject': {'type': 'string', 'minLength': 1, 'maxLength': 150},
+                'message': {'type': 'string', 'minLength': 10, 'maxLength': 5000},
+            },
+            'required': ['name', 'email', 'subject', 'message'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': False, 'destructiveHint': False},
+    },
+]
+
+
+def _normalize_forum_categories(forum_db):
+    if not isinstance(forum_db, dict):
+        return
+    categories = forum_db.get('categories')
+    if isinstance(categories, list):
+        for category in categories:
+            if isinstance(category, dict) and category.get('name') == 'gpm':
+                category['name'] = 'golem'
+                category['label'] = re.sub(
+                    r'(?i)gpm', 'Golem', str(category.get('label') or 'Golem Package Manager')
+                )
+    topics = forum_db.get('topics')
+    if isinstance(topics, list):
+        for topic in topics:
+            if isinstance(topic, dict) and topic.get('category') == 'gpm':
+                topic['category'] = 'golem'
+
+
+def _mcp_forum_db():
+    forum_db = GitHubManager.read_from_github('forum/topics.json', {
+        'topics': [],
+        'categories': [
+            {'name': 'general', 'label': 'General Discussion', 'icon': 'comments', 'count': 0},
+            {'name': 'help', 'label': 'Help & Support', 'icon': 'question-circle', 'count': 0},
+            {'name': 'packages', 'label': 'Package Development', 'icon': 'code', 'count': 0},
+            {'name': 'goscript', 'label': 'Goscript Language', 'icon': 'microchip', 'count': 0},
+            {'name': 'golem', 'label': 'Golem Package Manager', 'icon': 'box', 'count': 0},
+            {'name': 'showcase', 'label': 'Project Showcase', 'icon': 'star', 'count': 0},
+            {'name': 'tutorials', 'label': 'Tutorials & Guides', 'icon': 'graduation-cap', 'count': 0},
+            {'name': 'feedback', 'label': 'Feedback & Suggestions', 'icon': 'lightbulb', 'count': 0},
+        ],
+    })
+    if not isinstance(forum_db, dict) or not isinstance(forum_db.get('topics', []), list):
+        raise MCPToolError('Forum data is unavailable or malformed.')
+    _normalize_forum_categories(forum_db)
+    if not isinstance(forum_db.get('categories'), list):
+        forum_db['categories'] = []
+    return forum_db
+
+
+def _mcp_forum_author():
+    author = os.environ.get('MCP_FORUM_AUTHOR', 'golem-assistant').strip()
+    if not re.fullmatch(r'[A-Za-z0-9_-]{2,32}', author):
+        raise MCPToolError('MCP_FORUM_AUTHOR must be a 2-32 character username.')
+    return author
+
+
+def _mcp_tool_call(name, arguments):
+    if not isinstance(arguments, dict):
+        raise MCPToolError('Tool arguments must be a JSON object.')
+
+    if name == 'forum.search_topics':
+        query = arguments.get('query', '')
+        limit = arguments.get('limit', 10)
+        if not isinstance(query, str) or len(query) > 200:
+            raise MCPToolError('query must be text with at most 200 characters.')
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 20:
+            raise MCPToolError('limit must be an integer from 1 to 20.')
+        forum_db = _mcp_forum_db()
+        terms = query.casefold().strip()
+        topics = forum_db['topics']
+        if terms:
+            topics = [
+                topic for topic in topics
+                if isinstance(topic, dict) and terms in (
+                    f"{topic.get('title', '')} {topic.get('content', '')}"
+                ).casefold()
+            ]
+        topics = sorted(
+            topics,
+            key=lambda topic: str(topic.get('created_at') or ''),
+            reverse=True,
+        )[:limit]
+        return {
+            'topics': [{
+                'slug': topic.get('slug'),
+                'title': topic.get('title'),
+                'author': topic.get('author'),
+                'category': topic.get('category'),
+                'tags': topic.get('tags', []),
+                'created_at': topic.get('created_at'),
+                'reply_count': topic.get('reply_count', 0),
+                'excerpt': str(topic.get('content') or '')[:500],
+            } for topic in topics]
+        }
+
+    if name == 'forum.get_topic':
+        slug = arguments.get('slug')
+        if not isinstance(slug, str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,99}', slug):
+            raise MCPToolError('slug must contain only lowercase letters, digits, and hyphens.')
+        forum_db = _mcp_forum_db()
+        topic = next((item for item in forum_db['topics']
+                      if isinstance(item, dict) and item.get('slug') == slug), None)
+        if not topic:
+            raise MCPToolError('Forum topic not found.')
+        replies_db = GitHubManager.read_from_github(
+            f'forum/replies/{slug}.json', {'replies': []}
+        )
+        if not isinstance(replies_db, dict) or not isinstance(replies_db.get('replies', []), list):
+            raise MCPToolError('Forum replies are unavailable or malformed.')
+        return {'topic': topic, 'replies': replies_db.get('replies', [])[-100:]}
+
+    if name == 'forum.create_topic':
+        title = arguments.get('title')
+        category = arguments.get('category')
+        content = arguments.get('content')
+        tags = arguments.get('tags', [])
+        if not isinstance(title, str) or not 10 <= len(title.strip()) <= 200:
+            raise MCPToolError('title must be between 10 and 200 characters.')
+        if not isinstance(category, str) or not 1 <= len(category.strip()) <= 40:
+            raise MCPToolError('category must be between 1 and 40 characters.')
+        if not isinstance(content, str) or not 20 <= len(content.strip()) <= 20000:
+            raise MCPToolError('content must be between 20 and 20,000 characters.')
+        if not isinstance(tags, list) or len(tags) > 5 or any(
+            not isinstance(tag, str) or len(tag.strip()) > 30 for tag in tags
+        ):
+            raise MCPToolError('tags must be at most five text values, each at most 30 characters.')
+
+        forum_db = _mcp_forum_db()
+        allowed_categories = {
+            item.get('name') for item in forum_db['categories']
+            if isinstance(item, dict) and isinstance(item.get('name'), str)
+        }
+        if not allowed_categories:
+            allowed_categories = {
+                'general', 'help', 'packages', 'goscript', 'golem',
+                'showcase', 'tutorials', 'feedback',
+            }
+        category = category.strip()
+        if category not in allowed_categories or category == 'gpm':
+            raise MCPToolError('Choose a category listed by the forum.')
+
+        slug = re.sub(r'[^a-z0-9-]', '', title.strip().lower().replace(' ', '-'))[:80].strip('-')
+        if not slug:
+            slug = f'topic-{uuid.uuid4().hex[:12]}'
+        existing_slugs = {
+            topic.get('slug') for topic in forum_db['topics'] if isinstance(topic, dict)
+        }
+        if slug in existing_slugs:
+            slug = f'{slug}-{uuid.uuid4().hex[:8]}'
+
+        now = datetime.now().isoformat()
+        topic = {
+            'id': str(uuid.uuid4()),
+            'slug': slug,
+            'title': SecurityUtils.escape_text(title.strip()),
+            'author': _mcp_forum_author(),
+            'category': category,
+            'content': content.strip(),
+            'tags': [tag.strip().lower().replace(' ', '-') for tag in tags if tag.strip()],
+            'views': 0,
+            'reply_count': 0,
+            'pinned': False,
+            'solved': False,
+            'locked': False,
+            'created_at': now,
+            'updated_at': now,
+            'last_reply_at': None,
+            'last_reply_by': None,
+        }
+        forum_db['topics'].append(topic)
+        if not GitHubManager.save_to_github(
+            'forum/topics.json', forum_db, f"MCP topic: {title.strip()[:80]}"
+        ):
+            raise MCPToolError('The forum topic could not be published.')
+        return {'published': True, 'slug': slug, 'url': f'/forum/topic/{slug}', 'author': topic['author']}
+
+    if name == 'forum.reply':
+        slug = arguments.get('slug')
+        content = arguments.get('content')
+        if not isinstance(slug, str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,99}', slug):
+            raise MCPToolError('slug must contain only lowercase letters, digits, and hyphens.')
+        if not isinstance(content, str) or not 10 <= len(content.strip()) <= 20000:
+            raise MCPToolError('content must be between 10 and 20,000 characters.')
+
+        forum_db = _mcp_forum_db()
+        topic = next((item for item in forum_db['topics']
+                      if isinstance(item, dict) and item.get('slug') == slug), None)
+        if not topic:
+            raise MCPToolError('Forum topic not found.')
+        if topic.get('locked'):
+            raise MCPToolError('This topic is locked.')
+        replies_db = GitHubManager.read_from_github(
+            f'forum/replies/{slug}.json', {'replies': []}
+        )
+        if not isinstance(replies_db, dict) or not isinstance(replies_db.get('replies', []), list):
+            raise MCPToolError('Forum replies are unavailable or malformed.')
+        author = _mcp_forum_author()
+        now = datetime.now().isoformat()
+        reply = {
+            'id': str(uuid.uuid4()),
+            'topic_slug': slug,
+            'author': author,
+            'content': content.strip(),
+            'likes': 0,
+            'liked_by': [],
+            'is_solution': False,
+            'created_at': now,
+            'updated_at': now,
+        }
+        replies_db['replies'].append(reply)
+        if not GitHubManager.save_to_github(
+            f'forum/replies/{slug}.json', replies_db, f'MCP reply in: {slug}'
+        ):
+            raise MCPToolError('The forum reply could not be published.')
+        topic['reply_count'] = len(replies_db['replies'])
+        topic['last_reply_at'] = now
+        topic['last_reply_by'] = author
+        topic['updated_at'] = now
+        if not GitHubManager.save_to_github(
+            'forum/topics.json', forum_db, f'Update MCP reply count: {slug}'
+        ):
+            raise MCPToolError('The reply was published, but the topic metadata update failed.')
+        return {'published': True, 'slug': slug, 'reply_id': reply['id'], 'author': author}
+
+    if name == 'contact.send_message':
+        try:
+            send_contact_email(
+                arguments.get('name'),
+                arguments.get('email'),
+                arguments.get('subject'),
+                arguments.get('message'),
+                CONTACT_EMAIL,
+            )
+        except ValueError as error:
+            raise MCPToolError(str(error)) from error
+        except ContactDeliveryError as error:
+            raise MCPToolError(str(error)) from error
+        return {'sent': True, 'to': CONTACT_EMAIL}
+
+    raise MCPToolError(f'Unknown tool: {name}')
+
+
+def _mcp_jsonrpc_error(message_id, code, message):
+    return {'jsonrpc': '2.0', 'id': message_id, 'error': {'code': code, 'message': message}}
+
+
+@app.route('/mcp', methods=['POST', 'GET', 'DELETE'])
+def mcp_endpoint():
+    origin = request.headers.get('Origin')
+    if origin and origin.rstrip('/') not in MCP_ALLOWED_ORIGINS:
+        return jsonify({'error': 'Origin is not allowed.'}), 403
+
+    if len(MCP_API_TOKEN) < 32:
+        return jsonify({'error': 'MCP is not configured with a secure API token.'}), 503
+    authorization = request.headers.get('Authorization', '')
+    scheme, separator, supplied_token = authorization.partition(' ')
+    if (scheme.lower() != 'bearer' or not separator
+            or not hmac.compare_digest(supplied_token.encode('utf-8'), MCP_API_TOKEN.encode('utf-8'))):
+        response = jsonify({'error': 'A valid Bearer token is required.'})
+        response.status_code = 401
+        response.headers['WWW-Authenticate'] = 'Bearer'
+        return response
+
+    if request.method != 'POST':
+        return '', 405, {'Allow': 'POST'}
+    if request.content_length and request.content_length > 1_048_576:
+        return jsonify({'error': 'MCP request body exceeds 1 MiB.'}), 413
+    if request.mimetype != 'application/json':
+        return jsonify({'error': 'Content-Type must be application/json.'}), 415
+    accepted_types = {
+        item.split(';', 1)[0].strip().lower()
+        for item in request.headers.get('Accept', '').split(',')
+    }
+    if not {'application/json', 'text/event-stream'}.issubset(accepted_types):
+        return jsonify({'error': 'Accept must include application/json and text/event-stream.'}), 406
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify(_mcp_jsonrpc_error(None, -32700, 'Parse error.')), 400
+    if payload.get('jsonrpc') != '2.0' or not isinstance(payload.get('method'), str):
+        return jsonify(_mcp_jsonrpc_error(payload.get('id'), -32600, 'Invalid Request.')), 400
+
+    method = payload['method']
+    message_id = payload.get('id')
+    has_id = 'id' in payload
+    if has_id and (isinstance(message_id, bool) or not isinstance(message_id, (str, int))):
+        return jsonify(_mcp_jsonrpc_error(None, -32600, 'Invalid Request.')), 400
+
+    if method != 'initialize':
+        protocol_version = request.headers.get('MCP-Protocol-Version', '2025-03-26')
+        if protocol_version not in MCP_PROTOCOL_VERSIONS:
+            return jsonify({'error': 'Unsupported MCP-Protocol-Version.'}), 400
+
+    if method.startswith('notifications/'):
+        return '', 202
+    if not has_id:
+        if 'result' in payload or 'error' in payload:
+            return '', 202
+        return jsonify(_mcp_jsonrpc_error(None, -32600, 'Requests must include an id.')), 400
+
+    params = payload.get('params', {})
+    if not isinstance(params, dict):
+        return jsonify(_mcp_jsonrpc_error(message_id, -32602, 'Invalid params.'))
+
+    try:
+        if method == 'initialize':
+            requested_version = params.get('protocolVersion')
+            negotiated_version = (
+                requested_version
+                if isinstance(requested_version, str)
+                and requested_version in MCP_PROTOCOL_VERSIONS
+                else MCP_LATEST_PROTOCOL_VERSION
+            )
+            result = {
+                'protocolVersion': negotiated_version,
+                'capabilities': {'tools': {}},
+                'serverInfo': {
+                    'name': 'zarch-hub',
+                    'title': 'Zarch Hub',
+                    'version': '1.0.0',
+                },
+                'instructions': (
+                    'Use forum.search_topics and forum.get_topic to review discussions before '
+                    'posting. Forum writes are published as the configured Golem assistant. '
+                    f'contact.send_message sends email to {CONTACT_EMAIL}.'
+                ),
+            }
+        elif method == 'ping':
+            result = {}
+        elif method == 'tools/list':
+            result = {'tools': MCP_TOOLS}
+        elif method == 'tools/call':
+            tool_name = params.get('name')
+            if not isinstance(tool_name, str):
+                return jsonify(_mcp_jsonrpc_error(message_id, -32602, 'Tool name is required.'))
+            try:
+                tool_result = _mcp_tool_call(tool_name, params.get('arguments', {}))
+                result = {
+                    'content': [{
+                        'type': 'text',
+                        'text': json.dumps(tool_result, ensure_ascii=False),
+                    }],
+                    'structuredContent': tool_result,
+                    'isError': False,
+                }
+            except MCPToolError as error:
+                result = {
+                    'content': [{'type': 'text', 'text': str(error)}],
+                    'isError': True,
+                }
+            except Exception:
+                app.logger.exception('MCP tool execution failed: %s', tool_name)
+                result = {
+                    'content': [{
+                        'type': 'text',
+                        'text': 'Tool execution failed. Check the server logs and configuration.',
+                    }],
+                    'isError': True,
+                }
+        else:
+            return jsonify(_mcp_jsonrpc_error(message_id, -32601, 'Method not found.'))
+    except Exception:
+        app.logger.exception('MCP request failed: %s', method)
+        return jsonify(_mcp_jsonrpc_error(message_id, -32603, 'Internal error.')), 500
+
+    return jsonify({'jsonrpc': '2.0', 'id': message_id, 'result': result})
 
 @app.route('/cookies')
 def cookies_page():
@@ -2768,12 +3295,13 @@ def forum_page():
                 {'name': 'help', 'label': 'Help & Support', 'icon': 'question-circle', 'count': 0},
                 {'name': 'packages', 'label': 'Package Development', 'icon': 'code', 'count': 0},
                 {'name': 'goscript', 'label': 'Goscript Language', 'icon': 'microchip', 'count': 0},
-                {'name': 'gpm', 'label': 'GPM Package Manager', 'icon': 'box', 'count': 0},
+                {'name': 'golem', 'label': 'Golem Package Manager', 'icon': 'box', 'count': 0},
                 {'name': 'showcase', 'label': 'Project Showcase', 'icon': 'star', 'count': 0},
                 {'name': 'tutorials', 'label': 'Tutorials & Guides', 'icon': 'graduation-cap', 'count': 0},
                 {'name': 'feedback', 'label': 'Feedback & Suggestions', 'icon': 'lightbulb', 'count': 0}
             ]
         })
+        _normalize_forum_categories(forum_db)
 
         # Récupérer les paramètres
         page = request.args.get('page', 1, type=int)
@@ -2861,6 +3389,7 @@ def forum_topic(slug):
     """Page de détail d'un topic avec ses replies"""
     try:
         forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+        _normalize_forum_categories(forum_db)
         topics = forum_db.get('topics', [])
         
         # Trouver le topic
@@ -2946,6 +3475,7 @@ def forum_new():
             
             # Vérifier l'unicité du slug
             forum_db = GitHubManager.read_from_github('forum/topics.json', {'topics': []})
+            _normalize_forum_categories(forum_db)
             existing_slugs = [t.get('slug') for t in forum_db.get('topics', [])]
             
             if slug in existing_slugs:
@@ -3341,12 +3871,12 @@ def init_forum():
                     'category': 'general',
                     'content': """# Welcome to the Zarch Hub Forum! 🎉
 
-This is the official community forum for **Goscript** and **GPM**.
+This is the official community forum for **Goscript** and **Golem**.
 
 ## What you can do here:
 - 💬 Discuss Goscript language features
 - 📦 Share your packages and get feedback
-- 🆘 Ask for help with GPM
+- 🆘 Ask for help with Golem
 - 🎯 Showcase your projects
 - 💡 Suggest improvements
 
@@ -3384,7 +3914,7 @@ We're excited to announce the release of Goscript v2.0!
 - **Struct Inheritance** - `extends` keyword
 - **Pattern Matching** - Powerful `match` expressions
 - **FFI Improvements** - Better C interop
-- **Package Manager** - GPM v1.0
+- **Package Manager** - Golem v1.0
 
 [Read the full changelog](/docs)""",
                     'tags': ['goscript', 'release', 'v2'],
@@ -3404,7 +3934,7 @@ We're excited to announce the release of Goscript v2.0!
                 {'name': 'help', 'label': 'Help & Support', 'icon': 'question-circle', 'count': 0},
                 {'name': 'packages', 'label': 'Package Development', 'icon': 'code', 'count': 0},
                 {'name': 'goscript', 'label': 'Goscript Language', 'icon': 'microchip', 'count': 1},
-                {'name': 'gpm', 'label': 'GPM Package Manager', 'icon': 'box', 'count': 0},
+                {'name': 'golem', 'label': 'Golem Package Manager', 'icon': 'box', 'count': 0},
                 {'name': 'showcase', 'label': 'Project Showcase', 'icon': 'star', 'count': 0},
                 {'name': 'tutorials', 'label': 'Tutorials & Guides', 'icon': 'graduation-cap', 'count': 0},
                 {'name': 'feedback', 'label': 'Feedback & Suggestions', 'icon': 'lightbulb', 'count': 0}

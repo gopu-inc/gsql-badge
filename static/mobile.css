@@ -1,0 +1,192 @@
+html {
+    scroll-padding-top: calc(var(--navbar-height) + 1rem);
+}
+
+body {
+    min-width: 320px;
+    overflow-x: hidden;
+}
+
+.main-content,
+.container,
+.navbar-content,
+.footer-content,
+main,
+section,
+article {
+    min-width: 0;
+}
+
+img,
+video,
+iframe {
+    max-width: 100%;
+}
+
+pre,
+.code-block,
+.install-cmd {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+input,
+select,
+textarea {
+    max-width: 100%;
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --container-padding: 1rem;
+    }
+
+    .navbar-content {
+        gap: 0.5rem;
+    }
+
+    .navbar-brand {
+        min-width: 0;
+        font-size: 1.15rem;
+    }
+
+    .navbar-brand span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .navbar-links {
+        max-height: calc(100dvh - var(--navbar-height));
+    }
+
+    .docs-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .docs-sidebar {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .docs-nav {
+        min-width: max-content;
+    }
+
+    .docs-section,
+    .topic-header,
+    .reply-card,
+    .reply-form-card,
+    .form-card {
+        min-width: 0;
+    }
+
+    .markdown-body,
+    .reply-body,
+    .package-readme {
+        overflow-wrap: anywhere;
+    }
+
+    .markdown-body table,
+    .reply-body table,
+    .package-readme table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --container-padding: 0.9rem;
+    }
+
+    .container {
+        padding-left: var(--container-padding);
+        padding-right: var(--container-padding);
+    }
+
+    .topic-page,
+    .new-topic-page {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    .topic-header,
+    .reply-card,
+    .reply-form-card,
+    .form-card,
+    .docs-section {
+        padding: 1rem;
+    }
+
+    .forum-toolbar {
+        align-items: stretch;
+    }
+
+    .toolbar-search {
+        min-width: 100%;
+    }
+
+    .form-toolbar {
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .form-toolbar button {
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .hero {
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+
+    input,
+    select,
+    textarea,
+    .form-input,
+    .form-select,
+    .form-textarea {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 380px) {
+    :root {
+        --container-padding: 0.75rem;
+    }
+
+    .navbar-brand img,
+    .navbar-brand .brand-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .navbar-brand {
+        gap: 0.45rem;
+        font-size: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

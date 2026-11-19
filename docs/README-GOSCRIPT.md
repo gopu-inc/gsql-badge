@@ -3,7 +3,7 @@
 
 > **Version:** 2.0  
 > **Repository:** [gopu-inc/gsql-badge](https://github.com/gopu-inc/gsql-badge)  
-> **Package Manager:** [GPM](https://zenv-hub.onrender.com)  
+> **Package Manager:** [Golem](https://zenv-hub.onrender.com)
 > **Registry:** [Zarch Hub](https://zenv-hub.onrender.com)
 
 ---
@@ -22,7 +22,7 @@
 10. [Async/Await](#asyncawait)
 11. [FFI (Foreign Function Interface)](#ffi-foreign-function-interface)
 12. [Modules & Imports](#modules--imports)
-13. [Package Management (GPM)](#package-management-gpm)
+13. [Package Management (Golem)](#package-management-golem)
 14. [Standard Library](#standard-library)
 15. [Error Handling](#error-handling)
 16. [System Calls](#system-calls)
@@ -59,7 +59,7 @@
 - **Small footprint** - Minimal runtime
 - **C interoperability** - Call any C library via FFI
 - **Modern syntax** - Clean, readable, expressive
-- **Package ecosystem** - GPM and Zarch Hub
+- **Package ecosystem** - Golem and Zarch Hub
 
 ---
 
@@ -787,12 +787,12 @@ my_package::services::api::fetch()
 
 ---
 
-Package Management (GPM)
+Package Management (Golem)
 
 Creating a Package
 
 ```bash
-gpm init my-awesome-package
+golem init my-awesome-package
 ```
 
 This creates a Manifest.toml:
@@ -816,25 +816,25 @@ fs = "*"
 test-framework = "~0.5"
 
 [scripts]
-build = "gpm build"
-test = "gpm run test.gjs"
+build = "golem build"
+test = "golem run test.gjs"
 ```
 
 Installing Packages
 
 ```bash
-gpm install                    # Install all dependencies
-gpm install http               # Install specific package
-gpm install http@1.2.0         # Install specific version
-gpm install --save-dev testlib # Install as dev dependency
+golem install                    # Install all dependencies
+golem install http               # Install specific package
+golem install http@1.2.0         # Install specific version
+golem install --save-dev testlib # Install as dev dependency
 ```
 
 Publishing
 
 ```bash
-gpm login username password
-gpm build
-gpm publish
+golem login username password
+golem build
+golem publish
 ```
 
 Version Constraints
@@ -1341,7 +1341,7 @@ use module::function Use statement
 Resources
 
 **· Official Registry**: Zarch Hub
-**· Package Manager**: GPM Documentation
+**· Package Manager**: Golem Documentation
 **· Community Forum**: Zarch Hub Forum
 **· Source Code**: GitHub Repository
 **· Issue Tracker**: GitHub Issues
@@ -1357,4 +1357,6 @@ Resources
 ---
 
 # Happy coding with Goscript! 🚀
+
+Mauricio Mangituka
 
