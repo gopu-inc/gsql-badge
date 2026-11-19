@@ -29,7 +29,7 @@ the same repository and builds from source on platforms without a published
 binary:
 
 ```sh
-curl -fsSLO https://raw.githubusercontent.com/gopu-inc/goscript/main/install.sh
+curl -fsSLO https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/install.sh
 less install.sh
 sudo sh install.sh
 ```

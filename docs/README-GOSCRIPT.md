@@ -74,7 +74,7 @@
 ### Quick Install
 
 ```bash
-curl -sL https://zenv-hub.onrender.com/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/install.sh | sh
 ```
 
 Manual Build

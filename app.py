@@ -3572,59 +3572,35 @@ def download_package(scope, name, version, release, arch):
 
 @app.route('/install.sh')
 def install_script():
-    """Serve the standalone Goscript/Golem GitHub release installer."""
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install.sh')
-    try:
-        with open(script_path, 'r', encoding='utf-8') as script_file:
-            script = script_file.read()
-    except OSError:
-        return Response('Installer script is unavailable.\n', status=503, mimetype='text/plain')
-    return Response(script, mimetype='text/plain', headers={
-        'Content-Disposition': 'attachment; filename="install.sh"',
-        'Cache-Control': 'no-cache'
-    })
+    """Redirect to the canonical Goscript installer in the source repository."""
+    return redirect(
+        'https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/install.sh',
+        code=302,
+    )
 
 @app.route('/update.sh')
 def update_script():
-    """Serve the update script that installs the latest GitHub release."""
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'update.sh')
-    try:
-        with open(script_path, 'r', encoding='utf-8') as script_file:
-            script = script_file.read()
-    except OSError:
-        return Response('Update script is unavailable.\n', status=503, mimetype='text/plain')
-    return Response(script, mimetype='text/plain', headers={
-        'Content-Disposition': 'attachment; filename="update.sh"',
-        'Cache-Control': 'no-cache'
-    })
+    """Redirect to the canonical Goscript updater in the source repository."""
+    return redirect(
+        'https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/update.sh',
+        code=302,
+    )
 
 @app.route('/install.ps1')
 def install_powershell_script():
-    """Serve the Windows GitHub release installer."""
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install.ps1')
-    try:
-        with open(script_path, 'r', encoding='utf-8') as script_file:
-            script = script_file.read()
-    except OSError:
-        return Response('Windows installer is unavailable.\n', status=503, mimetype='text/plain')
-    return Response(script, mimetype='text/plain', headers={
-        'Content-Disposition': 'attachment; filename="install.ps1"',
-        'Cache-Control': 'no-cache'
-    })
+    """Redirect to the canonical Windows Goscript installer."""
+    return redirect(
+        'https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/install.ps1',
+        code=302,
+    )
 
 @app.route('/update.ps1')
 def update_powershell_script():
-    """Serve the Windows update script."""
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'update.ps1')
-    try:
-        with open(script_path, 'r', encoding='utf-8') as script_file:
-            script = script_file.read()
-    except OSError:
-        return Response('Windows update script is unavailable.\n', status=503, mimetype='text/plain')
-    return Response(script, mimetype='text/plain', headers={
-        'Content-Disposition': 'attachment; filename="update.ps1"',
-        'Cache-Control': 'no-cache'
-    })
+    """Redirect to the canonical Windows Goscript updater."""
+    return redirect(
+        'https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/update.ps1',
+        code=302,
+    )
 
 @app.route('/badge/<path:badge_name>')
 @app.route('/badge/<path:badge_name>.<format>')

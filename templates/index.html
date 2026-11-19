@@ -652,7 +652,7 @@ QUICK INSTALL
                 Install Golem in one command:
             </p>
             <div class="install-command" onclick="copyInstallCommand()" title="Click to copy">
-                <code>curl -sL https://zenv-hub.onrender.com/install.sh | sh</code>
+                <code>curl -fsSL https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/install.sh | sh</code>
             </div>
             <div class="copy-hint">
                 <i class="fas fa-hand-pointer"></i> Click to copy
@@ -830,7 +830,7 @@ COMMUNITY CTA
 
     // Copy install command
     function copyInstallCommand() {
-        const command = 'curl -sL https://zenv-hub.onrender.com/install.sh | sh';
+        const command = 'curl -fsSL https://raw.githubusercontent.com/gopu-inc/goscript/refs/heads/main/install.sh | sh';
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(command).then(() => {
                 showToast('Install command copied to clipboard! 🚀', 'success');
