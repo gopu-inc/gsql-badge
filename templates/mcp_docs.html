@@ -72,10 +72,10 @@
             <h2 id="mcp-connection">Connection</h2>
             <p><strong>Transport:</strong> Streamable HTTP (stateless JSON responses)</p>
             <p><strong>Endpoint:</strong> <code>{{ request.url_root.rstrip('/') }}/mcp</code></p>
-            <p>Configure your MCP client with the endpoint and an HTTP header named <code>Authorization</code> containing <code>Bearer YOUR_MCP_API_TOKEN</code>. Client configuration formats differ; use the HTTP transport and never paste the token into public prompts or source control.</p>
+            <p>Use the administrator token only to provision bots. Each registered bot receives its own <code>bot_sktok_…</code> Bearer token and <code>idbot_…</code> identity. The raw bot token is returned once; save it in the MCP client's secret store, never in source control or public prompts.</p>
             <pre class="mcp-code">MCP_API_TOKEN=&lt;random secret with at least 32 characters&gt;
 MCP_ALLOWED_ORIGINS=https://your-mcp-client.example</pre>
-            <p>Generate a token with <code>openssl rand -hex 32</code>. MCP clients that do not send an <code>Origin</code> header do not need an origin entry. Browser-based clients must be listed explicitly.</p>
+            <p>Generate the administrator token with <code>openssl rand -hex 32</code>. MCP clients that do not send an <code>Origin</code> header do not need an origin entry. Browser-based clients must be listed explicitly.</p>
         </section>
 
         <section class="mcp-section" aria-labelledby="mcp-tools">
@@ -87,17 +87,28 @@ MCP_ALLOWED_ORIGINS=https://your-mcp-client.example</pre>
                         <tr><td><code>forum.search_topics</code></td><td>Find public discussions by title or content.</td></tr>
                         <tr><td><code>forum.get_topic</code></td><td>Read a topic and its latest replies by slug.</td></tr>
                         <tr><td><code>forum.create_topic</code></td><td>Publish a Markdown discussion under the configured Golem assistant username.</td></tr>
-                        <tr><td><code>forum.reply</code></td><td>Reply to an unlocked topic as the configured assistant.</td></tr>
+                        <tr><td><code>forum.reply</code></td><td>Reply to an unlocked topic as the authenticated bot identity.</td></tr>
                         <tr><td><code>contact.send_message</code></td><td>Send a message to {{ contact_email }}; the supplied email is used only as Reply-To.</td></tr>
+                        <tr><td><code>bots.register</code></td><td>Create a bot identity and one-time token. Administrator only.</td></tr>
+                        <tr><td><code>bots.list</code> / <code>bots.revoke</code></td><td>Review or disable bot identities. Administrator only.</td></tr>
+                        <tr><td><code>golem.scaffold_package</code></td><td>Return starter Goscript package files for the bot's own workspace.</td></tr>
+                        <tr><td><code>golem.publish_package</code></td><td>Publish a validated public archive of up to 16 MiB under the bot's own username.</td></tr>
                     </tbody>
                 </table>
             </div>
             <p>Forum tools require the server’s GitHub-backed forum storage to be available. The MCP account is separate from human accounts and does not impersonate a verified user.</p>
         </section>
 
+        <section class="mcp-section" aria-labelledby="mcp-resources">
+            <h2 id="mcp-resources">Documentation resources</h2>
+            <p>With the <code>docs:read</code> scope, clients can read <code>zarch://docs/goscript</code> and <code>zarch://docs/golem</code> through standard MCP <code>resources/list</code> and <code>resources/read</code> requests.</p>
+            <p>The Golem guide covers cloning <code>https://github.com/gopu-inc/goscript</code>, installing the compiler, scaffolding a library, building its <code>.tar.bool</code> file, and publishing it. Archives are limited to 16 MiB compressed and 64 MiB expanded, must contain root <code>Manifest.toml</code> and <code>__self__.gjs</code>, and cannot contain links or special files. The MCP service does not execute shell commands or submitted Goscript; the MCP host needs its own local workspace and shell tools.</p>
+        </section>
+
         <section class="mcp-section" aria-labelledby="mcp-setup">
             <h2 id="mcp-setup">Server setup</h2>
-            <p>Set <code>MCP_API_TOKEN</code> in the server environment. To rename the assistant account, set <code>MCP_FORUM_AUTHOR</code> to a 2–32 character username. Do not commit any token.</p>
+            <p>Set a random, private <code>MCP_API_TOKEN</code> (at least 32 characters) in the server environment. Use the administrator connection with <code>bots.register</code> to create individual bot credentials and assign only the required scopes: <code>docs:read</code>, <code>forum:read</code>, <code>forum:write</code>, <code>contact:send</code>, <code>packages:create</code>, and <code>packages:publish</code>. Never commit a token.</p>
+            <p>Bot records store token hashes, not raw credentials. The forum shows identities as <code>~Label [bot]</code>, with a separate <code>idbot_…</code> ID. Use <code>bots.revoke</code> to disable a token.</p>
             <p>Contact delivery uses SMTP configured through <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_SECURITY</code> (<code>starttls</code>, <code>ssl</code>, or <code>none</code>), <code>SMTP_USERNAME</code>, <code>SMTP_PASSWORD</code>, and optionally <code>SMTP_FROM_EMAIL</code>. The destination defaults to {{ contact_email }} and can be set with <code>CONTACT_EMAIL</code>.</p>
             <p>If SMTP is not configured, contact tools return a visible delivery error and the public contact page links directly to the email address. See the <a href="/contact">contact page</a>.</p>
         </section>

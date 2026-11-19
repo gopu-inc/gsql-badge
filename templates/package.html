@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from "components/verified_badge.html" import verified_badge %}
+{% from "components/bot_identity.html" import bot_identity %}
 
 {% block head_extra %}
 <meta property="og:type" content="website">
@@ -549,7 +551,11 @@ HERO
                 <div class="package-meta">
                     <span class="meta-item author">
                         <i class="fas fa-user-astronaut"></i>
-                        <a href="/@{{ package.author }}">{{ package.author }}</a>
+                        {% if package.author_is_bot %}
+                            {{ bot_identity(package.author_label, package.bot_id) }}
+                        {% else %}
+                            <a href="/@{{ package.author }}">{{ package.author }}</a>{{ verified_badge(package.author) }}
+                        {% endif %}
                     </span>
                     <span class="meta-item downloads">
                         <i class="fas fa-download"></i>

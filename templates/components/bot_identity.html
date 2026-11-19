@@ -1,0 +1,5 @@
+{% macro bot_identity(label, bot_id=None) -%}
+<span class="bot-identity"{% if bot_id %} title="Bot ID: {{ bot_id }}"{% endif %}>
+    ~{{ label }} <span class="bot-identity__tag">[bot]</span>
+</span>
+{%- endmacro %}

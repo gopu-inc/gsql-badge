@@ -19,10 +19,13 @@ import requests
 import tarfile
 import hashlib
 import hmac
+import io
 import logging
 import logging.handlers
+import tomllib
 from datetime import datetime, timedelta
 from functools import wraps
+from pathlib import PurePosixPath
 from urllib.parse import urlparse, urlencode, quote
 from utils.profile_image import MAX_PROFILE_IMAGE_BYTES, normalize_profile_image
 from utils.contact_mail import ContactDeliveryError, send_contact_email
@@ -109,6 +112,17 @@ MCP_PROTOCOL_VERSIONS = {
     '2024-11-05',
 }
 MCP_LATEST_PROTOCOL_VERSION = '2025-11-25'
+MCP_BOTS_PATH = 'database/mcp_bots.json'
+MCP_MAX_REQUEST_BYTES = 24 * 1024 * 1024
+MCP_MAX_PACKAGE_BYTES = 16 * 1024 * 1024
+MCP_BOT_SCOPES = {
+    'docs:read',
+    'forum:read',
+    'forum:write',
+    'contact:send',
+    'packages:create',
+    'packages:publish',
+}
 # ============================================================================
 # INITIALISATION FLASK
 # ============================================================================
@@ -128,6 +142,46 @@ app.config.update(
     SESSION_COOKIE_SAMESITE=SecurityConfig.COOKIE_SAMESITE,
     SESSION_COOKIE_NAME='zarch_session'
 )
+
+
+def _template_datetime(value):
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.strip().replace('Z', '+00:00'))
+    except ValueError:
+        return None
+
+
+@app.template_filter('timeago')
+def timeago_filter(value):
+    parsed = _template_datetime(value)
+    if not parsed:
+        return ''
+    now = datetime.now(parsed.tzinfo)
+    seconds = max(0, int((now - parsed).total_seconds()))
+    if seconds < 60:
+        return 'just now'
+    for unit, length in (
+        ('year', 31_536_000),
+        ('month', 2_592_000),
+        ('day', 86_400),
+        ('hour', 3_600),
+        ('minute', 60),
+    ):
+        count = seconds // length
+        if count:
+            return f'{count} {unit if count == 1 else unit + "s"} ago'
+    return 'just now'
+
+
+@app.template_filter('datetimeformat')
+def datetimeformat_filter(value, date_format='%Y-%m-%d %H:%M'):
+    parsed = _template_datetime(value)
+    return parsed.strftime(date_format) if parsed else ''
+
 
 # CORS configuration
 CORS_RESOURCES = {
@@ -2326,7 +2380,108 @@ MCP_TOOLS = [
         },
         'annotations': {'readOnlyHint': False, 'destructiveHint': False},
     },
+    {
+        'name': 'bots.register',
+        'title': 'Register an assistant bot',
+        'description': 'Create a bot identity and issue its one-time Bearer token. Administrator only.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'label': {'type': 'string', 'minLength': 2, 'maxLength': 48},
+                'scopes': {
+                    'type': 'array',
+                    'items': {'type': 'string', 'enum': sorted(MCP_BOT_SCOPES)},
+                    'minItems': 1,
+                    'maxItems': len(MCP_BOT_SCOPES),
+                    'uniqueItems': True,
+                },
+            },
+            'required': ['label', 'scopes'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': False, 'destructiveHint': False},
+    },
+    {
+        'name': 'bots.list',
+        'title': 'List assistant bots',
+        'description': 'List bot IDs, labels, permissions, and status. Administrator only.',
+        'inputSchema': {'type': 'object', 'properties': {}, 'additionalProperties': False},
+        'annotations': {'readOnlyHint': True},
+    },
+    {
+        'name': 'bots.revoke',
+        'title': 'Revoke an assistant bot',
+        'description': 'Disable a bot token without deleting its public identity. Administrator only.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {'bot_id': {'type': 'string', 'pattern': '^idbot_[a-f0-9]{24}$'}},
+            'required': ['bot_id'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': False, 'destructiveHint': True},
+    },
+    {
+        'name': 'golem.scaffold_package',
+        'title': 'Scaffold a Goscript library',
+        'description': 'Return starter package files for the authenticated bot to create in its local workspace.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string', 'pattern': '^[a-z0-9][a-z0-9._-]{0,63}$'},
+                'version': {'type': 'string', 'maxLength': 100},
+                'description': {'type': 'string', 'maxLength': 180},
+            },
+            'required': ['name'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': True},
+    },
+    {
+        'name': 'golem.publish_package',
+        'title': 'Publish a built Goscript library',
+        'description': 'Publish a validated public .tar.bool built by Golem under the authenticated bot identity.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string', 'pattern': '^[a-z0-9][a-z0-9._-]{0,213}$'},
+                'version': {'type': 'string', 'maxLength': 100},
+                'release': {'type': 'string', 'maxLength': 64},
+                'arch': {'type': 'string', 'maxLength': 64},
+                'archive_base64': {
+                    'type': 'string',
+                    'minLength': 1,
+                    'maxLength': ((MCP_MAX_PACKAGE_BYTES + 2) // 3) * 4,
+                },
+            },
+            'required': ['name', 'version', 'archive_base64'],
+            'additionalProperties': False,
+        },
+        'annotations': {'readOnlyHint': False, 'destructiveHint': False},
+    },
 ]
+
+MCP_TOOL_SCOPES = {
+    'forum.search_topics': 'forum:read',
+    'forum.get_topic': 'forum:read',
+    'forum.create_topic': 'forum:write',
+    'forum.reply': 'forum:write',
+    'contact.send_message': 'contact:send',
+    'golem.scaffold_package': 'packages:create',
+    'golem.publish_package': 'packages:publish',
+}
+
+MCP_DOC_RESOURCES = {
+    'zarch://docs/goscript': {
+        'name': 'Goscript language reference',
+        'description': 'Goscript syntax, types, imports, and standard library reference.',
+        'path': 'README-GOSCRIPT.md',
+    },
+    'zarch://docs/golem': {
+        'name': 'Golem build and publishing guide',
+        'description': 'Clone Goscript, install Golem, scaffold, build, and publish bot-owned libraries.',
+        'path': 'MCP-GOLEM.md',
+    },
+}
 
 
 def _normalize_forum_categories(forum_db):
@@ -2369,6 +2524,392 @@ def _mcp_forum_db():
     return forum_db
 
 
+def _mcp_bots_db():
+    bots_db = GitHubManager.read_from_github(MCP_BOTS_PATH, {'bots': []})
+    if not isinstance(bots_db, dict) or not isinstance(bots_db.get('bots'), list):
+        raise MCPToolError('Bot registry is unavailable or malformed.')
+    return bots_db
+
+
+def _mcp_principal_for_token(token):
+    if hmac.compare_digest(token.encode('utf-8'), MCP_API_TOKEN.encode('utf-8')):
+        return {
+            'type': 'admin',
+            'username': _mcp_forum_author(),
+            'label': os.environ.get('MCP_FORUM_LABEL', 'Golem Assistant').strip(),
+            'bot_id': 'idbot_service',
+            'scopes': sorted(MCP_BOT_SCOPES),
+        }
+
+    token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+    bots_db = _mcp_bots_db()
+    bot = next((
+        entry for entry in bots_db['bots']
+        if isinstance(entry, dict)
+        and entry.get('enabled', True)
+        and isinstance(entry.get('token_hash'), str)
+        and hmac.compare_digest(entry['token_hash'], token_hash)
+    ), None)
+    if not bot:
+        return None
+
+    bot_id = bot.get('bot_id')
+    username = bot.get('username')
+    label = bot.get('label')
+    scopes = bot.get('scopes')
+    if (
+        not isinstance(bot_id, str)
+        or not re.fullmatch(r'idbot_[a-f0-9]{24}', bot_id)
+        or not isinstance(username, str)
+        or not re.fullmatch(r'bot_[a-f0-9]{16}', username)
+        or not isinstance(label, str)
+        or not isinstance(scopes, list)
+        or any(scope not in MCP_BOT_SCOPES for scope in scopes)
+    ):
+        raise MCPToolError('Bot registry contains an invalid identity record.')
+    return {
+        'type': 'bot',
+        'bot_id': bot_id,
+        'username': username,
+        'label': label,
+        'display_name': f'~{label} [bot]',
+        'scopes': scopes,
+    }
+
+
+def _mcp_authorize_tool(name, principal):
+    if principal.get('type') == 'admin':
+        return
+    if name.startswith('bots.'):
+        raise MCPToolError('Only the administrator credential can manage bots.')
+    required_scope = MCP_TOOL_SCOPES.get(name)
+    if not required_scope or required_scope not in principal.get('scopes', []):
+        raise MCPToolError(f'This bot is missing the required {required_scope or "tool"} permission.')
+
+
+def _mcp_register_bot(arguments, principal):
+    if principal.get('type') != 'admin':
+        raise MCPToolError('Only the administrator credential can register bots.')
+    label = arguments.get('label')
+    scopes = arguments.get('scopes')
+    if (
+        not isinstance(label, str)
+        or not 2 <= len(label.strip()) <= 48
+        or any(ord(char) < 32 for char in label)
+    ):
+        raise MCPToolError('Bot label must be between 2 and 48 printable characters.')
+    if (
+        not isinstance(scopes, list)
+        or not scopes
+        or len(scopes) > len(MCP_BOT_SCOPES)
+        or any(not isinstance(scope, str) or scope not in MCP_BOT_SCOPES for scope in scopes)
+        or len(set(scopes)) != len(scopes)
+    ):
+        raise MCPToolError('Choose unique permissions from the published scope list.')
+
+    label = label.strip()
+    bot_id = f'idbot_{secrets.token_hex(12)}'
+    username = f'bot_{secrets.token_hex(8)}'
+    bot_token = f'bot_sktok_{secrets.token_urlsafe(32)}'
+    bots_db = _mcp_bots_db()
+    bot = {
+        'bot_id': bot_id,
+        'username': username,
+        'label': label,
+        'token_hash': hashlib.sha256(bot_token.encode('utf-8')).hexdigest(),
+        'scopes': sorted(scopes),
+        'enabled': True,
+        'created_at': datetime.now().isoformat(),
+    }
+    bots_db['bots'].append(bot)
+    if not GitHubManager.save_to_github(
+        MCP_BOTS_PATH, bots_db, f'Register bot {label[:32]}'
+    ):
+        raise MCPToolError('The bot identity could not be saved.')
+    return {
+        'created': True,
+        'bot_id': bot_id,
+        'username': username,
+        'display_name': f'~{label} [bot]',
+        'scopes': bot['scopes'],
+        'token': bot_token,
+        'warning': 'Save this token now; it is returned only once.',
+    }
+
+
+def _mcp_list_bots(principal):
+    if principal.get('type') != 'admin':
+        raise MCPToolError('Only the administrator credential can list bots.')
+    bots_db = _mcp_bots_db()
+    return {
+        'bots': [{
+            'bot_id': bot.get('bot_id'),
+            'username': bot.get('username'),
+            'display_name': f"~{bot.get('label', 'Bot')} [bot]",
+            'scopes': bot.get('scopes', []),
+            'enabled': bool(bot.get('enabled', True)),
+            'created_at': bot.get('created_at'),
+        } for bot in bots_db['bots'] if isinstance(bot, dict)]
+    }
+
+
+def _mcp_revoke_bot(arguments, principal):
+    if principal.get('type') != 'admin':
+        raise MCPToolError('Only the administrator credential can revoke bots.')
+    bot_id = arguments.get('bot_id')
+    if not isinstance(bot_id, str) or not re.fullmatch(r'idbot_[a-f0-9]{24}', bot_id):
+        raise MCPToolError('bot_id must be a valid idbot identifier.')
+    bots_db = _mcp_bots_db()
+    bot = next((
+        entry for entry in bots_db['bots']
+        if isinstance(entry, dict) and entry.get('bot_id') == bot_id
+    ), None)
+    if not bot:
+        raise MCPToolError('Bot identity not found.')
+    if not bot.get('enabled', True):
+        return {'revoked': True, 'bot_id': bot_id, 'unchanged': True}
+    bot['enabled'] = False
+    bot['revoked_at'] = datetime.now().isoformat()
+    if not GitHubManager.save_to_github(
+        MCP_BOTS_PATH, bots_db, f'Revoke bot {bot_id}'
+    ):
+        raise MCPToolError('The bot credential could not be revoked.')
+    return {'revoked': True, 'bot_id': bot_id}
+
+
+def _mcp_bot_author(principal):
+    if principal.get('type') == 'bot':
+        label = principal['label']
+        return {
+            'author': principal['username'],
+            'author_is_bot': True,
+            'author_label': label,
+            'author_display': principal['display_name'],
+            'bot_id': principal['bot_id'],
+        }
+    label = os.environ.get('MCP_FORUM_LABEL', 'Golem Assistant').strip() or 'Golem Assistant'
+    return {
+        'author': _mcp_forum_author(),
+        'author_is_bot': True,
+        'author_label': label,
+        'author_display': f'~{label} [bot]',
+        'bot_id': 'idbot_service',
+    }
+
+
+def _mcp_toml_string(value):
+    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def _mcp_scaffold_package(arguments, principal):
+    name = arguments.get('name')
+    version = arguments.get('version', '0.1.0')
+    description = arguments.get('description', 'A Goscript library.')
+    try:
+        PackageUpload(name=name, version=version)
+    except (ValidationError, TypeError) as error:
+        raise MCPToolError(str(error)) from error
+    if (
+        not isinstance(description, str)
+        or len(description.strip()) > 180
+        or any(ord(char) < 32 for char in description)
+    ):
+        raise MCPToolError('description must be up to 180 printable characters.')
+
+    identity = _mcp_bot_author(principal)
+    author = identity['author']
+    readme = (
+        f'# {name}\n\n{description.strip()}\n\n'
+        '## Install\n\n```sh\ngolem install ' + name + '\n```\n\n'
+        '## Usage\n\nImport this package from a Goscript project.\n'
+    )
+    files = {
+        'Manifest.toml': (
+            '[metadata]\n'
+            f'name = {_mcp_toml_string(name)}\n'
+            f'version = {_mcp_toml_string(version)}\n'
+            'release = "r0"\n'
+            'arch = "x86_64"\n'
+            f'description = {_mcp_toml_string(description.strip())}\n'
+            f'author = {_mcp_toml_string(author)}\n'
+            'license = "MIT"\n'
+            'main = "__self__.gjs"\n'
+            'files = ["__self__.gjs", "main.gjs", "README.md"]\n'
+            'scope = "public"\n\n'
+            '[dependencies]\n'
+        ),
+        '__self__.gjs': (
+            f'golem {name}\n'
+            'pub fn package_name(): string {\n'
+            f'    ret "{name}"\n'
+            '}\n'
+        ),
+        'main.gjs': (
+            'fn main() {\n'
+            f'    println("Welcome to {name}")\n'
+            '}\n'
+        ),
+        'README.md': readme,
+    }
+    return {
+        'name': name,
+        'version': version,
+        'author': author,
+        'bot_id': identity['bot_id'],
+        'files': files,
+        'next_steps': [
+            f'Create a local directory named {name} and write these files.',
+            'Review the code and dependencies before running it.',
+            'Run golem build in the package directory.',
+            'Send the resulting .tar.bool as base64 to golem.publish_package.',
+        ],
+    }
+
+
+def _mcp_validate_package_archive(archive_bytes, upload):
+    if not archive_bytes or len(archive_bytes) > MCP_MAX_PACKAGE_BYTES:
+        raise MCPToolError('Package archives must be between 1 byte and 16 MiB.')
+    try:
+        with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode='r:*') as archive:
+            members = archive.getmembers()
+            if not members or len(members) > 512:
+                raise MCPToolError('Package archive must contain at most 512 entries.')
+            paths = set()
+            total_size = 0
+            manifest_member = None
+            required_entry = False
+            for member in members:
+                raw_name = member.name
+                path = PurePosixPath(raw_name)
+                normalized = path.as_posix()
+                if (
+                    not raw_name
+                    or '\\' in raw_name
+                    or path.is_absolute()
+                    or '..' in path.parts
+                ):
+                    raise MCPToolError('Package archive contains an unsafe path.')
+                if normalized in paths:
+                    raise MCPToolError('Package archive contains duplicate paths.')
+                paths.add(normalized)
+                if not (member.isfile() or member.isdir()):
+                    raise MCPToolError('Package archive cannot contain links or special files.')
+                if member.isfile():
+                    total_size += member.size
+                    if total_size > 64 * 1024 * 1024:
+                        raise MCPToolError('Uncompressed package contents exceed 64 MiB.')
+                    if normalized == 'Manifest.toml':
+                        manifest_member = member
+                    if normalized == '__self__.gjs':
+                        required_entry = True
+            if not manifest_member or not required_entry:
+                raise MCPToolError('Archive must include root Manifest.toml and __self__.gjs files.')
+            manifest_file = archive.extractfile(manifest_member)
+            if not manifest_file:
+                raise MCPToolError('The package manifest could not be read.')
+            manifest = tomllib.loads(manifest_file.read(1024 * 1024).decode('utf-8'))
+    except MCPToolError:
+        raise
+    except (OSError, tarfile.TarError, UnicodeDecodeError, tomllib.TOMLDecodeError, ValueError) as error:
+        raise MCPToolError('Package archive or Manifest.toml is invalid.') from error
+
+    metadata = manifest.get('metadata') if isinstance(manifest, dict) else None
+    if not isinstance(metadata, dict):
+        raise MCPToolError('Manifest.toml is missing its [metadata] section.')
+    expected = {
+        'name': upload.name,
+        'version': upload.version,
+        'release': upload.release,
+        'arch': upload.arch,
+        'scope': upload.scope,
+    }
+    defaults = {'release': 'r0', 'arch': 'x86_64', 'scope': 'public'}
+    for field, value in expected.items():
+        if str(metadata.get(field, defaults.get(field, ''))) != value:
+            raise MCPToolError(f'Manifest.toml {field} does not match the publish request.')
+
+
+def _mcp_publish_package(arguments, principal):
+    name = arguments.get('name')
+    version = arguments.get('version')
+    release = arguments.get('release', 'r0')
+    arch = arguments.get('arch', 'x86_64')
+    try:
+        upload = PackageUpload(
+            name=name,
+            version=version,
+            scope='public',
+            release=release,
+            arch=arch,
+        )
+    except (ValidationError, TypeError) as error:
+        raise MCPToolError(str(error)) from error
+
+    archive_encoded = arguments.get('archive_base64')
+    max_encoded_length = ((MCP_MAX_PACKAGE_BYTES + 2) // 3) * 4
+    if not isinstance(archive_encoded, str) or len(archive_encoded) > max_encoded_length:
+        raise MCPToolError('archive_base64 is missing or exceeds the 16 MiB archive limit.')
+    try:
+        archive_bytes = base64.b64decode(archive_encoded, validate=True)
+    except (ValueError, base64.binascii.Error) as error:
+        raise MCPToolError('archive_base64 must contain valid base64 data.') from error
+    _mcp_validate_package_archive(archive_bytes, upload)
+
+    db = GitHubManager.read_from_github('database/zenv_hub.json', {'packages': []})
+    if not isinstance(db, dict) or not isinstance(db.get('packages'), list):
+        raise MCPToolError('Package registry is unavailable or malformed.')
+    records = [
+        package for package in db['packages']
+        if isinstance(package, dict)
+        and _package_identity(package) == (upload.scope.casefold(), upload.name.casefold())
+    ]
+    canonical_records, owner, _ = _canonical_package_records(records)
+    publisher = principal['username']
+    if records and (not owner or owner.casefold() != publisher.casefold()):
+        raise MCPToolError(f'Package name is already owned by {owner or "another publisher"}.')
+
+    sha256 = hashlib.sha256(archive_bytes).hexdigest()
+    existing = next((
+        package for package in canonical_records
+        if str(package.get('version')) == upload.version
+        and str(package.get('release', 'r0')) == upload.release
+        and str(package.get('arch', 'x86_64')) == upload.arch
+    ), None)
+    if existing:
+        if existing.get('sha256') == sha256:
+            return {'published': True, 'unchanged': True, 'package': existing}
+        raise MCPToolError('This version already exists; publish a new version instead.')
+
+    now = datetime.now().isoformat()
+    identity = _mcp_bot_author(principal)
+    entry = {
+        'name': upload.name,
+        'scope': upload.scope,
+        'version': upload.version,
+        'release': upload.release,
+        'arch': upload.arch,
+        'author': publisher,
+        **identity,
+        'sha256': sha256,
+        'size': len(archive_bytes),
+        'created_at': now,
+        'updated_at': now,
+        'downloads': 0,
+    }
+    filename = f'{upload.name}-{upload.version}-{upload.release}-{upload.arch}.tar.bool'
+    archive_path = f'packages/{upload.scope}/{upload.name}/{filename}'
+    if not GitHubManager.save_to_github(
+        archive_path, archive_bytes, f'MCP package {upload.name} {upload.version}'
+    ):
+        raise MCPToolError('Package archive upload failed.')
+    db['packages'].append(entry)
+    if not GitHubManager.save_to_github(
+        'database/zenv_hub.json', db, f'Index MCP package {upload.name}'
+    ):
+        raise MCPToolError('The archive was uploaded, but the registry index update failed.')
+    return {'published': True, 'unchanged': False, 'package': entry}
+
+
 def _mcp_forum_author():
     author = os.environ.get('MCP_FORUM_AUTHOR', 'golem-assistant').strip()
     if not re.fullmatch(r'[A-Za-z0-9_-]{2,32}', author):
@@ -2376,9 +2917,25 @@ def _mcp_forum_author():
     return author
 
 
-def _mcp_tool_call(name, arguments):
+def _mcp_tool_call(name, arguments, principal):
+    if not isinstance(principal, dict):
+        raise MCPToolError('An authenticated MCP identity is required.')
+    if not any(tool['name'] == name for tool in MCP_TOOLS):
+        raise MCPToolError(f'Unknown tool: {name}')
+    _mcp_authorize_tool(name, principal)
     if not isinstance(arguments, dict):
         raise MCPToolError('Tool arguments must be a JSON object.')
+
+    if name == 'bots.register':
+        return _mcp_register_bot(arguments, principal)
+    if name == 'bots.list':
+        return _mcp_list_bots(principal)
+    if name == 'bots.revoke':
+        return _mcp_revoke_bot(arguments, principal)
+    if name == 'golem.scaffold_package':
+        return _mcp_scaffold_package(arguments, principal)
+    if name == 'golem.publish_package':
+        return _mcp_publish_package(arguments, principal)
 
     if name == 'forum.search_topics':
         query = arguments.get('query', '')
@@ -2471,11 +3028,12 @@ def _mcp_tool_call(name, arguments):
             slug = f'{slug}-{uuid.uuid4().hex[:8]}'
 
         now = datetime.now().isoformat()
+        identity = _mcp_bot_author(principal)
         topic = {
             'id': str(uuid.uuid4()),
             'slug': slug,
             'title': SecurityUtils.escape_text(title.strip()),
-            'author': _mcp_forum_author(),
+            **identity,
             'category': category,
             'content': content.strip(),
             'tags': [tag.strip().lower().replace(' ', '-') for tag in tags if tag.strip()],
@@ -2494,7 +3052,14 @@ def _mcp_tool_call(name, arguments):
             'forum/topics.json', forum_db, f"MCP topic: {title.strip()[:80]}"
         ):
             raise MCPToolError('The forum topic could not be published.')
-        return {'published': True, 'slug': slug, 'url': f'/forum/topic/{slug}', 'author': topic['author']}
+        return {
+            'published': True,
+            'slug': slug,
+            'url': f'/forum/topic/{slug}',
+            'author': topic['author'],
+            'author_display': topic['author_display'],
+            'bot_id': topic['bot_id'],
+        }
 
     if name == 'forum.reply':
         slug = arguments.get('slug')
@@ -2516,12 +3081,13 @@ def _mcp_tool_call(name, arguments):
         )
         if not isinstance(replies_db, dict) or not isinstance(replies_db.get('replies', []), list):
             raise MCPToolError('Forum replies are unavailable or malformed.')
-        author = _mcp_forum_author()
+        identity = _mcp_bot_author(principal)
+        author = identity['author']
         now = datetime.now().isoformat()
         reply = {
             'id': str(uuid.uuid4()),
             'topic_slug': slug,
-            'author': author,
+            **identity,
             'content': content.strip(),
             'likes': 0,
             'liked_by': [],
@@ -2537,12 +3103,22 @@ def _mcp_tool_call(name, arguments):
         topic['reply_count'] = len(replies_db['replies'])
         topic['last_reply_at'] = now
         topic['last_reply_by'] = author
+        topic['last_reply_is_bot'] = identity['author_is_bot']
+        topic['last_reply_label'] = identity['author_label']
+        topic['last_reply_bot_id'] = identity['bot_id']
         topic['updated_at'] = now
         if not GitHubManager.save_to_github(
             'forum/topics.json', forum_db, f'Update MCP reply count: {slug}'
         ):
             raise MCPToolError('The reply was published, but the topic metadata update failed.')
-        return {'published': True, 'slug': slug, 'reply_id': reply['id'], 'author': author}
+        return {
+            'published': True,
+            'slug': slug,
+            'reply_id': reply['id'],
+            'author': author,
+            'author_display': identity['author_display'],
+            'bot_id': identity['bot_id'],
+        }
 
     if name == 'contact.send_message':
         try:
@@ -2559,11 +3135,26 @@ def _mcp_tool_call(name, arguments):
             raise MCPToolError(str(error)) from error
         return {'sent': True, 'to': CONTACT_EMAIL}
 
-    raise MCPToolError(f'Unknown tool: {name}')
-
-
 def _mcp_jsonrpc_error(message_id, code, message):
     return {'jsonrpc': '2.0', 'id': message_id, 'error': {'code': code, 'message': message}}
+
+
+def _mcp_authorize_docs(principal):
+    if principal.get('type') != 'admin' and 'docs:read' not in principal.get('scopes', []):
+        raise MCPToolError('This bot is missing the required docs:read permission.')
+
+
+def _mcp_read_resource(uri):
+    resource = MCP_DOC_RESOURCES.get(uri)
+    if not resource:
+        raise MCPToolError('Unknown documentation resource.')
+    path = os.path.join(os.path.dirname(__file__), 'docs', resource['path'])
+    try:
+        with open(path, encoding='utf-8') as document:
+            return document.read()
+    except OSError as error:
+        app.logger.exception('Could not read MCP documentation resource: %s', uri)
+        raise MCPToolError('Documentation resource is temporarily unavailable.') from error
 
 
 @app.route('/mcp', methods=['POST', 'GET', 'DELETE'])
@@ -2576,17 +3167,30 @@ def mcp_endpoint():
         return jsonify({'error': 'MCP is not configured with a secure API token.'}), 503
     authorization = request.headers.get('Authorization', '')
     scheme, separator, supplied_token = authorization.partition(' ')
-    if (scheme.lower() != 'bearer' or not separator
-            or not hmac.compare_digest(supplied_token.encode('utf-8'), MCP_API_TOKEN.encode('utf-8'))):
+    if scheme.lower() != 'bearer' or not separator or not supplied_token:
         response = jsonify({'error': 'A valid Bearer token is required.'})
         response.status_code = 401
         response.headers['WWW-Authenticate'] = 'Bearer'
         return response
+    try:
+        principal = _mcp_principal_for_token(supplied_token)
+    except MCPToolError:
+        app.logger.exception('MCP identity validation failed.')
+        return jsonify({'error': 'MCP identity storage is unavailable or malformed.'}), 503
+    except Exception:
+        app.logger.exception('MCP identity validation failed.')
+        return jsonify({'error': 'MCP identity validation failed.'}), 503
+    if not principal:
+        response = jsonify({'error': 'A valid Bearer token is required.'})
+        response.status_code = 401
+        response.headers['WWW-Authenticate'] = 'Bearer'
+        return response
+    g.mcp_principal = principal
 
     if request.method != 'POST':
         return '', 405, {'Allow': 'POST'}
-    if request.content_length and request.content_length > 1_048_576:
-        return jsonify({'error': 'MCP request body exceeds 1 MiB.'}), 413
+    if request.content_length and request.content_length > MCP_MAX_REQUEST_BYTES:
+        return jsonify({'error': 'MCP request body exceeds 24 MiB.'}), 413
     if request.mimetype != 'application/json':
         return jsonify({'error': 'Content-Type must be application/json.'}), 415
     accepted_types = {
@@ -2635,28 +3239,64 @@ def mcp_endpoint():
             )
             result = {
                 'protocolVersion': negotiated_version,
-                'capabilities': {'tools': {}},
+                'capabilities': {'tools': {}, 'resources': {}},
                 'serverInfo': {
                     'name': 'zarch-hub',
                     'title': 'Zarch Hub',
                     'version': '1.0.0',
                 },
                 'instructions': (
-                    'Use forum.search_topics and forum.get_topic to review discussions before '
-                    'posting. Forum writes are published as the configured Golem assistant. '
+                    'Read zarch://docs/goscript and zarch://docs/golem before scaffolding or '
+                    'publishing a library. Use bots.register with the administrator credential '
+                    'to issue a separate bot identity. Forum and package writes use the '
+                    'authenticated bot identity. '
                     f'contact.send_message sends email to {CONTACT_EMAIL}.'
                 ),
             }
         elif method == 'ping':
             result = {}
         elif method == 'tools/list':
-            result = {'tools': MCP_TOOLS}
+            result = {'tools': [
+                tool for tool in MCP_TOOLS
+                if principal.get('type') == 'admin'
+                or (
+                    not tool['name'].startswith('bots.')
+                    and MCP_TOOL_SCOPES.get(tool['name']) in principal.get('scopes', [])
+                )
+            ]}
+        elif method == 'resources/list':
+            _mcp_authorize_docs(principal)
+            result = {'resources': [{
+                'uri': uri,
+                'name': resource['name'],
+                'description': resource['description'],
+                'mimeType': 'text/markdown',
+            } for uri, resource in MCP_DOC_RESOURCES.items()]}
+        elif method == 'resources/read':
+            _mcp_authorize_docs(principal)
+            uri = params.get('uri')
+            if not isinstance(uri, str):
+                return jsonify(_mcp_jsonrpc_error(message_id, -32602, 'Resource URI is required.'))
+            try:
+                result = {
+                    'contents': [{
+                        'uri': uri,
+                        'mimeType': 'text/markdown',
+                        'text': _mcp_read_resource(uri),
+                    }]
+                }
+            except MCPToolError as error:
+                return jsonify(_mcp_jsonrpc_error(message_id, -32602, str(error)))
         elif method == 'tools/call':
             tool_name = params.get('name')
             if not isinstance(tool_name, str):
                 return jsonify(_mcp_jsonrpc_error(message_id, -32602, 'Tool name is required.'))
             try:
-                tool_result = _mcp_tool_call(tool_name, params.get('arguments', {}))
+                tool_result = _mcp_tool_call(
+                    tool_name,
+                    params.get('arguments', {}),
+                    principal,
+                )
                 result = {
                     'content': [{
                         'type': 'text',

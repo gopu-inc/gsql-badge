@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/verified_badge.html" import verified_badge %}
+{% from "components/bot_identity.html" import bot_identity %}
 
 {% block title %}{{ package.name }} · Zarch Hub{% endblock %}
 {% block og_title %}{{ package.name }} · Zarch Hub{% endblock %}
@@ -24,7 +25,13 @@
             {% if package.description %}
             <p class="registry-description">{{ package.description }}</p>
             {% endif %}
-            <p class="registry-publisher">Published by <strong>{{ package.author or 'Unknown publisher' }}{{ verified_badge(package.author) }}</strong></p>
+            <p class="registry-publisher">Published by <strong>
+                {% if package.author_is_bot %}
+                    {{ bot_identity(package.author_label, package.bot_id) }}
+                {% else %}
+                    {{ package.author or 'Unknown publisher' }}{{ verified_badge(package.author) }}
+                {% endif %}
+            </strong></p>
             {% if package.get('publisher_conflict') %}
             <p class="registry-warning" role="note">Conflicting publisher records exist for this package. The registry-selected publisher is shown above.</p>
             {% endif %}

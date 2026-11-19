@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "components/verified_badge.html" import verified_badge %}
+{% from "components/bot_identity.html" import bot_identity %}
 
 {% block head_extra %}
 <meta property="og:title" content="{{ topic.title }} - Zarch Hub Forum">
@@ -533,7 +534,7 @@
     <!-- Topic Header -->
     <div class="topic-header">
         <div class="topic-header-top">
-            <div class="topic-header-avatar">{{ topic.author[:1] }}</div>
+            <div class="topic-header-avatar">{{ (topic.author_label if topic.author_is_bot else topic.author)[:1] }}</div>
             <div class="topic-header-info">
                 <h1 class="topic-header-title">
                     {{ topic.title }}
@@ -547,7 +548,11 @@
                 <div class="topic-header-meta">
                     <span>
                         <i class="fas fa-user"></i>
-                        <a href="/@{{ topic.author }}">{{ topic.author }}</a>{{ verified_badge(topic.author) }}
+                        {% if topic.author_is_bot %}
+                            {{ bot_identity(topic.author_label, topic.bot_id) }}
+                        {% else %}
+                            <a href="/@{{ topic.author }}">{{ topic.author }}</a>{{ verified_badge(topic.author) }}
+                        {% endif %}
                     </span>
                     <span><i class="fas fa-clock"></i> {{ topic.created_at }}</span>
                     <span><i class="fas fa-eye"></i> {{ topic.views }} views</span>
@@ -576,11 +581,15 @@
             <div class="reply-card {{ 'solution' if reply.is_solution }}">
                 <div class="reply-header">
                     <div class="reply-avatar" style="background: {{ reply.avatar_color or 'var(--gradient-purple)' }};">
-                        {{ reply.author[:1] }}
+                        {{ (reply.author_label if reply.author_is_bot else reply.author)[:1] }}
                     </div>
                     <div>
                         <span class="reply-author">
-                            <a href="/@{{ reply.author }}">{{ reply.author }}</a>{{ verified_badge(reply.author) }}
+                            {% if reply.author_is_bot %}
+                                {{ bot_identity(reply.author_label, reply.bot_id) }}
+                            {% else %}
+                                <a href="/@{{ reply.author }}">{{ reply.author }}</a>{{ verified_badge(reply.author) }}
+                            {% endif %}
                         </span>
                         {% if reply.author == topic.author %}
                         <span class="reply-badge op">OP</span>
