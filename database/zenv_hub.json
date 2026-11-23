@@ -169,6 +169,19 @@
       "created_at": "2026-11-23T04:09:49.770975",
       "updated_at": "2026-11-23T04:09:49.770981",
       "downloads": 1
+    },
+    {
+      "name": "curse",
+      "scope": "public",
+      "version": "0.1.4",
+      "release": "r0",
+      "arch": "x86_64",
+      "author": "admin",
+      "sha256": "efd2749abc0308730cc241eb8e2fb881bc80068934d38df45301aa5eae143ea8",
+      "size": 17119,
+      "created_at": "2026-11-23T23:11:51.671262",
+      "updated_at": "2026-11-23T23:11:51.671267",
+      "downloads": 0
     }
   ],
   "badges": [],
