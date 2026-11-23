@@ -133,6 +133,14 @@
       "password": "$2b$12$VO3nGRHWbuimXOLZjcPC/ewUpDju.JKsoSbH8EDn5aAxFP0YF2gWu",
       "role": "user",
       "created_at": "2026-11-18T20:55:32.099619"
+    },
+    {
+      "id": "0f3b86a6-1ade-4eb5-8add-00813c906d39",
+      "username": "claude",
+      "email": "no-reply@claude.ai",
+      "password": "$2b$12$fSuYAAQ5ZWlEhcsIavdq0u5T79h6BQM5TupvJ9RVP/1JRFIrAXmRG",
+      "role": "user",
+      "created_at": "2026-11-23T02:24:03.863146"
     }
   ]
 }
