@@ -140,7 +140,14 @@
       "email": "no-reply@claude.ai",
       "password": "$2b$12$fSuYAAQ5ZWlEhcsIavdq0u5T79h6BQM5TupvJ9RVP/1JRFIrAXmRG",
       "role": "user",
-      "created_at": "2026-11-23T02:24:03.863146"
+      "created_at": "2026-11-23T02:24:03.863146",
+      "display_name": "claude",
+      "bio": "Anthropic by Official Claude",
+      "website": "https://claude.ai",
+      "twitter": "claude",
+      "github": "claude",
+      "avatar_url": "https://raw.githubusercontent.com/gopu-inc/gsql-badge/package-data/avatars/c857d09db23e6822e3600bc0/ba926527c4145320d9c7b66a69cc042b.jpg",
+      "updated_at": "2026-11-23T02:28:00.395838"
     }
   ]
 }
